@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  COACH
+  PLAYER
+}
+
+enum TaskCategory {
+  STRENGTH
+  CONDITION
+  MOBILITY
+  TACTIC
+  MENTAL
+  OTHER
+}
+
+enum InputSchema {
+  RPE_ONLY
+  RPE_AND_WEIGHT
+  RPE_AND_DURATION
+  BOOLEAN_DONE
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  playerProfile PlayerProfile?
+}
+
+model PlayerProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  fullName  String
+  birthday  DateTime?
+  position  String?
+
+  coachLinks CoachPlayerLink[]
+  logs       TaskLog[]
+}
+
+model CoachPlayerLink {
+  id        String   @id @default(cuid())
+  coachId   String
+  playerId  String
+  createdAt DateTime @default(now())
+}
+
+model TaskTemplate {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  category    TaskCategory
+  inputSchema InputSchema
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  events CalendarEvent[]
+}
+
+model CalendarEvent {
+  id            String        @id @default(cuid())
+  coachId       String
+  playerId      String
+  taskTemplateId String?
+  title         String
+  notes         String?
+  start         DateTime
+  end           DateTime
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  taskTemplate TaskTemplate? @relation(fields: [taskTemplateId], references: [id])
+  logs         TaskLog[]
+}
+
+model TaskLog {
+  id         String         @id @default(cuid())
+  eventId    String
+  playerId   String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  rpe        Int?
+  weight     Float?
+  duration   Int?
+  completed  Boolean?
+
+  event      CalendarEvent  @relation(fields: [eventId], references: [id])
+  player     PlayerProfile  @relation(fields: [playerId], references: [id])
+}

@@ -1,0 +1,16 @@
+node_modules
+dist
+.next
+.env
+.env.local
+pnpm-lock.yaml
+coverage
+.DS_Store
+=== FILE END ===
+
+=== FILE: .env.example ===
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/challangepoint"
+JWT_ACCESS_SECRET="change-me-access"
+JWT_REFRESH_SECRET="change-me-refresh"
+PORT_API=4000
+PORT_WEB=3000

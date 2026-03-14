@@ -1,12 +1,19 @@
+// -------------------------------------------------------------------
+// Generator & Datasource
+// -------------------------------------------------------------------
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "./generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // URL in Prisma 7 NICHT hier, sondern in prisma.config.ts konfigurieren
 }
 
+// -------------------------------------------------------------------
+// Enums
+// -------------------------------------------------------------------
 enum Role {
   ADMIN
   COACH
@@ -14,91 +21,110 @@ enum Role {
 }
 
 enum TaskCategory {
-  STRENGTH
-  CONDITION
-  MOBILITY
-  TACTIC
-  MENTAL
-  OTHER
+  APPROACH
+  OTT
+  ARG
+  PUTTING
 }
 
 enum InputSchema {
-  RPE_ONLY
-  RPE_AND_WEIGHT
-  RPE_AND_DURATION
-  BOOLEAN_DONE
+  numeric_success
+  numeric_score
+  text_reflection
 }
 
+// -------------------------------------------------------------------
+// Modelle
+// -------------------------------------------------------------------
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
-  password  String
-  role      Role
+  name      String?
+  role      Role     @default(PLAYER)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  playerProfile PlayerProfile?
+  // 1:1 auf PlayerProfile
+  PlayerProfile PlayerProfile?
+
+  // Coach ↔ Player Links (zwei Relationen zum selben Zielmodell → Namen nötig)
+  CoachPlayerLinks  CoachPlayerLink[] @relation("CoachLinks")   // als Coach
+  PlayerCoachLinks  CoachPlayerLink[] @relation("PlayerLinks")  // als Player
+
+  // Back-Relations für CalendarEvent
+  eventsAsPlayer   CalendarEvent[] @relation("CalendarEvent_Player")
+  eventsAsCreator  CalendarEvent[] @relation("CalendarEvent_CreatedBy")
+
+  // Von TaskTemplate (optional)
+  templatesCreated TaskTemplate[]
 }
 
 model PlayerProfile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  fullName  String
-  birthday  DateTime?
-  position  String?
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
 
-  coachLinks CoachPlayerLink[]
-  logs       TaskLog[]
+  @@index([userId])
 }
 
 model CoachPlayerLink {
-  id        String   @id @default(cuid())
-  coachId   String
-  playerId  String
-  createdAt DateTime @default(now())
+  id       String @id @default(cuid())
+  coachId  String
+  playerId String
+
+  // Zwei Relationen zu User → unterschiedliche, sprechende Namen verwenden
+  coach  User @relation("CoachLinks",  fields: [coachId],  references: [id])
+  player User @relation("PlayerLinks", fields: [playerId], references: [id])
+
+  // Verhindert doppelte Link-Paare (gleicher Coach & gleicher Player)
+  @@unique([coachId, playerId])
+  @@index([coachId])
+  @@index([playerId])
 }
 
 model TaskTemplate {
   id          String       @id @default(cuid())
   title       String
-  description String?
   category    TaskCategory
   inputSchema InputSchema
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdById String?
+  createdBy   User?        @relation(fields: [createdById], references: [id])
 
-  events CalendarEvent[]
+  events      CalendarEvent[]
+
+  @@index([createdById])
 }
 
 model CalendarEvent {
-  id            String        @id @default(cuid())
-  coachId       String
-  playerId      String
-  taskTemplateId String?
-  title         String
-  notes         String?
-  start         DateTime
-  end           DateTime
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id          String    @id @default(cuid())
+  playerId    String
+  templateId  String
+  start       DateTime
+  end         DateTime
+  createdById String
 
-  taskTemplate TaskTemplate? @relation(fields: [taskTemplateId], references: [id])
-  logs         TaskLog[]
+  // Zwei Relationen zu User → unterschiedliche Namen
+  player     User         @relation("CalendarEvent_Player",    fields: [playerId],    references: [id])
+  createdBy  User         @relation("CalendarEvent_CreatedBy", fields: [createdById], references: [id])
+
+  template   TaskTemplate @relation(fields: [templateId], references: [id])
+  TaskLogs   TaskLog[]
+
+  @@index([playerId])
+  @@index([createdById])
+  @@index([templateId])
 }
 
 model TaskLog {
-  id         String         @id @default(cuid())
-  eventId    String
-  playerId   String
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  id        String        @id @default(cuid())
+  eventId   String
+  type      InputSchema
+  attempts  Int?
+  successes Int?
+  score     Float?
+  text      String?
+  createdAt DateTime      @default(now())
 
-  rpe        Int?
-  weight     Float?
-  duration   Int?
-  completed  Boolean?
+  event     CalendarEvent @relation(fields: [eventId], references: [id])
 
-  event      CalendarEvent  @relation(fields: [eventId], references: [id])
-  player     PlayerProfile  @relation(fields: [playerId], references: [id])
+  @@index([eventId])
 }

@@ -1,11 +1,18 @@
-"use client";
-import { useEffect, useMemo, useState } from "react";
-import FullCalendar from "@fullcalendar/react";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import interactionPlugin from "@fullcalendar/interaction";
-import { api } from "@/lib/api";
-import type { CalendarEvent } from "@/lib/types";
+'use client';
+import { useEffect, useMemo, useState } from 'react';
+import FullCalendar from '@fullcalendar/react';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
+
+// FullCalendar styles (v6)
+import '@fullcalendar/common/main.css';
+import '@fullcalendar/daygrid/main.css';
+import '@fullcalendar/timegrid/main.css';
+// import '@fullcalendar/list/main.css'; // optional
+
+import { api } from '@/lib/api';
+import type { CalendarEvent } from '@/lib/types';
 
 export function PlayerCalendar({ playerId }: { playerId: string }) {
   const [events, setEvents] = useState<any[]>([]);
@@ -20,11 +27,11 @@ export function PlayerCalendar({ playerId }: { playerId: string }) {
           setEvents(
             data.map((e) => ({
               id: e.id,
-              title: e.template?.title ?? "Task",
+              title: e.template?.title ?? 'Task',
               start: e.start,
               end: e.end,
               extendedProps: { templateId: e.templateId },
-            }))
+            })),
           );
         }
       } finally {
@@ -46,7 +53,7 @@ export function PlayerCalendar({ playerId }: { playerId: string }) {
         end: info.event.end?.toISOString() ?? info.event.start?.toISOString(),
       };
       const created = await api.createEvent(payload);
-      info.event.setProp("id", created.id);
+      info.event.setProp('id', created.id);
     } catch (e) {
       console.error(e);
       info.revert();
@@ -85,3 +92,4 @@ export function PlayerCalendar({ playerId }: { playerId: string }) {
     />
   );
 }
+``

@@ -5,7 +5,7 @@ services:
     container_name: golfchallangepoint-web
     environment:
       PORT: 3000
-      DATABASE_URL: postgres://postgres:postgres@db:5432/challengenpoint
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/challengenpoin
     ports:
       - "80:3000"        # extern 80 -> intern 3000
     depends_on:

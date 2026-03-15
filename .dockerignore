@@ -1,0 +1,20 @@
+
+# Node/Next-Artefakte
+**/node_modules
+**/.next
+**/dist
+**/build
+
+# Git & OS
+.git
+.gitignore
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Env (wir setzen ENV via Compose)
+.env
+.env.*

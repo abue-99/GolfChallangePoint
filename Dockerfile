@@ -6,17 +6,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates openssl python3 make g++ curl \
  && rm -rf /var/lib/apt/lists/*
 
-COPY package.json pnpm-lock.yaml turbo.json ./
-COPY apps ./apps
-#COPY packages ./packages
+# Ganzes Repo kopieren (dank .dockerignore bleibt's schlank)
+COPY . .
 
-RUN pnpm install --frozen-lockfile
-# Prisma Client generieren (Root oder apps/web – je nach deinem Setup):
+# Install (Lockfile wird genutzt, aber nicht strikt erzwungen)
+RUN pnpm install
+
+# Prisma Client generieren (Root oder apps/web – je nach Setup)
 RUN npx prisma generate || true
 # Falls Prisma nur in apps/web liegt:
 # RUN cd apps/web && npx prisma generate
 
-# Nur Web‑Workspace bauen (Next build)
+# Nur die Web-App bauen
 RUN pnpm --filter ./apps/web... run build
 
 # ---- Runtime-Stage ----
@@ -28,7 +29,8 @@ RUN corepack enable && apt-get update && apt-get install -y --no-install-recomme
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /repo /app
-
 WORKDIR /app/apps/web
+
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma migrate deploy || true; pnpm start"]
+CMD ["sh","-c","npx prisma migrate deploy || true; pnpm start"]
+``

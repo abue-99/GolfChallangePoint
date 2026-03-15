@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY package.json pnpm-lock.yaml turbo.json ./
 COPY apps ./apps
-COPY packages ./packages
+#COPY packages ./packages
 
 RUN pnpm install --frozen-lockfile
 # Prisma Client generieren (Root oder apps/web – je nach deinem Setup):

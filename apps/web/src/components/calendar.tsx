@@ -6,9 +6,9 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 
 // FullCalendar styles (v6)
-import '@fullcalendar/common/main.css';
-import '@fullcalendar/daygrid/main.css';
-import '@fullcalendar/timegrid/main.css';
+//import '@fullcalendar/common/main.css';
+//import '@fullcalendar/daygrid/main.css';
+//import '@fullcalendar/timegrid/main.css';
 // import '@fullcalendar/list/main.css'; // optional
 
 import { api } from '@/lib/api';

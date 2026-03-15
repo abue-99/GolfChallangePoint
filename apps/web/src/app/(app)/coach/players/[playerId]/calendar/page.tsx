@@ -18,7 +18,6 @@ export default async function PlayerCalendarPage({ params }: { params: { playerI
       </div>
       <div className="lg:col-span-9">
         <Suspense fallback={<div>Loading calendar…</div>}>
-          {/* @ts-expect-error Server/Client boundary */}
           <PlayerCalendar playerId={params.playerId} />
         </Suspense>
       </div>

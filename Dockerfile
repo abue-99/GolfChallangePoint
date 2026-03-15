@@ -1,40 +1,34 @@
-# ---- build stage ----
+# ---- Build-Stage ----
 FROM node:22-bookworm-slim AS build
-WORKDIR /app
-
-# Optional: Systemabhängigkeiten, falls native Addons im Projekt sind
+WORKDIR /repo
+RUN corepack enable
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates openssl python3 make g++ \
+    ca-certificates openssl python3 make g++ curl \
  && rm -rf /var/lib/apt/lists/*
 
-# Nur package-Dateien kopieren (Cache-freundlich)
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml turbo.json ./
+COPY apps ./apps
+COPY packages ./packages
 
-# Mit/ohne Lockfile zurechtkommen
-RUN if [ -f package-lock.json ]; then \
-      npm ci --omit=dev; \
-    else \
-      npm install --omit=dev; \
-    fi
+RUN pnpm install --frozen-lockfile
+# Prisma Client generieren (Root oder apps/web – je nach deinem Setup):
+RUN npx prisma generate || true
+# Falls Prisma nur in apps/web liegt:
+# RUN cd apps/web && npx prisma generate
 
-# Restlichen Code (inkl. prisma/) kopieren
-COPY . .
+# Nur Web‑Workspace bauen (Next build)
+RUN pnpm --filter ./apps/web... run build
 
-# Prisma Client bauen (benötigt kein DB-Connect)
-RUN npx prisma generate
-
-# ---- runtime stage ----
-FROM node:22-bookworm-slim
+# ---- Runtime-Stage ----
+FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
-
 ENV NODE_ENV=production
-# dieselben Systemlibs, falls Runtime Addons/Prisma sie benötigen
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates openssl \
+RUN corepack enable && apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates openssl curl \
  && rm -rf /var/lib/apt/lists/*
 
-COPY --from=build /app /app
+COPY --from=build /repo /app
 
+WORKDIR /app/apps/web
 EXPOSE 3000
-# Start: ggf. Migration + App-Start (wenn du migrations nutzt)
-CMD [ "sh", "-c", "npx prisma migrate deploy || true; npm start" ]
+CMD ["sh", "-c", "npx prisma migrate deploy || true; pnpm start"]

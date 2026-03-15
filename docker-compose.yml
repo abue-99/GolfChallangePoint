@@ -1,17 +1,43 @@
-version: "3.9"
-
+name: golfchallangepoint
 services:
+  web:
+    # Wenn du ein Dockerfile hast:
+    build: .
+    container_name: golfchallangepoint-web
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://postgres:postgres@db:5432/challengenpoint
+      # Falls deine App Host/Bind benötigt:
+      # HOST: 0.0.0.0
+    ports:
+      - "80:3000"               # extern 80 -> intern 3000 deiner App
+    depends_on:
+      db:
+        condition: service_healthy
+
   db:
     image: postgres:16
-    restart: unless-stopped
+    container_name: golfchallangepoint-db-1
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: challengenpoint
-    ports:
-      - "5432:5432"
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+    # Für Produktion besser ohne public Port; zum Debuggen kannst du 5432 lassen:
+    # ports:
+    #   - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d challengenpoint -h 127.0.0.1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+networks:
+  default:
+    name: golfchallangepoint_default
 
 volumes:
   db_data:
+    name: golfchallangepoint_db_data  

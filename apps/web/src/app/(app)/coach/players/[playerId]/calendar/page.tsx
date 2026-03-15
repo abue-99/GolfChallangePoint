@@ -1,5 +1,4 @@
-// apps/web/src/app/coach/players/[playerId]/calendar/page.tsx
-
+// apps/web/src/app/(app)/coach/players/[playerId]/calendar/page.tsx
 import { Suspense } from "react";
 import Link from "next/link";
 import { DraggableTaskList } from "@/components/draggable-task-list";
@@ -8,13 +7,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, Plus } from "lucide-react";
 
-async function getTemplates() {
+// ----- Typen -----
+type TaskTemplate = {
+  id: string;
+  title: string;
+  category: string;
+  inputSchema: string;
+};
+
+type ApiTemplate = {
+  id: string;
+  title: string;
+  schema: string;
+};
+
+async function getTemplates(): Promise<TaskTemplate[]> {
   const url = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/task-templates`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to load templates");
-  return res.json() as Promise<
-    { id: string; title: string; schema: string }[]
-  >;
+
+  const data = (await res.json()) as ApiTemplate[];
+
+  return data.map(t => ({
+    id: t.id,
+    title: t.title,
+    category: "General",     // <- Fallback, bis deine API Kategorien liefert
+    inputSchema: t.schema,   // <- rename
+  }));
 }
 
 export default async function PlayerCalendarPage({
@@ -26,17 +45,12 @@ export default async function PlayerCalendarPage({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Player Calendar</h1>
-          <p className="text-sm text-slate-500">
-            Drag tasks from the left into the calendar to schedule a session.
-          </p>
+          <p className="text-sm text-slate-500">Drag tasks from the left into the calendar to schedule a session.</p>
         </div>
-
         <div className="flex items-center gap-2">
-          {/* Beispiel-CTA (optional verdrahten) */}
           <Link href={`/coach/players/${params.playerId}/tasks/new`}>
             <Button className="bg-blue-600 text-white hover:bg-blue-500">
               <Plus className="mr-2 h-4 w-4" />
@@ -50,9 +64,7 @@ export default async function PlayerCalendarPage({
         </div>
       </header>
 
-      {/* Content */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left: Draggable Templates */}
         <div className="lg:col-span-3">
           <Card className="border border-gray-200 bg-white shadow-[0_10px_30px_-10px_rgba(2,6,23,.12)]">
             <CardHeader>
@@ -65,8 +77,7 @@ export default async function PlayerCalendarPage({
                 </div>
               ) : (
                 <div className="p-6 text-center text-sm text-slate-500">
-                  No templates yet.
-                  <br />
+                  No templates yet.{" "}
                   <Link
                     href={`/coach/players/${params.playerId}/tasks/new`}
                     className="text-blue-700 hover:underline"
@@ -80,7 +91,6 @@ export default async function PlayerCalendarPage({
           </Card>
         </div>
 
-        {/* Right: Calendar */}
         <div className="lg:col-span-9">
           <Card className="border border-gray-200 bg-white shadow-[0_10px_30px_-10px_rgba(2,6,23,.12)]">
             <CardHeader>

@@ -13,7 +13,7 @@ export default function Dashboard() {
       <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-[var(--golf-heading)]">
-            Dashboard
+            Golf Challenge Point
           </h1>
           <p className="text-[var(--golf-muted-text)]">
             Overview of your training, progress and performance

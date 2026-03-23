@@ -1,24 +1,25 @@
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifyJwt } from "@/lib/jwt";
 import Dashboard from "./(app)/dashboard/page";
 
-export default function HomePage() {
-  const token = cookies().get("token")?.value;
+export default async function HomePage() {
+  // headers() is async in Next.js 15+
+  const h = await headers();
+  const cookieHeader = h.get("cookie") || "";
 
-  // Kein Token → redirect zu Login
+  const match = cookieHeader.match(/token=([^;]+)/);
+  const token = match ? match[1] : null;
+
   if (!token) {
     redirect("/login");
   }
 
-  // Token da → prüfen
   const payload = verifyJwt(token);
 
-  // ungültiger Token → redirect
   if (!payload) {
     redirect("/login");
   }
 
-  // Token OK → Dashboard anzeigen
   return <Dashboard />;
 }

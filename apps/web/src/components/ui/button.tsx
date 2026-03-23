@@ -1,7 +1,9 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-type ButtonVariant = "default" | "ghost" | "outline";
+type ButtonVariant = "default" | "ghost" | "outline" | "destructive";
 type ButtonSize = "default" | "sm" | "icon" | "icon-sm";
 
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -12,11 +14,13 @@ export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", ...props }, ref) => {
+
     const variants = {
       default: "bg-primary text-primary-foreground hover:bg-primary/90",
       ghost: "hover:bg-accent hover:text-accent-foreground",
       outline:
         "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+      destructive: "bg-red-600 text-white hover:bg-red-700",
     } as const satisfies Record<ButtonVariant, string>;
 
     const sizes = {

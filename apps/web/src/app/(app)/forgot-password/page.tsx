@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { useState } from "react";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -12,8 +13,8 @@ export default function ForgotPasswordPage() {
   async function submit() {
     await fetch("/api/auth/forgot", {
       method: "POST",
-      body: JSON.stringify({ email }),
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
     });
     setSent(true);
   }
@@ -24,8 +25,8 @@ export default function ForgotPasswordPage() {
         <CardHeader>
           <CardTitle className="text-xl font-semibold">Forgot Password</CardTitle>
         </CardHeader>
-
         <CardContent className="space-y-4">
+
           {sent ? (
             <p className="text-sm text-green-600">
               If an account exists with this email, a reset link has been sent.
@@ -45,10 +46,15 @@ export default function ForgotPasswordPage() {
                 Send Reset Link
               </Button>
 
-              /loginBack to Login
-              </Link>
+
+<div className="text-center text-sm text-muted-foreground">
+<Link href="/loginBack">
+  <Button>Back to Login</Button>
+</Link>
+</div>
             </>
           )}
+
         </CardContent>
       </Card>
     </div>

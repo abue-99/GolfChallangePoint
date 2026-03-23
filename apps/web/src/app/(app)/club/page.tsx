@@ -19,11 +19,13 @@ export default function ClubDashboard() {
           <CardHeader>
             <CardTitle>Club Settings</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            /club/settings
-              Edit Club Information
-            </Button>
-          </CardContent>
+
+		<CardContent className="space-y-3">
+			<Link href="/club/settings">
+			<Button>Edit Club Information</Button>
+			</Link>
+		</CardContent>
+
         </Card>
 
         {/* Manage Coaches */}
@@ -32,9 +34,9 @@ export default function ClubDashboard() {
             <CardTitle>Manage Coaches</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            /club/coaches
-              Open Coach Management
-            </Button>
+<Link href="/club/coaches">
+  <Button>Open Coach Management</Button>
+</Link>
           </CardContent>
         </Card>
 
@@ -44,9 +46,9 @@ export default function ClubDashboard() {
             <CardTitle>Club Admins</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            /club/admins
-              Manage Club Admins
-            </Button>
+<Link href="/club/admins">
+  <Button>Manage Club Admins</Button>
+</Link>
           </CardContent>
         </Card>
 
@@ -56,9 +58,9 @@ export default function ClubDashboard() {
             <CardTitle>Players & Assignments</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            /club/players
-              Manage Players
-            </Button>
+<Link href="/club/players">
+  <Button>Manage Players</Button>
+</Link>
           </CardContent>
         </Card>
 

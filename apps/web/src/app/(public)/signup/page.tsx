@@ -17,61 +17,70 @@ export default function SignupPage() {
 
   async function handleSubmit() {
     setLoading(true);
-
-    await fetch("/api/auth/signup", {
+    const res = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
     });
-
     setLoading(false);
+
+    if (res.ok) {
+      window.location.href = "/login";
+    } else {
+      console.error("Signup failed", await res.json());
+      alert("Signup failed — please check your input.");
+    }
   }
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-muted/30">
-      <Card className="w-full max-w-md shadow-md">
+    <div className="flex justify-center items-center min-h-screen bg-muted/20">
+      <Card className="w-full max-w-sm shadow-md">
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">
+          <CardTitle className="text-xl font-semibold text-center">
             Create your Golf Challenge Point Account
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
 
+        <CardContent className="space-y-4">
           <Input
             placeholder="Email"
             type="email"
+            value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
 
           <Input
             placeholder="Password"
             type="password"
+            value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
 
           <Input
             placeholder="First Name"
+            value={form.firstName}
             onChange={(e) => setForm({ ...form, firstName: e.target.value })}
           />
 
           <Input
             placeholder="Last Name"
+            value={form.lastName}
             onChange={(e) => setForm({ ...form, lastName: e.target.value })}
           />
 
           <Input
             placeholder="Profile Image URL (optional)"
+            value={form.profileImage}
             onChange={(e) => setForm({ ...form, profileImage: e.target.value })}
           />
 
           <Button
             onClick={handleSubmit}
-            className="w-full"
             disabled={loading}
+            className="w-full bg-[var(--golf-primary)] hover:bg-[var(--golf-primary-light)] text-white"
           >
             {loading ? "Registering..." : "Create Account"}
           </Button>
-
         </CardContent>
       </Card>
     </div>

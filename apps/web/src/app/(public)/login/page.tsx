@@ -30,13 +30,9 @@ export default function LoginPage() {
       return;
     }
 
-    // ⭐ Save token as COOKIE (this is what middleware reads)
     document.cookie = `token=${data.token}; Path=/; SameSite=Lax;`;
-
-    // Optional: localStorage may stay
     localStorage.setItem("token", data.token);
 
-    // Redirect to dashboard
     window.location.href = "/";
   }
 
@@ -50,8 +46,6 @@ export default function LoginPage() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-
-          {/* Email */}
           <div className="space-y-2">
             <Input
               placeholder="Email"
@@ -61,7 +55,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Password */}
           <div className="space-y-2">
             <Input
               placeholder="Password"
@@ -71,12 +64,8 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Error */}
-          {error && (
-            <p className="text-sm text-red-500">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-500">{error}</p>}
 
-          {/* Login Button */}
           <Button
             onClick={login}
             className="w-full bg-[var(--golf-primary)] hover:bg-[var(--golf-primary-light)] text-white"
@@ -85,16 +74,14 @@ export default function LoginPage() {
             {loading ? "Logging in..." : "Login"}
           </Button>
 
-          {/* Signup Link */}
-
-<div className="text-sm text-center text-muted-foreground mt-2">
-  Noch keinen Account?
-			<Link href="/signup">
-			<Button>Registrieren</Button>
-			</Link>
-</div>
-
-
+          <div className="text-sm text-center text-muted-foreground mt-2">
+            Noch keinen Account?
+            <Link href="/signup">
+              <span className="text-[var(--golf-primary)] hover:underline ml-1">
+                Registrieren
+              </span>
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>

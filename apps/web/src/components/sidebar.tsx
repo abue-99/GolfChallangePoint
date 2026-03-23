@@ -43,7 +43,7 @@ export default function Sidebar() {
       {/* Brand */}
       <div className="flex items-center gap-3 mb-6">
         <img 
-          src="/GolfChallengePoint Logo.png"
+          src="/GolfChallengePoint_Logo.png"
           alt="Golf Challenge Point Logo"
           className="h-8 w-8"
         />

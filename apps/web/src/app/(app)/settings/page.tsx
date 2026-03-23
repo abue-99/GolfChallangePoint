@@ -27,8 +27,8 @@ export default function SettingsPage() {
       <h1 className="text-3xl font-semibold">Settings</h1>
 
       <Tabs defaultValue="user" className="space-y-6">
-
-        {/* Tab Buttons */}
+        
+        {/* Tabs Navigation */}
         <TabsList>
           <TabsTrigger value="user">My Profile</TabsTrigger>
 
@@ -41,19 +41,19 @@ export default function SettingsPage() {
           )}
         </TabsList>
 
-        {/* USER SETTINGS TAB */}
+        {/* User Settings */}
         <TabsContent value="user">
           <UserSettingsSection />
         </TabsContent>
 
-        {/* CLUB SETTINGS TAB */}
+        {/* Club Settings */}
         {(role === "COACH" || role === "CLUBADMIN" || role === "SUPERADMIN") && (
           <TabsContent value="club">
             <ClubSettingsSection role={role!} />
           </TabsContent>
         )}
 
-        {/* CLUB ADMIN MANAGEMENT TAB */}
+        {/* Club Admin Management */}
         {(role === "CLUBADMIN" || role === "SUPERADMIN") && (
           <TabsContent value="admins">
             <ClubAdminsSection />

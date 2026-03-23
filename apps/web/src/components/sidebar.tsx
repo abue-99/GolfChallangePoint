@@ -27,12 +27,12 @@ export default function Sidebar() {
 
 	  <div className="flex items-center gap-3 mb-6">
 		<img 
-		src="/Logo_GCP.png" 
+		src="/GolfChallengePoint Logo.png" 
 		alt="Golf Challenge Point Logo" 
 		className="h-8 w-8"
 		/>
 		<span className="text-xl font-semibold text-[var(--golf-primary)]">
-			Golf Challenge Point
+			Golf CP
 		</span>
 	  </div>
 

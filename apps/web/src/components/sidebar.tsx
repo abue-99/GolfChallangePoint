@@ -24,9 +24,19 @@ export default function Sidebar() {
   return (
     <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r bg-card p-4 shadow-sm">
       {/* Brand */}
-<div className="text-2xl font-semibold mb-6 text-[var(--golf-primary)]">
-  Golf Challenge Point
-</div>
+
+	  <div className="flex items-center gap-3 mb-6">
+		<img 
+		src="/Logo_GCP.png" 
+		alt="Golf Challenge Point Logo" 
+		className="h-8 w-8"
+		/>
+		<span className="text-xl font-semibold text-[var(--golf-primary)]">
+			Golf Challenge Point
+		</span>
+	  </div>
+
+
       {/* Navigation */}
       <nav className="space-y-1">
         {navItems.map((item) => {

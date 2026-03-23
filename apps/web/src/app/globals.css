@@ -1,8 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* Deine eigenen Farben als CSS-Variablen */
+/* Custom Variables */
 :root {
   --color-slate-200: oklch(0.92 0.01 239);
 }

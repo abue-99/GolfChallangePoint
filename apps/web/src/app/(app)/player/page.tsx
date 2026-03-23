@@ -41,7 +41,8 @@ export default function PlayerToday() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/tasks     <Button>
+          <Link href="/tasks/new">
+            <Button>
               <Plus className="mr-2 h-4 w-4" />
               New Task
             </Button>
@@ -116,7 +117,7 @@ export default function PlayerToday() {
         <Card className="border border-dashed">
           <CardContent className="p-6 text-center text-muted-foreground">
             No tasks for today.{" "}
-            /tasks/new
+            <Link href="/tasks/new">
               Create one
             </Link>
             .

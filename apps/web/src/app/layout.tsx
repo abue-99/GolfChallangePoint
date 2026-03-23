@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { Providers } from "./providers";
+import Sidebar from "@/components/sidebar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -13,7 +14,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <Providers>{children}</Providers>
+        <Providers>
+          <div className="flex min-h-screen">
+            {/* Sidebar links */}
+            <Sidebar />
+
+            {/* Hauptinhalt rechts */}
+            <main className="flex-1 p-6">
+              {children}
+            </main>
+          </div>
+        </Providers>
       </body>
     </html>
   );

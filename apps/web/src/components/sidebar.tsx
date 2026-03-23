@@ -9,11 +9,10 @@ import {
   BarChart3,
   Settings
 } from "lucide-react";
-
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Today", href: "/player/today", icon: CalendarCheck },
   { label: "Tasks", href: "/player/tasks", icon: ListTodo },
   { label: "Stats", href: "/player/stats", icon: BarChart3 }
@@ -24,12 +23,19 @@ export default function Sidebar() {
 
   return (
     <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r bg-card p-4 shadow-sm">
-      <div className="text-2xl font-semibold mb-6">GolfCP</div>
+      {/* Brand */}
+      <div className="text-2xl font-semibold mb-6">
+        GolfCP
+      </div>
 
+      {/* Navigation */}
       <nav className="space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const active = pathname.startsWith(item.href);
+          const active =
+            item.href === "/"
+              ? pathname === "/"
+              : pathname.startsWith(item.href);
 
           return (
             <Link
@@ -49,6 +55,7 @@ export default function Sidebar() {
         })}
       </nav>
 
+      {/* Footer (Settings) */}
       <div className="mt-auto pt-6 border-t">
         <Link
           href="/settings"

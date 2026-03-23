@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-type ButtonVariant = "default" | "ghost";
+type ButtonVariant = "default" | "ghost" | "outline";
 type ButtonSize = "default" | "sm" | "icon" | "icon-sm";
 
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -15,13 +15,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const variants = {
       default: "bg-primary text-primary-foreground hover:bg-primary/90",
       ghost: "hover:bg-accent hover:text-accent-foreground",
+      outline:
+        "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
     } as const satisfies Record<ButtonVariant, string>;
 
     const sizes = {
       default: "h-10 px-4 py-2",
       sm: "h-8 px-3",
       icon: "h-10 w-10 p-0",
-      "icon-sm": "h-8 w-8 p-0", // neue, kleinere Icon-Größe
+      "icon-sm": "h-8 w-8 p-0",
     } as const satisfies Record<ButtonSize, string>;
 
     return (

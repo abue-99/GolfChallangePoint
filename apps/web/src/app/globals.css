@@ -2,17 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-@theme {
-  /* Design tokens (Tailwind v4 style) */
-  --color-slate-200: oklch(0.92 0.01 239); /* example value */
+/* Deine eigenen Farben als CSS-Variablen */
+:root {
+  --color-slate-200: oklch(0.92 0.01 239);
 }
 
-/* FullCalendar helpers */
+/* FullCalendar helper */
 .fc {
-  /* Use your token directly */
   --fc-border-color: var(--color-slate-200);
-}
-
-.some-class {
-  color: var(--color-slate-200);
 }

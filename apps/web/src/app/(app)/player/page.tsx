@@ -73,10 +73,7 @@ export default function PlayerToday() {
       {/* Task Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {todayTasks.map((t) => (
-          <Card
-            key={t.eventId}
-            className="border bg-card shadow-sm transition-all hover:shadow-md"
-          >
+          <Card key={t.eventId} className="border bg-card shadow-sm transition-all hover:shadow-md">
             <CardContent className="p-4">
               <div className="mb-3 flex items-start justify-between">
                 <div>
@@ -101,7 +98,6 @@ export default function PlayerToday() {
 
               {/* Actions */}
               <div className="flex items-center gap-2">
-                {/* Opens your dialog */}
                 <LogDialog eventId={t.eventId} schema={t.schema} />
 
                 <Button
@@ -132,7 +128,9 @@ export default function PlayerToday() {
         <Card className="border border-dashed">
           <CardContent className="p-6 text-center text-muted-foreground">
             No tasks for today.{" "}
-            <Link className="text-primary underline-offset-4 hover:underline" href="/       </CardContent>
+            <Link
+              className="text-primary underline-offset-4 hover:
+          </CardContent>
         </Card>
       )}
     </div>

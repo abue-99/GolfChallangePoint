@@ -9,6 +9,7 @@ import {
   BarChart3,
   Settings
 } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -50,5 +51,5 @@ export default function Sidebar() {
 
       <div className="mt-auto pt-6 border-t">
         <Link
-  href="/settings"
-  className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted px-3 py-2 rounded-md transition-col
+          href="/settings"
+          className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted px-3 py-2 rounded-md transition-colors"

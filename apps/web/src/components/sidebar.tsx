@@ -24,10 +24,9 @@ export default function Sidebar() {
   return (
     <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r bg-card p-4 shadow-sm">
       {/* Brand */}
-      <div className="text-2xl font-semibold mb-6">
-        GolfCP
-      </div>
-
+<div className="text-2xl font-semibold mb-6 text-[var(--golf-primary)]">
+  Golf Challenge Point
+</div>
       {/* Navigation */}
       <nav className="space-y-1">
         {navItems.map((item) => {

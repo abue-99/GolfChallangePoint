@@ -4,9 +4,14 @@ import Sidebar from "@/components/sidebar";
 
 const inter = Inter({ subsets: ["latin"] });
 
+
+<h1 className="text-3xl font-semibold tracking-tight text-[var(--golf-heading)]">
+  Golf Challenge Point – Dashboard
+</h1>
+
 export const metadata = {
-  title: "Challangepoint MVP",
-  description: "Coach planning, Player logging, Calendar DnD",
+  title: "Golf Challenge Point",
+  description: "Golf Challenge Point – Coaching, Training, Performance Insights",
 };
 
 export default function RootLayout({

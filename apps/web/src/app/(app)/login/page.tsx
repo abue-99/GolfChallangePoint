@@ -89,11 +89,9 @@ export default function LoginPage() {
 
 <div className="text-sm text-center text-muted-foreground mt-2">
   Noch keinen Account?
-  /signup
-    <span className="text-[var(--golf-primary)] hover:underline ml-1 font-medium">
-      Registrieren
-    </span>
-  </Link>
+			<Link href="/signup">
+			<Button>Registrieren</Button>
+			</Link>
 </div>
 
 

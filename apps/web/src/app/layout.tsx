@@ -9,21 +9,18 @@ export const metadata = {
   description: "Coach planning, Player logging, Calendar DnD",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <Providers>
-          <div className="flex min-h-screen">
-            {/* Sidebar links */}
-            <Sidebar />
-
-            {/* Hauptinhalt rechts */}
-            <main className="flex-1 p-6">
-              {children}
-            </main>
-          </div>
-        </Providers>
+        <div className="flex min-h-screen">
+          <Sidebar />
+          <main className="flex-1 p-8">{children}</main>
+        </div>
       </body>
     </html>
   );

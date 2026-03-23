@@ -20,8 +20,15 @@ export function middleware(req: NextRequest) {
   }
 
   // Protected routes
-  const PROTECTED = ["/player", "/coach", "/club", "/admin"];
-
+const PROTECTED = [
+  "/",
+  "/dashboard",
+  "/player",
+  "/coach",
+  "/club",
+  "/admin",
+  "/settings"
+];
   const isProtected = PROTECTED.some((p) => path.startsWith(p));
 
   // If protected and no token → redirect to login

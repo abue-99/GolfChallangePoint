@@ -7,20 +7,17 @@ export async function POST(req: Request) {
   const { email, password } = await req.json();
 
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
-  }
+  if (!user) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) {
-    return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
-  }
+  const match = await bcrypt.compare(password, user.passwordHash);
+  if (!match) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
 
+  // Create token
   const token = signJwt({
     id: user.id,
     email: user.email,
     role: user.role,
-    clubId: user.clubId ?? null,
+    clubId: user.clubId,
   });
 
   return NextResponse.json({ token });

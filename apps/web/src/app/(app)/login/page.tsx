@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -29,7 +30,10 @@ export default function LoginPage() {
       return;
     }
 
-    // Save token for use in requests
+    // ⭐ Save token as COOKIE (this is what middleware reads)
+    document.cookie = `token=${data.token}; Path=/; SameSite=Lax;`;
+
+    // Optional: localStorage may stay
     localStorage.setItem("token", data.token);
 
     // Redirect to dashboard
@@ -46,6 +50,8 @@ export default function LoginPage() {
         </CardHeader>
 
         <CardContent className="space-y-4">
+
+          {/* Email */}
           <div className="space-y-2">
             <Input
               placeholder="Email"
@@ -55,6 +61,7 @@ export default function LoginPage() {
             />
           </div>
 
+          {/* Password */}
           <div className="space-y-2">
             <Input
               placeholder="Password"
@@ -64,10 +71,12 @@ export default function LoginPage() {
             />
           </div>
 
+          {/* Error */}
           {error && (
             <p className="text-sm text-red-500">{error}</p>
           )}
 
+          {/* Login Button */}
           <Button
             onClick={login}
             className="w-full bg-[var(--golf-primary)] hover:bg-[var(--golf-primary-light)] text-white"
@@ -76,12 +85,14 @@ export default function LoginPage() {
             {loading ? "Logging in..." : "Login"}
           </Button>
 
+          {/* Signup Link */}
           <div className="text-sm text-center text-muted-foreground mt-2">
-            Noch keinen Account?  
-            /signup<span className="text-[var(--golf-primary)] hover:underline ml-1">
+            Noch keinen Account?{" "}
+            /signup
               Registrieren
-            </span>
+            </Link>
           </div>
+
         </CardContent>
       </Card>
     </div>

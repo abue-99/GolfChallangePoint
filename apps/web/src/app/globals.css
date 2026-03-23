@@ -3,6 +3,16 @@
 /* Custom Variables */
 :root {
   --color-slate-200: oklch(0.92 0.01 239);
+
+  /* Greens */
+  --golf-primary: #2e7d32;      /* Main brand green */
+  --golf-primary-light: #4caf50;
+  --golf-accent: #a7d7a0;       /* soft mint */
+  --golf-muted: #e8e3d3;        /* sand/bunker */
+
+  /* Text */
+  --golf-heading: #1f2d1f;
+  --golf-muted-text: #4d574d;
 }
 
 /* FullCalendar helper */

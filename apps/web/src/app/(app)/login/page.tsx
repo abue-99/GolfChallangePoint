@@ -86,12 +86,16 @@ export default function LoginPage() {
           </Button>
 
           {/* Signup Link */}
-          <div className="text-sm text-center text-muted-foreground mt-2">
-            Noch keinen Account?{" "}
-            /signup
-              Registrieren
-            </Link>
-          </div>
+
+<div className="text-sm text-center text-muted-foreground mt-2">
+  Noch keinen Account?
+  /signup
+    <span className="text-[var(--golf-primary)] hover:underline ml-1 font-medium">
+      Registrieren
+    </span>
+  </Link>
+</div>
+
 
         </CardContent>
       </Card>

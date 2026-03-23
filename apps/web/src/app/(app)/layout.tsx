@@ -7,21 +7,25 @@ export const metadata = {
   description: "Training Log & Performance Tracking"
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="bg-background text-foreground">
-        <div className="flex">
+        <div className="flex min-h-screen">
           {/* Desktop Sidebar */}
           <Sidebar />
 
-          {/* Main Area */}
-          <div className="flex-1 min-h-screen">
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col min-h-screen">
             {/* Mobile Topbar */}
             <Topbar />
 
-            {/* Actual Page */}
-            <main className="p-6">{children}</main>
+            {/* Page Content */}
+            <main className="flex-1 p-6">{children}</main>
           </div>
         </div>
       </body>

@@ -32,6 +32,7 @@ export default function PlayerToday() {
 
   return (
     <div className="space-y-6">
+
       {/* Header */}
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -40,8 +41,7 @@ export default function PlayerToday() {
         </div>
 
         <div className="flex items-center gap-2">
-          /tasks/new
-            <Button>
+          <Link href="/tasks     <Button>
               <Plus className="mr-2 h-4 w-4" />
               New Task
             </Button>
@@ -88,7 +88,6 @@ export default function PlayerToday() {
                   )}
                 </div>
 
-                {/* Status Bubble */}
                 <span
                   className={`mt-1 inline-block h-2.5 w-2.5 rounded-full ${
                     t.status === "done" ? "bg-success" : "bg-primary"
@@ -96,25 +95,14 @@ export default function PlayerToday() {
                 />
               </div>
 
-              {/* Actions */}
               <div className="flex items-center gap-2">
                 <LogDialog eventId={t.eventId} schema={t.schema} />
 
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="text-green-600 hover:bg-green-50"
-                  title="Mark as done"
-                >
+                <Button size="icon" variant="ghost" className="text-green-600 hover:bg-green-50">
                   <Check className="h-4 w-4" />
                 </Button>
 
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="text-muted-foreground hover:bg-muted"
-                  title="Remove"
-                >
+                <Button size="icon" variant="ghost" className="text-muted-foreground hover:bg-muted">
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -128,11 +116,14 @@ export default function PlayerToday() {
         <Card className="border border-dashed">
           <CardContent className="p-6 text-center text-muted-foreground">
             No tasks for today.{" "}
-            <Link
-              className="text-primary underline-offset-4 hover:
+            /tasks/new
+              Create one
+            </Link>
+            .
           </CardContent>
         </Card>
       )}
+
     </div>
   );
 }

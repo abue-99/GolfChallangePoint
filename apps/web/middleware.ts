@@ -1,41 +1,39 @@
 import { NextResponse } from "next/server";
-import { verifyJwt } from "@/lib/jwt";
+import type { NextRequest } from "next/server";
 
-export function middleware(req: Request) {
-  const url = new URL(req.url);
+export function middleware(req: NextRequest) {
+  const url = req.nextUrl;
   const path = url.pathname;
 
-  const token = req.headers.get("authorization")?.replace("Bearer ", "");
-  const payload = token ? verifyJwt<any>(token) : null;
+  const token = req.cookies.get("token")?.value;
 
-  // Public
-  if (path.startsWith("/signup") || path.startsWith("/login")) {
+  const PUBLIC_PATHS = [
+    "/login",
+    "/signup",
+    "/forgot-password",
+    "/reset-password"
+  ];
+
+  // Public pages → no check
+  if (PUBLIC_PATHS.some((p) => path.startsWith(p))) {
     return NextResponse.next();
   }
 
-  // Not logged in
-  if (!payload) return NextResponse.redirect("/login");
+  // Protected routes
+  const PROTECTED = ["/player", "/coach", "/club", "/admin"];
 
-  // Superadmin: alles erlaubt
-  if (payload.role === "SUPERADMIN") return NextResponse.next();
+  const isProtected = PROTECTED.some((p) => path.startsWith(p));
 
-  // Clubadmin:
-  if (path.startsWith("/club")) {
-    if (payload.role !== "CLUBADMIN") return NextResponse.redirect("/unauthorized");
-    return NextResponse.next();
-  }
-
-  // Coach:
-  if (path.startsWith("/coach")) {
-    if (payload.role !== "COACH") return NextResponse.redirect("/unauthorized");
-    return NextResponse.next();
-  }
-
-  // Player:
-  if (path.startsWith("/player")) {
-    if (payload.role !== "PLAYER") return NextResponse.redirect("/unauthorized");
-    return NextResponse.next();
+  // If protected and no token → redirect to login
+  if (isProtected && !token) {
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   return NextResponse.next();
 }
+
+export const config = {
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico).*)"
+  ],
+};

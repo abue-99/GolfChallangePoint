@@ -1,3 +1,6 @@
+"use client";
+
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -11,6 +14,7 @@ export default function ClubDashboard() {
 
       <div className="grid gap-6 md:grid-cols-2">
 
+        {/* Club Settings */}
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>Club Settings</CardTitle>
@@ -22,6 +26,7 @@ export default function ClubDashboard() {
           </CardContent>
         </Card>
 
+        {/* Manage Coaches */}
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>Manage Coaches</CardTitle>
@@ -33,6 +38,7 @@ export default function ClubDashboard() {
           </CardContent>
         </Card>
 
+        {/* Club Admins */}
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>Club Admins</CardTitle>
@@ -44,6 +50,7 @@ export default function ClubDashboard() {
           </CardContent>
         </Card>
 
+        {/* Players */}
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>Players & Assignments</CardTitle>

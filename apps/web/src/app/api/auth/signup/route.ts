@@ -1,26 +1,25 @@
-// apps/web/src/app/api/auth/signup/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { email, password, firstName, lastName, profileImage } = body;
+    const { email, password, firstName, lastName, profileImage } = await req.json();
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: "Email and password are required." },
+        { error: "Email and password required" },
         { status: 400 }
       );
     }
 
-    // später: password hashen!
-    // const hashedPassword = await bcrypt.hash(password, 10);
+    // ✅ Passwort hashen
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
       data: {
         email,
-        password, // hashedPassword
+        passwordHash: hashedPassword,   // ✅ muss passwordHash heißen
         firstName,
         lastName,
         profileImage,
@@ -28,13 +27,14 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(
-      { message: "User created successfully", user },
+      { message: "User created", userId: user.id },
       { status: 201 }
     );
+
   } catch (error) {
-    console.error("Signup error:", error);
+    console.error(error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }

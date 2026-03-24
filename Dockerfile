@@ -1,4 +1,4 @@
-# ---- Build Stage ----
+# ---- Build Stage -----
 FROM node:22-bookworm-slim AS build
 WORKDIR /repo
 

@@ -8,5 +8,6 @@ allowBuilds:
   bcrypt: true
   msw: true
   prisma: true
+  robotjs: false
   sharp: true
   unrs-resolver: true

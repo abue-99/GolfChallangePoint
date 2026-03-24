@@ -10,26 +10,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy workspace
 COPY . .
 
-# Install all workspace deps at root
+# Install root deps (pnpm workspace)
 RUN pnpm install --no-frozen-lockfile
 
 # ---------------------------------------------
-# 🔥 Move into the web workspace BEFORE Prisma!
+# 1️⃣ Prisma Client im richtigen Workspace generieren
 # ---------------------------------------------
 WORKDIR /repo/apps/web
-
-# Install web-local deps (important for @prisma/client)
 RUN pnpm install
-
-# Generate Prisma Client from apps/web/prisma/schema.prisma
 RUN pnpm exec prisma generate
 
 # ---------------------------------------------
-# Go back to repo root for build filtering
+# 2️⃣ Jetzt wieder zur Root zurückwechseln
 # ---------------------------------------------
 WORKDIR /repo
 
-# Build ONLY web app in standalone mode
+# ---------------------------------------------
+# 3️⃣ Build NUR das Web-Projekt
+# ---------------------------------------------
 RUN pnpm --filter ./apps/web... run build
 
 # ---- Runtime Stage ----
@@ -42,13 +40,9 @@ RUN corepack enable \
     ca-certificates openssl curl \
  && rm -rf /var/lib/apt/lists/*
 
-# Standalone bundle
 COPY --from=build /repo/apps/web/.next/standalone ./
-# Static assets
 COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
-# Public folder
 COPY --from=build /repo/apps/web/public ./apps/web/public
 
 EXPOSE 3000
-
 CMD ["node", "apps/web/server.js"]

@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
-import Sidebar from "@/components/sidebar";
+import HeaderAndSidebarLayout from "@/components/HeaderAndSidebarLayout";
+import type { ReactNode } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -9,18 +10,13 @@ export const metadata = {
   description: "Golf Challenge Point – Coaching, Training, Performance Insights",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <main className="flex-1 p-8">{children}</main>
-        </div>
+        <HeaderAndSidebarLayout>
+          {children}
+        </HeaderAndSidebarLayout>
       </body>
     </html>
   );

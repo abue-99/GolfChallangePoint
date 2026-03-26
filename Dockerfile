@@ -4,22 +4,20 @@ WORKDIR /repo
 
 RUN corepack enable
 
+# Install OS dependencies for prisma/bcrypt/etc.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates openssl python3 make g++ \
  && rm -rf /var/lib/apt/lists/*
 
-# Copy all files into build container
 COPY . .
 
-# Install workspace dependencies
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
-# Generate Prisma Client
-RUN pnpm --filter golf-challenge-point-web exec prisma generate
+# ✅ Prisma generate (im richtigen Package!)
+RUN pnpm --filter packages/db exec prisma generate
 
-# Build Next.js app (Standalone Output)
+# ✅ Build Next.js app with standalone output
 RUN pnpm --filter golf-challenge-point-web run build
-
 
 
 # ---- Runtime Stage ----
@@ -31,23 +29,15 @@ RUN corepack enable && apt-get update && apt-get install -y --no-install-recomme
     ca-certificates openssl \
  && rm -rf /var/lib/apt/lists/*
 
-# ✅ Copy Next.js standalone server bundle
+# ✅ Standalone server
 COPY --from=build /repo/apps/web/.next/standalone ./
 
-# ✅ Copy Next.js required static assets
-COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
+# ✅ Static assets in correct path
+COPY --from=build /repo/apps/web/.next/static ./.next/static
 
-# ✅ Public folder
-COPY --from=build /repo/apps/web/public ./apps/web/public
-
-# ✅ Copy API routes (App Router!)
-COPY --from=build /repo/apps/web/src ./apps/web/src
-
-# ✅ Copy ALL node_modules (incl. prisma client + bcryptjs)
-COPY --from=build /repo/node_modules ./node_modules
-
+# ✅ Public folder (needed for static resources)
+COPY --from=build /repo/apps/web/public ./public
 
 EXPOSE 3000
 
-# ✅ Start standalone Next.js
-CMD ["node", "apps/web/server.js"]
+CMD ["node", "server.js"]

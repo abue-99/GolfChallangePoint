@@ -8,6 +8,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/challengenpoint
     ports:
       - "80:3000"     # falls :80 frei ist; sonst testweise "8080:3000"
+      - "3000:3000"      
       - "3839:3000"
     depends_on:
       db:

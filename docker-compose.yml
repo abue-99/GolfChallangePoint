@@ -1,7 +1,8 @@
 name: golfchallangepoint
 services:
   web:
-    build: .
+    build: 
+      context: ./apps/web
     container_name: golfchallangepoint-web
     environment:
       PORT: 3000

@@ -1,14 +1,48 @@
-# GitHub Automation (optional)
+# Scripts
 
-This folder contains an optional helper script to create the EPIC + Sprint issues using GitHub CLI.
+This folder contains utility scripts for the Golf ChallengePoint project.
 
-## Requirements
+## Development Scripts
+
+| Script              | Description                              |
+|---------------------|------------------------------------------|
+| `setup.sh`          | First-time project setup                 |
+| `dev.sh`            | Start development environment            |
+| `build.sh`          | Build all apps for production            |
+| `test.sh`           | Run all tests                            |
+
+### Usage
+
+```bash
+# First-time setup
+bash scripts/setup.sh
+
+# Start development
+bash scripts/dev.sh
+
+# Build for production
+bash scripts/build.sh
+
+# Run tests
+bash scripts/test.sh
+```
+
+## GitHub Automation Scripts
+
+| Script                        | Description                              |
+|-------------------------------|------------------------------------------|
+| `gh_create_mvp_issues.sh`     | Create EPIC and Sprint issues via GitHub CLI |
+| `bootstrap-mvp.sh`            | Bootstrap the MVP project structure      |
+| `setup-github-templates.sh`   | Set up GitHub issue and PR templates     |
+
+### GitHub CLI Requirements
+
 - Install GitHub CLI: https://cli.github.com/
 - Authenticate: `gh auth login`
 - Permission to create issues in the target repo
 
-## Usage
-From the repo root:
+### Usage
+
 ```bash
 bash scripts/gh_create_mvp_issues.sh OWNER/REPO
 ```
@@ -17,4 +51,3 @@ The script will create:
 - 1 EPIC issue
 - Sprint issues S0–S3
 
-You can then assign milestones, add to GitHub Projects, and refine acceptance criteria.

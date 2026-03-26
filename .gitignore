@@ -1,7 +1,51 @@
-node_modules
-.next
-dist
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+
+# Environment variables (never commit secrets)
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Package manager lock files (using pnpm)
 pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# OS files
 .DS_Store
-coverage
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+
+# Prisma (generated client is intentionally tracked for deployment convenience)
+# apps/web/prisma/generated/
+
+# Turbo cache
+.turbo/
+
+# Misc
+*.zip
+*.tmp

@@ -6,7 +6,7 @@ services:
     container_name: golfchallangepoint-web
     environment:
       PORT: 3000
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/challengenpoint
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/challengepoint
     ports:
       - "80:3000"     # falls :80 frei ist; sonst testweise "8080:3000"
       - "3000:3000"      
@@ -19,14 +19,16 @@ services:
     image: postgres:16
     container_name: golfchallangepoint-db-1
     environment:
-      POSTGRES_DB: challengenpoint
+      POSTGRES_DB: challengepoint
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
+    ports:
+      - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d challengenpoint -h 127.0.0.1"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d challengepoint -h 127.0.0.1"]
       interval: 5s
       timeout: 3s
       retries: 10

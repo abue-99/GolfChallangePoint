@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -------------------------------------------------------------------
+// Enums
+// -------------------------------------------------------------------
+
+enum Role {
+  ADMIN
+  COACH
+  PLAYER
+}
+
+enum EventStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// -------------------------------------------------------------------
+// Models
+// -------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(PLAYER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  playerProfile  PlayerProfile?
+  coachedPlayers PlayerProfile[]   @relation("CoachProfile")
+  coachLinks     CoachPlayerLink[] @relation("CoachLinks")
+  playerLinks    CoachPlayerLink[] @relation("PlayerLinks")
+  taskTemplates  TaskTemplate[]
+  calendarEvents CalendarEvent[]
+  taskLogs       TaskLog[]
+
+  @@index([email])
+}
+
+model PlayerProfile {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  golfHandicap Float?
+  coachId      String?
+
+  user  User  @relation(fields: [userId], references: [id])
+  coach User? @relation("CoachProfile", fields: [coachId], references: [id])
+
+  @@index([coachId])
+}
+
+model CoachPlayerLink {
+  id       String @id @default(cuid())
+  coachId  String
+  playerId String
+
+  coach  User @relation("CoachLinks", fields: [coachId], references: [id])
+  player User @relation("PlayerLinks", fields: [playerId], references: [id])
+
+  @@unique([coachId, playerId])
+  @@index([coachId])
+  @@index([playerId])
+}
+
+model TaskTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  coachId     String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  coach          User            @relation(fields: [coachId], references: [id])
+  calendarEvents CalendarEvent[]
+
+  @@index([coachId])
+}
+
+model CalendarEvent {
+  id             String      @id @default(cuid())
+  taskTemplateId String
+  playerId       String
+  startDate      DateTime
+  endDate        DateTime
+  status         EventStatus @default(PLANNED)
+
+  taskTemplate TaskTemplate @relation(fields: [taskTemplateId], references: [id])
+  player       User         @relation(fields: [playerId], references: [id])
+  taskLogs     TaskLog[]
+
+  @@index([playerId])
+  @@index([taskTemplateId])
+}
+
+model TaskLog {
+  id              String   @id @default(cuid())
+  calendarEventId String
+  playerId        String
+  value           String?
+  loggedAt        DateTime @default(now())
+
+  calendarEvent CalendarEvent @relation(fields: [calendarEventId], references: [id])
+  player        User          @relation(fields: [playerId], references: [id])
+
+  @@index([calendarEventId])
+  @@index([playerId])
+}

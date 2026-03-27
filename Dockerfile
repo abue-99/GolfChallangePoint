@@ -16,7 +16,7 @@ RUN if [ ! -f packages/db/.env ]; then cp packages/db/.env.example packages/db/.
 RUN pnpm install --frozen-lockfile
 
 # ✅ Prisma generate (im richtigen Package!)
-RUN pnpm --filter @golf/db exec prisma generate
+#RUN pnpm --filter @golf/db exec prisma generate
 
 # ✅ Build Next.js app with standalone output
 RUN pnpm --filter golf-challenge-point-web run build

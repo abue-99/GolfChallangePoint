@@ -10,13 +10,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 COPY . .
+
 # Create .env file for Prisma if it doesn't exist
 RUN if [ ! -f packages/db/.env ]; then cp packages/db/.env.example packages/db/.env; fi
 
 RUN pnpm install --frozen-lockfile
 
-# ✅ Prisma generate (im richtigen Package!)
-#RUN pnpm --filter @golf/db exec prisma generate
+# ✅ Generate Prisma client (without needing DB connection)
+RUN pnpm --filter @golf/db run generate
 
 # ✅ Build Next.js app with standalone output
 RUN pnpm --filter golf-challenge-point-web run build

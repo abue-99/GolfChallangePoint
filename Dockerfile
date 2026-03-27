@@ -23,20 +23,18 @@ RUN pnpm --filter golf-challenge-point-web run build
 
 # ---- Runtime Stage ----
 FROM node:22-bookworm-slim AS runtime
-WORKDIR /app
 ENV NODE_ENV=production
 
 RUN corepack enable && apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl && rm -rf /var/lib/apt/lists/*
 
-# ✅ Standalone server
-COPY --from=build /repo/apps/web/.next/standalone /app
+# Copy the entire apps/web directory to /app/web
+COPY --from=build /repo/apps/web /app/web
 
-# ✅ Static assets in correct path
-COPY --from=build /repo/apps/web/.next/static /app/.next/static
+# Copy root node_modules for monorepo dependencies
+COPY --from=build /repo/node_modules /app/node_modules
 
-# ✅ Public folder (needed for static resources)
-COPY --from=build /repo/apps/web/public /app/public
+WORKDIR /app/web
 
 EXPOSE 3000
 
-CMD ["node", "apps/web/server.js"]
+CMD ["node", "server.js"]

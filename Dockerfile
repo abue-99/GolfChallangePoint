@@ -23,20 +23,27 @@ RUN pnpm --filter golf-challenge-point-web run build
 
 # ---- Runtime Stage ----
 FROM node:22-bookworm-slim AS runtime
+WORKDIR /app
 ENV NODE_ENV=production
+
+ARG DEPLOYMENT_MODE=standalone
+ENV DEPLOYMENT_MODE=${DEPLOYMENT_MODE}
 
 RUN corepack enable && apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl && rm -rf /var/lib/apt/lists/*
 
-# Copy the standalone build output
+# ✅ Standalone server
 COPY --from=build /repo/apps/web/.next/standalone /app
 
-# ✅ CRITICAL: Copy static files (not included in standalone by default)
+# ✅ Static assets
 COPY --from=build /repo/apps/web/.next/static /app/apps/web/.next/static
 
-# Copy public folder
+# ✅ Public folder (needed for static resources)
 COPY --from=build /repo/apps/web/public /app/apps/web/public
 
-WORKDIR /app
+# ✅ For localhost development: also copy the full .next directory
+RUN if [ "${DEPLOYMENT_MODE}" = "dev" ]; then \
+    cp -r /app/apps/web/.next /app/.next; \
+    fi
 
 EXPOSE 3000
 

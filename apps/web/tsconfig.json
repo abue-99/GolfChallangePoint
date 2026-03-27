@@ -9,13 +9,15 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/*"
+        "./*"
       ]
     }
   },
   "include": [
     "next-env.d.ts",
-    "src/**/*",
+    "app/**/*",
+    "components/**/*",
+    "lib/**/*",
     "*.ts",
     "*.tsx"
   ],

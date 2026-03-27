@@ -1,5 +1,5 @@
 import { verifyJwt } from "@/lib/jwt";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@golf/db";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {

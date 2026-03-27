@@ -27,14 +27,11 @@ ENV NODE_ENV=production
 
 RUN corepack enable && apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl && rm -rf /var/lib/apt/lists/*
 
-# Copy the entire apps/web directory to /app/web
-COPY --from=build /repo/apps/web /app/web
+# Copy the standalone build output
+COPY --from=build /repo/apps/web/.next/standalone /app
 
-# Copy root node_modules for monorepo dependencies
-COPY --from=build /repo/node_modules /app/node_modules
-
-WORKDIR /app/web
+WORKDIR /app
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["node", "apps/web/server.js"]

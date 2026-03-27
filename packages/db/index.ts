@@ -1,4 +1,3 @@
-export * from './generated/client';
 import { PrismaClient } from './generated/client';
 
 const globalForPrisma = global as unknown as {
@@ -17,3 +16,6 @@ export const prisma = isBuild
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
+
+// Re-export commonly used types
+export type { PrismaClient } from './generated/client';

@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 COPY . .
+# Create .env file for Prisma if it doesn't exist
+RUN if [ ! -f packages/db/.env ]; then cp packages/db/.env.example packages/db/.env; fi
 
 RUN pnpm install --frozen-lockfile
 

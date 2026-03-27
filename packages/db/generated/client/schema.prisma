@@ -32,6 +32,10 @@ model User {
   id           String    @id @default(cuid())
   email        String    @unique
   passwordHash String
+  firstName    String?
+  lastName     String?
+  profileImage String?
+  clubId       String?
   role         Role      @default(PLAYER)
   lastLogin    DateTime?
   createdAt    DateTime  @default(now())
@@ -115,4 +119,15 @@ model TaskLog {
 
   @@index([calendarEventId])
   @@index([playerId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([token])
 }

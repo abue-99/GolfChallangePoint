@@ -124,6 +124,10 @@ exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
   email: 'email',
   passwordHash: 'passwordHash',
+  firstName: 'firstName',
+  lastName: 'lastName',
+  profileImage: 'profileImage',
+  clubId: 'clubId',
   role: 'role',
   lastLogin: 'lastLogin',
   createdAt: 'createdAt',
@@ -169,6 +173,14 @@ exports.Prisma.TaskLogScalarFieldEnum = {
   loggedAt: 'loggedAt'
 };
 
+exports.Prisma.PasswordResetTokenScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  token: 'token',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -202,7 +214,8 @@ exports.Prisma.ModelName = {
   CoachPlayerLink: 'CoachPlayerLink',
   TaskTemplate: 'TaskTemplate',
   CalendarEvent: 'CalendarEvent',
-  TaskLog: 'TaskLog'
+  TaskLog: 'TaskLog',
+  PasswordResetToken: 'PasswordResetToken'
 };
 
 /**

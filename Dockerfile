@@ -1,42 +1,19 @@
-# ---- Build Stage ----
-FROM node:22-bookworm-slim AS build
-WORKDIR /repo
+FROM node:14
 
-RUN corepack enable
+# Set the working directory
+WORKDIR /usr/src/app
 
-# Install OS dependencies for prisma/bcrypt/etc.
-RUN apt-get update && apt-get install -y --no-install-recommends \n    ca-certificates openssl python3 make g++ \n && rm -rf /var/lib/apt/lists/*
+# Copy package.json and package-lock.json files
+COPY package*.json ./
 
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the application files
 COPY . .
 
-# Create .env file for Prisma if it doesn't exist
-RUN if [ ! -f packages/db/.env ]; then cp packages/db/.env.example packages/db/.env; fi
-
-RUN pnpm install --frozen-lockfile
-
-# ✅ Generate Prisma client (without needing DB connection)
-RUN pnpm --filter @golf/db run generate
-
-# ✅ Build Next.js app with standalone output
-RUN pnpm --filter golf-challenge-point-web run build
-
-
-# ---- Runtime Stage ----
-FROM node:22-bookworm-slim AS runtime
-WORKDIR /app
-ENV NODE_ENV=production
-
-RUN corepack enable && apt-get update && apt-get install -y --no-install-recommends \n    ca-certificates openssl \n && rm -rf /var/lib/apt/lists/*
-
-# ✅ Standalone server
-COPY --from=build /repo/apps/web/.next/standalone /app
-
-# ✅ Static assets in correct path
-COPY --from=build /repo/apps/web/.next/static /app/.next/static
-
-# ✅ Public folder (needed for static resources)
-COPY --from=build /repo/apps/web/public /app/public
-
+# Expose the port the app runs on
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+# Command to run the application
+CMD [ "node", "app.js" ]

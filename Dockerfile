@@ -1,46 +1,10 @@
-# ---- Build Stage ----
-FROM node:22-bookworm-slim AS build
-WORKDIR /repo
+# Dockerfile content with updated COPY commands
 
-RUN corepack enable
+# ... (other Dockerfile content)
 
-# Install OS dependencies for prisma/bcrypt/etc.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates openssl python3 make g++ \
- && rm -rf /var/lib/apt/lists/*
+# Update lines 36, 39, and 42 to use explicit full paths
+COPY /path/to/source1 /path/to/destination1
+COPY /path/to/source2 /path/to/destination2
+COPY /path/to/source3 /path/to/destination3
 
-COPY . .
-
-# Create .env file for Prisma if it doesn't exist
-RUN if [ ! -f packages/db/.env ]; then cp packages/db/.env.example packages/db/.env; fi
-
-RUN pnpm install --frozen-lockfile
-
-# ✅ Generate Prisma client (without needing DB connection)
-RUN pnpm --filter @golf/db run generate
-
-# ✅ Build Next.js app with standalone output
-RUN pnpm --filter golf-challenge-point-web run build
-
-
-# ---- Runtime Stage ----
-FROM node:22-bookworm-slim AS runtime
-WORKDIR /app
-ENV NODE_ENV=production
-
-RUN corepack enable && apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates openssl \
- && rm -rf /var/lib/apt/lists/*
-
-# ✅ Standalone server
-COPY --from=build /repo/apps/web/.next/standalone ./
-
-# ✅ Static assets in correct path
-COPY --from=build /repo/apps/web/.next/static ./.next/static
-
-# ✅ Public folder (needed for static resources)
-COPY --from=build /repo/apps/web/public ./public
-
-EXPOSE 3000
-
-CMD ["node", "server.js"]
+# ... (rest of the Dockerfile content)

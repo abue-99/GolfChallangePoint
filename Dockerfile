@@ -30,6 +30,12 @@ RUN corepack enable && apt-get update && apt-get install -y --no-install-recomme
 # Copy the standalone build output
 COPY --from=build /repo/apps/web/.next/standalone /app
 
+# ✅ CRITICAL: Copy static files (not included in standalone by default)
+COPY --from=build /repo/apps/web/.next/static /app/apps/web/.next/static
+
+# Copy public folder
+COPY --from=build /repo/apps/web/public /app/apps/web/public
+
 WORKDIR /app
 
 EXPOSE 3000

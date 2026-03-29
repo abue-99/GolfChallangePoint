@@ -12,6 +12,7 @@ import {
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { SignupDto } from './dto/signup.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from './current-user.decorator';
 import { AuthenticatedUser } from './jwt.strategy';
@@ -20,6 +21,25 @@ import { InvalidTokenException } from '../common/exceptions/auth.exception';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Post('signup')
+  @HttpCode(HttpStatus.CREATED)
+  async signup(
+    @Body() dto: SignupDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { accessToken, user } = await this.authService.signup(dto);
+    const refreshToken = this.authService.generateRefreshToken(user.id);
+
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return { accessToken, user };
+  }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)

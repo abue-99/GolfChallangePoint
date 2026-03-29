@@ -5,11 +5,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
-
-// -------------------------------------------------------------------
-// Enums
-// -------------------------------------------------------------------
 
 enum Role {
   ADMIN
@@ -18,116 +15,103 @@ enum Role {
 }
 
 enum EventStatus {
-  PLANNED
-  IN_PROGRESS
-  COMPLETED
+  DRAFT
+  PUBLISHED
+  CLOSED
   CANCELLED
 }
 
-// -------------------------------------------------------------------
-// Models
-// -------------------------------------------------------------------
+enum EventFormat {
+  MEDAL
+  STABLEFORD
+  MATCH_PLAY
+  SCRAMBLE
+  BEST_BALL
+}
 
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
-  passwordHash String
-  firstName    String?
-  lastName     String?
-  profileImage String?
-  clubId       String?
+  password     String
+  passwordHash String?
+  firstName    String
+  lastName     String
   role         Role      @default(PLAYER)
   lastLogin    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  playerProfile  PlayerProfile?
-  coachedPlayers PlayerProfile[]   @relation("CoachProfile")
-  coachLinks     CoachPlayerLink[] @relation("CoachLinks")
-  playerLinks    CoachPlayerLink[] @relation("PlayerLinks")
-  taskTemplates  TaskTemplate[]
-  calendarEvents CalendarEvent[]
-  taskLogs       TaskLog[]
+  playerProfile   PlayerProfile?
+  coachPlayerLink CoachPlayerLink[] @relation("CoachToPlayer")
 
-  @@index([email])
+  @@map("users")
+}
+
+model Event {
+  id        String      @id @default(cuid())
+  title     String
+  status    EventStatus @default(DRAFT)
+  format    EventFormat
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@map("events")
 }
 
 model PlayerProfile {
-  id           String  @id @default(cuid())
-  userId       String  @unique
-  golfHandicap Float?
-  coachId      String?
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user  User  @relation(fields: [userId], references: [id])
-  coach User? @relation("CoachProfile", fields: [coachId], references: [id])
-
-  @@index([coachId])
+  @@map("player_profiles")
 }
 
 model CoachPlayerLink {
-  id       String @id @default(cuid())
-  coachId  String
-  playerId String
+  id        String   @id @default(cuid())
+  coachId   String
+  coach     User     @relation("CoachToPlayer", fields: [coachId], references: [id], onDelete: Cascade)
+  playerId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  coach  User @relation("CoachLinks", fields: [coachId], references: [id])
-  player User @relation("PlayerLinks", fields: [playerId], references: [id])
-
-  @@unique([coachId, playerId])
-  @@index([coachId])
-  @@index([playerId])
+  @@map("coach_player_links")
 }
 
 model TaskTemplate {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  coachId     String
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  coach          User            @relation(fields: [coachId], references: [id])
-  calendarEvents CalendarEvent[]
-
-  @@index([coachId])
+  @@map("task_templates")
 }
 
 model CalendarEvent {
-  id             String      @id @default(cuid())
-  taskTemplateId String
-  playerId       String
-  startDate      DateTime
-  endDate        DateTime
-  status         EventStatus @default(PLANNED)
+  id        String   @id @default(cuid())
+  title     String
+  date      DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  taskTemplate TaskTemplate @relation(fields: [taskTemplateId], references: [id])
-  player       User         @relation(fields: [playerId], references: [id])
-  taskLogs     TaskLog[]
-
-  @@index([playerId])
-  @@index([taskTemplateId])
+  @@map("calendar_events")
 }
 
 model TaskLog {
-  id              String   @id @default(cuid())
-  calendarEventId String
-  playerId        String
-  value           String?
-  loggedAt        DateTime @default(now())
+  id        String   @id @default(cuid())
+  taskId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  calendarEvent CalendarEvent @relation(fields: [calendarEventId], references: [id])
-  player        User          @relation(fields: [playerId], references: [id])
-
-  @@index([calendarEventId])
-  @@index([playerId])
+  @@map("task_logs")
 }
 
 model PasswordResetToken {
   id        String   @id @default(cuid())
-  email     String
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  @@index([email])
-  @@index([token])
+  @@map("password_reset_tokens")
 }

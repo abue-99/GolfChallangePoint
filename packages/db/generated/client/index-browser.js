@@ -7,10 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 const {
   Decimal,
-  DbNull,
-  JsonNull,
-  AnyNull,
-  NullTypes,
+  objectEnumValues,
   makeStrictEnum,
   Public,
   getRuntime,
@@ -24,12 +21,12 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 7.5.0
- * Query Engine version: 280c870be64f457428992c43c1f6d557fab6e29e
+ * Prisma Client JS version: 6.19.2
+ * Query Engine version: c2990dca591cba766e3b7ef5d9e8a84796e47ab7
  */
 Prisma.prismaVersion = {
-  client: "7.5.0",
-  engine: "280c870be64f457428992c43c1f6d557fab6e29e"
+  client: "6.19.2",
+  engine: "c2990dca591cba766e3b7ef5d9e8a84796e47ab7"
 }
 
 Prisma.PrismaClientKnownRequestError = () => {
@@ -101,11 +98,15 @@ In case this error is unexpected for you, please report it in https://pris.ly/pr
 /**
  * Shorthand utilities for JSON filtering
  */
-Prisma.DbNull = DbNull
-Prisma.JsonNull = JsonNull
-Prisma.AnyNull = AnyNull
+Prisma.DbNull = objectEnumValues.instances.DbNull
+Prisma.JsonNull = objectEnumValues.instances.JsonNull
+Prisma.AnyNull = objectEnumValues.instances.AnyNull
 
-Prisma.NullTypes = NullTypes
+Prisma.NullTypes = {
+  DbNull: objectEnumValues.classes.DbNull,
+  JsonNull: objectEnumValues.classes.JsonNull,
+  AnyNull: objectEnumValues.classes.AnyNull
+}
 
 
 
@@ -123,13 +124,21 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
   email: 'email',
+  password: 'password',
   passwordHash: 'passwordHash',
   firstName: 'firstName',
   lastName: 'lastName',
-  profileImage: 'profileImage',
-  clubId: 'clubId',
   role: 'role',
   lastLogin: 'lastLogin',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.EventScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  status: 'status',
+  format: 'format',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -137,45 +146,42 @@ exports.Prisma.UserScalarFieldEnum = {
 exports.Prisma.PlayerProfileScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
-  golfHandicap: 'golfHandicap',
-  coachId: 'coachId'
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.CoachPlayerLinkScalarFieldEnum = {
   id: 'id',
   coachId: 'coachId',
-  playerId: 'playerId'
+  playerId: 'playerId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.TaskTemplateScalarFieldEnum = {
   id: 'id',
-  name: 'name',
-  description: 'description',
-  coachId: 'coachId',
-  isActive: 'isActive',
-  createdAt: 'createdAt'
+  title: 'title',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.CalendarEventScalarFieldEnum = {
   id: 'id',
-  taskTemplateId: 'taskTemplateId',
-  playerId: 'playerId',
-  startDate: 'startDate',
-  endDate: 'endDate',
-  status: 'status'
+  title: 'title',
+  date: 'date',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.TaskLogScalarFieldEnum = {
   id: 'id',
-  calendarEventId: 'calendarEventId',
-  playerId: 'playerId',
-  value: 'value',
-  loggedAt: 'loggedAt'
+  taskId: 'taskId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.PasswordResetTokenScalarFieldEnum = {
   id: 'id',
-  email: 'email',
   token: 'token',
   expiresAt: 'expiresAt',
   createdAt: 'createdAt'
@@ -202,14 +208,23 @@ exports.Role = exports.$Enums.Role = {
 };
 
 exports.EventStatus = exports.$Enums.EventStatus = {
-  PLANNED: 'PLANNED',
-  IN_PROGRESS: 'IN_PROGRESS',
-  COMPLETED: 'COMPLETED',
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+  CLOSED: 'CLOSED',
   CANCELLED: 'CANCELLED'
+};
+
+exports.EventFormat = exports.$Enums.EventFormat = {
+  MEDAL: 'MEDAL',
+  STABLEFORD: 'STABLEFORD',
+  MATCH_PLAY: 'MATCH_PLAY',
+  SCRAMBLE: 'SCRAMBLE',
+  BEST_BALL: 'BEST_BALL'
 };
 
 exports.Prisma.ModelName = {
   User: 'User',
+  Event: 'Event',
   PlayerProfile: 'PlayerProfile',
   CoachPlayerLink: 'CoachPlayerLink',
   TaskTemplate: 'TaskTemplate',

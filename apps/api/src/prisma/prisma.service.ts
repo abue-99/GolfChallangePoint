@@ -1,16 +1,48 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@golf/db';
+import { prisma } from '@golf/db';
 
 @Injectable()
-export class PrismaService
-  extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+export class PrismaService implements OnModuleInit, OnModuleDestroy {
+  private client = prisma;
+
   async onModuleInit() {
-    await this.$connect();
+    await this.client.$connect();
   }
 
   async onModuleDestroy() {
-    await this.$disconnect();
+    await this.client.$disconnect();
+  }
+
+  // Proxy all property access to the prisma client
+  get user() {
+    return this.client.user;
+  }
+
+  get playerProfile() {
+    return this.client.playerProfile;
+  }
+
+  get coachPlayerLink() {
+    return this.client.coachPlayerLink;
+  }
+
+  get taskTemplate() {
+    return this.client.taskTemplate;
+  }
+
+  get calendarEvent() {
+    return this.client.calendarEvent;
+  }
+
+  get taskLog() {
+    return this.client.taskLog;
+  }
+
+  get passwordResetToken() {
+    return this.client.passwordResetToken;
+  }
+
+  $transaction(...args: any[]) {
+    return (this.client as any).$transaction(...args);
   }
 }

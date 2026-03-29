@@ -3,7 +3,7 @@
  * Client
 **/
 
-import * as runtime from './runtime/client.js';
+import * as runtime from './runtime/library.js';
 import $Types = runtime.Types // general types
 import $Public = runtime.Types.Public
 import $Utils = runtime.Types.Utils
@@ -18,6 +18,11 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
  * 
  */
 export type User = $Result.DefaultSelection<Prisma.$UserPayload>
+/**
+ * Model Event
+ * 
+ */
+export type Event = $Result.DefaultSelection<Prisma.$EventPayload>
 /**
  * Model PlayerProfile
  * 
@@ -63,13 +68,24 @@ export type Role = (typeof Role)[keyof typeof Role]
 
 
 export const EventStatus: {
-  PLANNED: 'PLANNED',
-  IN_PROGRESS: 'IN_PROGRESS',
-  COMPLETED: 'COMPLETED',
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+  CLOSED: 'CLOSED',
   CANCELLED: 'CANCELLED'
 };
 
 export type EventStatus = (typeof EventStatus)[keyof typeof EventStatus]
+
+
+export const EventFormat: {
+  MEDAL: 'MEDAL',
+  STABLEFORD: 'STABLEFORD',
+  MATCH_PLAY: 'MATCH_PLAY',
+  SCRAMBLE: 'SCRAMBLE',
+  BEST_BALL: 'BEST_BALL'
+};
+
+export type EventFormat = (typeof EventFormat)[keyof typeof EventFormat]
 
 }
 
@@ -81,21 +97,23 @@ export type EventStatus = $Enums.EventStatus
 
 export const EventStatus: typeof $Enums.EventStatus
 
+export type EventFormat = $Enums.EventFormat
+
+export const EventFormat: typeof $Enums.EventFormat
+
 /**
  * ##  Prisma Client ʲˢ
  *
  * Type-safe database client for TypeScript & Node.js
  * @example
  * ```
- * const prisma = new PrismaClient({
- *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
- * })
+ * const prisma = new PrismaClient()
  * // Fetch zero or more Users
  * const users = await prisma.user.findMany()
  * ```
  *
  *
- * Read more in our [docs](https://pris.ly/d/client).
+ * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
  */
 export class PrismaClient<
   ClientOptions extends Prisma.PrismaClientOptions = Prisma.PrismaClientOptions,
@@ -110,15 +128,13 @@ export class PrismaClient<
    * Type-safe database client for TypeScript & Node.js
    * @example
    * ```
-   * const prisma = new PrismaClient({
-   *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
-   * })
+   * const prisma = new PrismaClient()
    * // Fetch zero or more Users
    * const users = await prisma.user.findMany()
    * ```
    *
    *
-   * Read more in our [docs](https://pris.ly/d/client).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
    */
 
   constructor(optionsArg ?: Prisma.Subset<ClientOptions, Prisma.PrismaClientOptions>);
@@ -141,7 +157,7 @@ export class PrismaClient<
    * const result = await prisma.$executeRaw`UPDATE User SET cool = ${true} WHERE email = ${'user@email.com'};`
    * ```
    *
-   * Read more in our [docs](https://pris.ly/d/raw-queries).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $executeRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<number>;
 
@@ -153,7 +169,7 @@ export class PrismaClient<
    * const result = await prisma.$executeRawUnsafe('UPDATE User SET cool = $1 WHERE email = $2 ;', true, 'user@email.com')
    * ```
    *
-   * Read more in our [docs](https://pris.ly/d/raw-queries).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $executeRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<number>;
 
@@ -164,7 +180,7 @@ export class PrismaClient<
    * const result = await prisma.$queryRaw`SELECT * FROM User WHERE id = ${1} OR email = ${'user@email.com'};`
    * ```
    *
-   * Read more in our [docs](https://pris.ly/d/raw-queries).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $queryRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<T>;
 
@@ -176,7 +192,7 @@ export class PrismaClient<
    * const result = await prisma.$queryRawUnsafe('SELECT * FROM User WHERE id = $1 OR email = $2;', 1, 'user@email.com')
    * ```
    *
-   * Read more in our [docs](https://pris.ly/d/raw-queries).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $queryRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<T>;
 
@@ -192,11 +208,12 @@ export class PrismaClient<
    * ])
    * ```
    * 
-   * Read more in our [docs](https://www.prisma.io/docs/orm/prisma-client/queries/transactions).
+   * Read more in our [docs](https://www.prisma.io/docs/concepts/components/prisma-client/transactions).
    */
   $transaction<P extends Prisma.PrismaPromise<any>[]>(arg: [...P], options?: { isolationLevel?: Prisma.TransactionIsolationLevel }): $Utils.JsPromise<runtime.Types.Utils.UnwrapTuple<P>>
 
   $transaction<R>(fn: (prisma: Omit<PrismaClient, runtime.ITXClientDenyList>) => $Utils.JsPromise<R>, options?: { maxWait?: number, timeout?: number, isolationLevel?: Prisma.TransactionIsolationLevel }): $Utils.JsPromise<R>
+
 
   $extends: $Extensions.ExtendsHook<"extends", Prisma.TypeMapCb<ClientOptions>, ExtArgs, $Utils.Call<Prisma.TypeMapCb<ClientOptions>, {
     extArgs: ExtArgs
@@ -211,6 +228,16 @@ export class PrismaClient<
     * ```
     */
   get user(): Prisma.UserDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.event`: Exposes CRUD operations for the **Event** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Events
+    * const events = await prisma.event.findMany()
+    * ```
+    */
+  get event(): Prisma.EventDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.playerProfile`: Exposes CRUD operations for the **PlayerProfile** model.
@@ -311,6 +338,14 @@ export namespace Prisma {
   export type DecimalJsLike = runtime.DecimalJsLike
 
   /**
+   * Metrics
+   */
+  export type Metrics = runtime.Metrics
+  export type Metric<T> = runtime.Metric<T>
+  export type MetricHistogram = runtime.MetricHistogram
+  export type MetricHistogramBucket = runtime.MetricHistogramBucket
+
+  /**
   * Extensions
   */
   export import Extension = $Extensions.UserArgs
@@ -321,12 +356,11 @@ export namespace Prisma {
   export import Exact = $Public.Exact
 
   /**
-   * Prisma Client JS version: 7.5.0
-   * Query Engine version: 280c870be64f457428992c43c1f6d557fab6e29e
+   * Prisma Client JS version: 6.19.2
+   * Query Engine version: c2990dca591cba766e3b7ef5d9e8a84796e47ab7
    */
   export type PrismaVersion = {
     client: string
-    engine: string
   }
 
   export const prismaVersion: PrismaVersion
@@ -706,6 +740,7 @@ export namespace Prisma {
 
   export const ModelName: {
     User: 'User',
+    Event: 'Event',
     PlayerProfile: 'PlayerProfile',
     CoachPlayerLink: 'CoachPlayerLink',
     TaskTemplate: 'TaskTemplate',
@@ -717,6 +752,9 @@ export namespace Prisma {
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
 
 
+  export type Datasources = {
+    db?: Datasource
+  }
 
   interface TypeMapCb<ClientOptions = {}> extends $Utils.Fn<{extArgs: $Extensions.InternalArgs }, $Utils.Record<string, any>> {
     returns: Prisma.TypeMap<this['params']['extArgs'], ClientOptions extends { omit: infer OmitOptions } ? OmitOptions : {}>
@@ -727,7 +765,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "playerProfile" | "coachPlayerLink" | "taskTemplate" | "calendarEvent" | "taskLog" | "passwordResetToken"
+      modelProps: "user" | "event" | "playerProfile" | "coachPlayerLink" | "taskTemplate" | "calendarEvent" | "taskLog" | "passwordResetToken"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -802,6 +840,80 @@ export namespace Prisma {
           count: {
             args: Prisma.UserCountArgs<ExtArgs>
             result: $Utils.Optional<UserCountAggregateOutputType> | number
+          }
+        }
+      }
+      Event: {
+        payload: Prisma.$EventPayload<ExtArgs>
+        fields: Prisma.EventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.EventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.EventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EventPayload>
+          }
+          findFirst: {
+            args: Prisma.EventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.EventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EventPayload>
+          }
+          findMany: {
+            args: Prisma.EventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EventPayload>[]
+          }
+          create: {
+            args: Prisma.EventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EventPayload>
+          }
+          createMany: {
+            args: Prisma.EventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.EventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EventPayload>[]
+          }
+          delete: {
+            args: Prisma.EventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EventPayload>
+          }
+          update: {
+            args: Prisma.EventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EventPayload>
+          }
+          deleteMany: {
+            args: Prisma.EventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.EventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.EventUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EventPayload>[]
+          }
+          upsert: {
+            args: Prisma.EventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EventPayload>
+          }
+          aggregate: {
+            args: Prisma.EventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateEvent>
+          }
+          groupBy: {
+            args: Prisma.EventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<EventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.EventCountArgs<ExtArgs>
+            result: $Utils.Optional<EventCountAggregateOutputType> | number
           }
         }
       }
@@ -1278,6 +1390,14 @@ export namespace Prisma {
   export type ErrorFormat = 'pretty' | 'colorless' | 'minimal'
   export interface PrismaClientOptions {
     /**
+     * Overwrites the datasource url from your schema.prisma file
+     */
+    datasources?: Datasources
+    /**
+     * Overwrites the datasource url from your schema.prisma file
+     */
+    datasourceUrl?: string
+    /**
      * @default "colorless"
      */
     errorFormat?: ErrorFormat
@@ -1303,7 +1423,7 @@ export namespace Prisma {
      *  { emit: 'stdout', level: 'error' }
      * 
      * ```
-     * Read more in our [docs](https://pris.ly/d/logging).
+     * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/logging#the-log-option).
      */
     log?: (LogLevel | LogDefinition)[]
     /**
@@ -1319,11 +1439,7 @@ export namespace Prisma {
     /**
      * Instance of a Driver Adapter, e.g., like one provided by `@prisma/adapter-planetscale`
      */
-    adapter?: runtime.SqlDriverAdapterFactory
-    /**
-     * Prisma Accelerate URL allowing the client to connect through Accelerate instead of a direct database.
-     */
-    accelerateUrl?: string
+    adapter?: runtime.SqlDriverAdapterFactory | null
     /**
      * Global configuration for omitting model fields by default.
      * 
@@ -1339,25 +1455,10 @@ export namespace Prisma {
      * ```
      */
     omit?: Prisma.GlobalOmitConfig
-    /**
-     * SQL commenter plugins that add metadata to SQL queries as comments.
-     * Comments follow the sqlcommenter format: https://google.github.io/sqlcommenter/
-     * 
-     * @example
-     * ```
-     * const prisma = new PrismaClient({
-     *   adapter,
-     *   comments: [
-     *     traceContext(),
-     *     queryInsights(),
-     *   ],
-     * })
-     * ```
-     */
-    comments?: runtime.SqlCommenterPlugin[]
   }
   export type GlobalOmitConfig = {
     user?: UserOmit
+    event?: EventOmit
     playerProfile?: PlayerProfileOmit
     coachPlayerLink?: CoachPlayerLinkOmit
     taskTemplate?: TaskTemplateOmit
@@ -1444,21 +1545,11 @@ export namespace Prisma {
    */
 
   export type UserCountOutputType = {
-    coachedPlayers: number
-    coachLinks: number
-    playerLinks: number
-    taskTemplates: number
-    calendarEvents: number
-    taskLogs: number
+    coachPlayerLink: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    coachedPlayers?: boolean | UserCountOutputTypeCountCoachedPlayersArgs
-    coachLinks?: boolean | UserCountOutputTypeCountCoachLinksArgs
-    playerLinks?: boolean | UserCountOutputTypeCountPlayerLinksArgs
-    taskTemplates?: boolean | UserCountOutputTypeCountTaskTemplatesArgs
-    calendarEvents?: boolean | UserCountOutputTypeCountCalendarEventsArgs
-    taskLogs?: boolean | UserCountOutputTypeCountTaskLogsArgs
+    coachPlayerLink?: boolean | UserCountOutputTypeCountCoachPlayerLinkArgs
   }
 
   // Custom InputTypes
@@ -1475,105 +1566,8 @@ export namespace Prisma {
   /**
    * UserCountOutputType without action
    */
-  export type UserCountOutputTypeCountCoachedPlayersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: PlayerProfileWhereInput
-  }
-
-  /**
-   * UserCountOutputType without action
-   */
-  export type UserCountOutputTypeCountCoachLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type UserCountOutputTypeCountCoachPlayerLinkArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: CoachPlayerLinkWhereInput
-  }
-
-  /**
-   * UserCountOutputType without action
-   */
-  export type UserCountOutputTypeCountPlayerLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: CoachPlayerLinkWhereInput
-  }
-
-  /**
-   * UserCountOutputType without action
-   */
-  export type UserCountOutputTypeCountTaskTemplatesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: TaskTemplateWhereInput
-  }
-
-  /**
-   * UserCountOutputType without action
-   */
-  export type UserCountOutputTypeCountCalendarEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: CalendarEventWhereInput
-  }
-
-  /**
-   * UserCountOutputType without action
-   */
-  export type UserCountOutputTypeCountTaskLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: TaskLogWhereInput
-  }
-
-
-  /**
-   * Count Type TaskTemplateCountOutputType
-   */
-
-  export type TaskTemplateCountOutputType = {
-    calendarEvents: number
-  }
-
-  export type TaskTemplateCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    calendarEvents?: boolean | TaskTemplateCountOutputTypeCountCalendarEventsArgs
-  }
-
-  // Custom InputTypes
-  /**
-   * TaskTemplateCountOutputType without action
-   */
-  export type TaskTemplateCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the TaskTemplateCountOutputType
-     */
-    select?: TaskTemplateCountOutputTypeSelect<ExtArgs> | null
-  }
-
-  /**
-   * TaskTemplateCountOutputType without action
-   */
-  export type TaskTemplateCountOutputTypeCountCalendarEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: CalendarEventWhereInput
-  }
-
-
-  /**
-   * Count Type CalendarEventCountOutputType
-   */
-
-  export type CalendarEventCountOutputType = {
-    taskLogs: number
-  }
-
-  export type CalendarEventCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    taskLogs?: boolean | CalendarEventCountOutputTypeCountTaskLogsArgs
-  }
-
-  // Custom InputTypes
-  /**
-   * CalendarEventCountOutputType without action
-   */
-  export type CalendarEventCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the CalendarEventCountOutputType
-     */
-    select?: CalendarEventCountOutputTypeSelect<ExtArgs> | null
-  }
-
-  /**
-   * CalendarEventCountOutputType without action
-   */
-  export type CalendarEventCountOutputTypeCountTaskLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: TaskLogWhereInput
   }
 
 
@@ -1594,11 +1588,10 @@ export namespace Prisma {
   export type UserMinAggregateOutputType = {
     id: string | null
     email: string | null
+    password: string | null
     passwordHash: string | null
     firstName: string | null
     lastName: string | null
-    profileImage: string | null
-    clubId: string | null
     role: $Enums.Role | null
     lastLogin: Date | null
     createdAt: Date | null
@@ -1608,11 +1601,10 @@ export namespace Prisma {
   export type UserMaxAggregateOutputType = {
     id: string | null
     email: string | null
+    password: string | null
     passwordHash: string | null
     firstName: string | null
     lastName: string | null
-    profileImage: string | null
-    clubId: string | null
     role: $Enums.Role | null
     lastLogin: Date | null
     createdAt: Date | null
@@ -1622,11 +1614,10 @@ export namespace Prisma {
   export type UserCountAggregateOutputType = {
     id: number
     email: number
+    password: number
     passwordHash: number
     firstName: number
     lastName: number
-    profileImage: number
-    clubId: number
     role: number
     lastLogin: number
     createdAt: number
@@ -1638,11 +1629,10 @@ export namespace Prisma {
   export type UserMinAggregateInputType = {
     id?: true
     email?: true
+    password?: true
     passwordHash?: true
     firstName?: true
     lastName?: true
-    profileImage?: true
-    clubId?: true
     role?: true
     lastLogin?: true
     createdAt?: true
@@ -1652,11 +1642,10 @@ export namespace Prisma {
   export type UserMaxAggregateInputType = {
     id?: true
     email?: true
+    password?: true
     passwordHash?: true
     firstName?: true
     lastName?: true
-    profileImage?: true
-    clubId?: true
     role?: true
     lastLogin?: true
     createdAt?: true
@@ -1666,11 +1655,10 @@ export namespace Prisma {
   export type UserCountAggregateInputType = {
     id?: true
     email?: true
+    password?: true
     passwordHash?: true
     firstName?: true
     lastName?: true
-    profileImage?: true
-    clubId?: true
     role?: true
     lastLogin?: true
     createdAt?: true
@@ -1753,11 +1741,10 @@ export namespace Prisma {
   export type UserGroupByOutputType = {
     id: string
     email: string
-    passwordHash: string
-    firstName: string | null
-    lastName: string | null
-    profileImage: string | null
-    clubId: string | null
+    password: string
+    passwordHash: string | null
+    firstName: string
+    lastName: string
     role: $Enums.Role
     lastLogin: Date | null
     createdAt: Date
@@ -1784,33 +1771,26 @@ export namespace Prisma {
   export type UserSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     email?: boolean
+    password?: boolean
     passwordHash?: boolean
     firstName?: boolean
     lastName?: boolean
-    profileImage?: boolean
-    clubId?: boolean
     role?: boolean
     lastLogin?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     playerProfile?: boolean | User$playerProfileArgs<ExtArgs>
-    coachedPlayers?: boolean | User$coachedPlayersArgs<ExtArgs>
-    coachLinks?: boolean | User$coachLinksArgs<ExtArgs>
-    playerLinks?: boolean | User$playerLinksArgs<ExtArgs>
-    taskTemplates?: boolean | User$taskTemplatesArgs<ExtArgs>
-    calendarEvents?: boolean | User$calendarEventsArgs<ExtArgs>
-    taskLogs?: boolean | User$taskLogsArgs<ExtArgs>
+    coachPlayerLink?: boolean | User$coachPlayerLinkArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
   export type UserSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     email?: boolean
+    password?: boolean
     passwordHash?: boolean
     firstName?: boolean
     lastName?: boolean
-    profileImage?: boolean
-    clubId?: boolean
     role?: boolean
     lastLogin?: boolean
     createdAt?: boolean
@@ -1820,11 +1800,10 @@ export namespace Prisma {
   export type UserSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     email?: boolean
+    password?: boolean
     passwordHash?: boolean
     firstName?: boolean
     lastName?: boolean
-    profileImage?: boolean
-    clubId?: boolean
     role?: boolean
     lastLogin?: boolean
     createdAt?: boolean
@@ -1834,26 +1813,20 @@ export namespace Prisma {
   export type UserSelectScalar = {
     id?: boolean
     email?: boolean
+    password?: boolean
     passwordHash?: boolean
     firstName?: boolean
     lastName?: boolean
-    profileImage?: boolean
-    clubId?: boolean
     role?: boolean
     lastLogin?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "passwordHash" | "firstName" | "lastName" | "profileImage" | "clubId" | "role" | "lastLogin" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "password" | "passwordHash" | "firstName" | "lastName" | "role" | "lastLogin" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     playerProfile?: boolean | User$playerProfileArgs<ExtArgs>
-    coachedPlayers?: boolean | User$coachedPlayersArgs<ExtArgs>
-    coachLinks?: boolean | User$coachLinksArgs<ExtArgs>
-    playerLinks?: boolean | User$playerLinksArgs<ExtArgs>
-    taskTemplates?: boolean | User$taskTemplatesArgs<ExtArgs>
-    calendarEvents?: boolean | User$calendarEventsArgs<ExtArgs>
-    taskLogs?: boolean | User$taskLogsArgs<ExtArgs>
+    coachPlayerLink?: boolean | User$coachPlayerLinkArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -1863,21 +1836,15 @@ export namespace Prisma {
     name: "User"
     objects: {
       playerProfile: Prisma.$PlayerProfilePayload<ExtArgs> | null
-      coachedPlayers: Prisma.$PlayerProfilePayload<ExtArgs>[]
-      coachLinks: Prisma.$CoachPlayerLinkPayload<ExtArgs>[]
-      playerLinks: Prisma.$CoachPlayerLinkPayload<ExtArgs>[]
-      taskTemplates: Prisma.$TaskTemplatePayload<ExtArgs>[]
-      calendarEvents: Prisma.$CalendarEventPayload<ExtArgs>[]
-      taskLogs: Prisma.$TaskLogPayload<ExtArgs>[]
+      coachPlayerLink: Prisma.$CoachPlayerLinkPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       email: string
-      passwordHash: string
-      firstName: string | null
-      lastName: string | null
-      profileImage: string | null
-      clubId: string | null
+      password: string
+      passwordHash: string | null
+      firstName: string
+      lastName: string
       role: $Enums.Role
       lastLogin: Date | null
       createdAt: Date
@@ -2277,12 +2244,7 @@ export namespace Prisma {
   export interface Prisma__UserClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     playerProfile<T extends User$playerProfileArgs<ExtArgs> = {}>(args?: Subset<T, User$playerProfileArgs<ExtArgs>>): Prisma__PlayerProfileClient<$Result.GetResult<Prisma.$PlayerProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-    coachedPlayers<T extends User$coachedPlayersArgs<ExtArgs> = {}>(args?: Subset<T, User$coachedPlayersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlayerProfilePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    coachLinks<T extends User$coachLinksArgs<ExtArgs> = {}>(args?: Subset<T, User$coachLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CoachPlayerLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    playerLinks<T extends User$playerLinksArgs<ExtArgs> = {}>(args?: Subset<T, User$playerLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CoachPlayerLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    taskTemplates<T extends User$taskTemplatesArgs<ExtArgs> = {}>(args?: Subset<T, User$taskTemplatesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TaskTemplatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    calendarEvents<T extends User$calendarEventsArgs<ExtArgs> = {}>(args?: Subset<T, User$calendarEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CalendarEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-    taskLogs<T extends User$taskLogsArgs<ExtArgs> = {}>(args?: Subset<T, User$taskLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TaskLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    coachPlayerLink<T extends User$coachPlayerLinkArgs<ExtArgs> = {}>(args?: Subset<T, User$coachPlayerLinkArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CoachPlayerLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2314,11 +2276,10 @@ export namespace Prisma {
   interface UserFieldRefs {
     readonly id: FieldRef<"User", 'String'>
     readonly email: FieldRef<"User", 'String'>
+    readonly password: FieldRef<"User", 'String'>
     readonly passwordHash: FieldRef<"User", 'String'>
     readonly firstName: FieldRef<"User", 'String'>
     readonly lastName: FieldRef<"User", 'String'>
-    readonly profileImage: FieldRef<"User", 'String'>
-    readonly clubId: FieldRef<"User", 'String'>
     readonly role: FieldRef<"User", 'Role'>
     readonly lastLogin: FieldRef<"User", 'DateTime'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
@@ -2519,11 +2480,6 @@ export namespace Prisma {
      * Skip the first `n` Users.
      */
     skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of Users.
-     */
     distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
   }
 
@@ -2735,33 +2691,9 @@ export namespace Prisma {
   }
 
   /**
-   * User.coachedPlayers
+   * User.coachPlayerLink
    */
-  export type User$coachedPlayersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the PlayerProfile
-     */
-    select?: PlayerProfileSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the PlayerProfile
-     */
-    omit?: PlayerProfileOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: PlayerProfileInclude<ExtArgs> | null
-    where?: PlayerProfileWhereInput
-    orderBy?: PlayerProfileOrderByWithRelationInput | PlayerProfileOrderByWithRelationInput[]
-    cursor?: PlayerProfileWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: PlayerProfileScalarFieldEnum | PlayerProfileScalarFieldEnum[]
-  }
-
-  /**
-   * User.coachLinks
-   */
-  export type User$coachLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type User$coachPlayerLinkArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
      * Select specific fields to fetch from the CoachPlayerLink
      */
@@ -2780,102 +2712,6 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: CoachPlayerLinkScalarFieldEnum | CoachPlayerLinkScalarFieldEnum[]
-  }
-
-  /**
-   * User.playerLinks
-   */
-  export type User$playerLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the CoachPlayerLink
-     */
-    select?: CoachPlayerLinkSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the CoachPlayerLink
-     */
-    omit?: CoachPlayerLinkOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CoachPlayerLinkInclude<ExtArgs> | null
-    where?: CoachPlayerLinkWhereInput
-    orderBy?: CoachPlayerLinkOrderByWithRelationInput | CoachPlayerLinkOrderByWithRelationInput[]
-    cursor?: CoachPlayerLinkWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: CoachPlayerLinkScalarFieldEnum | CoachPlayerLinkScalarFieldEnum[]
-  }
-
-  /**
-   * User.taskTemplates
-   */
-  export type User$taskTemplatesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the TaskTemplate
-     */
-    select?: TaskTemplateSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the TaskTemplate
-     */
-    omit?: TaskTemplateOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskTemplateInclude<ExtArgs> | null
-    where?: TaskTemplateWhereInput
-    orderBy?: TaskTemplateOrderByWithRelationInput | TaskTemplateOrderByWithRelationInput[]
-    cursor?: TaskTemplateWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: TaskTemplateScalarFieldEnum | TaskTemplateScalarFieldEnum[]
-  }
-
-  /**
-   * User.calendarEvents
-   */
-  export type User$calendarEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the CalendarEvent
-     */
-    select?: CalendarEventSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the CalendarEvent
-     */
-    omit?: CalendarEventOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CalendarEventInclude<ExtArgs> | null
-    where?: CalendarEventWhereInput
-    orderBy?: CalendarEventOrderByWithRelationInput | CalendarEventOrderByWithRelationInput[]
-    cursor?: CalendarEventWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: CalendarEventScalarFieldEnum | CalendarEventScalarFieldEnum[]
-  }
-
-  /**
-   * User.taskLogs
-   */
-  export type User$taskLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the TaskLog
-     */
-    select?: TaskLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the TaskLog
-     */
-    omit?: TaskLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskLogInclude<ExtArgs> | null
-    where?: TaskLogWhereInput
-    orderBy?: TaskLogOrderByWithRelationInput | TaskLogOrderByWithRelationInput[]
-    cursor?: TaskLogWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: TaskLogScalarFieldEnum | TaskLogScalarFieldEnum[]
   }
 
   /**
@@ -2898,75 +2734,1065 @@ export namespace Prisma {
 
 
   /**
+   * Model Event
+   */
+
+  export type AggregateEvent = {
+    _count: EventCountAggregateOutputType | null
+    _min: EventMinAggregateOutputType | null
+    _max: EventMaxAggregateOutputType | null
+  }
+
+  export type EventMinAggregateOutputType = {
+    id: string | null
+    title: string | null
+    status: $Enums.EventStatus | null
+    format: $Enums.EventFormat | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type EventMaxAggregateOutputType = {
+    id: string | null
+    title: string | null
+    status: $Enums.EventStatus | null
+    format: $Enums.EventFormat | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type EventCountAggregateOutputType = {
+    id: number
+    title: number
+    status: number
+    format: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type EventMinAggregateInputType = {
+    id?: true
+    title?: true
+    status?: true
+    format?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type EventMaxAggregateInputType = {
+    id?: true
+    title?: true
+    status?: true
+    format?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type EventCountAggregateInputType = {
+    id?: true
+    title?: true
+    status?: true
+    format?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type EventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Event to aggregate.
+     */
+    where?: EventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Events to fetch.
+     */
+    orderBy?: EventOrderByWithRelationInput | EventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: EventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Events from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Events.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Events
+    **/
+    _count?: true | EventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: EventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: EventMaxAggregateInputType
+  }
+
+  export type GetEventAggregateType<T extends EventAggregateArgs> = {
+        [P in keyof T & keyof AggregateEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateEvent[P]>
+      : GetScalarType<T[P], AggregateEvent[P]>
+  }
+
+
+
+
+  export type EventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: EventWhereInput
+    orderBy?: EventOrderByWithAggregationInput | EventOrderByWithAggregationInput[]
+    by: EventScalarFieldEnum[] | EventScalarFieldEnum
+    having?: EventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: EventCountAggregateInputType | true
+    _min?: EventMinAggregateInputType
+    _max?: EventMaxAggregateInputType
+  }
+
+  export type EventGroupByOutputType = {
+    id: string
+    title: string
+    status: $Enums.EventStatus
+    format: $Enums.EventFormat
+    createdAt: Date
+    updatedAt: Date
+    _count: EventCountAggregateOutputType | null
+    _min: EventMinAggregateOutputType | null
+    _max: EventMaxAggregateOutputType | null
+  }
+
+  type GetEventGroupByPayload<T extends EventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<EventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof EventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], EventGroupByOutputType[P]>
+            : GetScalarType<T[P], EventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type EventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    title?: boolean
+    status?: boolean
+    format?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["event"]>
+
+  export type EventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    title?: boolean
+    status?: boolean
+    format?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["event"]>
+
+  export type EventSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    title?: boolean
+    status?: boolean
+    format?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["event"]>
+
+  export type EventSelectScalar = {
+    id?: boolean
+    title?: boolean
+    status?: boolean
+    format?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type EventOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "status" | "format" | "createdAt" | "updatedAt", ExtArgs["result"]["event"]>
+
+  export type $EventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Event"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      title: string
+      status: $Enums.EventStatus
+      format: $Enums.EventFormat
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["event"]>
+    composites: {}
+  }
+
+  type EventGetPayload<S extends boolean | null | undefined | EventDefaultArgs> = $Result.GetResult<Prisma.$EventPayload, S>
+
+  type EventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<EventFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: EventCountAggregateInputType | true
+    }
+
+  export interface EventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Event'], meta: { name: 'Event' } }
+    /**
+     * Find zero or one Event that matches the filter.
+     * @param {EventFindUniqueArgs} args - Arguments to find a Event
+     * @example
+     * // Get one Event
+     * const event = await prisma.event.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends EventFindUniqueArgs>(args: SelectSubset<T, EventFindUniqueArgs<ExtArgs>>): Prisma__EventClient<$Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Event that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {EventFindUniqueOrThrowArgs} args - Arguments to find a Event
+     * @example
+     * // Get one Event
+     * const event = await prisma.event.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends EventFindUniqueOrThrowArgs>(args: SelectSubset<T, EventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__EventClient<$Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Event that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EventFindFirstArgs} args - Arguments to find a Event
+     * @example
+     * // Get one Event
+     * const event = await prisma.event.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends EventFindFirstArgs>(args?: SelectSubset<T, EventFindFirstArgs<ExtArgs>>): Prisma__EventClient<$Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Event that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EventFindFirstOrThrowArgs} args - Arguments to find a Event
+     * @example
+     * // Get one Event
+     * const event = await prisma.event.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends EventFindFirstOrThrowArgs>(args?: SelectSubset<T, EventFindFirstOrThrowArgs<ExtArgs>>): Prisma__EventClient<$Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Events that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Events
+     * const events = await prisma.event.findMany()
+     * 
+     * // Get first 10 Events
+     * const events = await prisma.event.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const eventWithIdOnly = await prisma.event.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends EventFindManyArgs>(args?: SelectSubset<T, EventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Event.
+     * @param {EventCreateArgs} args - Arguments to create a Event.
+     * @example
+     * // Create one Event
+     * const Event = await prisma.event.create({
+     *   data: {
+     *     // ... data to create a Event
+     *   }
+     * })
+     * 
+     */
+    create<T extends EventCreateArgs>(args: SelectSubset<T, EventCreateArgs<ExtArgs>>): Prisma__EventClient<$Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Events.
+     * @param {EventCreateManyArgs} args - Arguments to create many Events.
+     * @example
+     * // Create many Events
+     * const event = await prisma.event.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends EventCreateManyArgs>(args?: SelectSubset<T, EventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Events and returns the data saved in the database.
+     * @param {EventCreateManyAndReturnArgs} args - Arguments to create many Events.
+     * @example
+     * // Create many Events
+     * const event = await prisma.event.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Events and only return the `id`
+     * const eventWithIdOnly = await prisma.event.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends EventCreateManyAndReturnArgs>(args?: SelectSubset<T, EventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Event.
+     * @param {EventDeleteArgs} args - Arguments to delete one Event.
+     * @example
+     * // Delete one Event
+     * const Event = await prisma.event.delete({
+     *   where: {
+     *     // ... filter to delete one Event
+     *   }
+     * })
+     * 
+     */
+    delete<T extends EventDeleteArgs>(args: SelectSubset<T, EventDeleteArgs<ExtArgs>>): Prisma__EventClient<$Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Event.
+     * @param {EventUpdateArgs} args - Arguments to update one Event.
+     * @example
+     * // Update one Event
+     * const event = await prisma.event.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends EventUpdateArgs>(args: SelectSubset<T, EventUpdateArgs<ExtArgs>>): Prisma__EventClient<$Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Events.
+     * @param {EventDeleteManyArgs} args - Arguments to filter Events to delete.
+     * @example
+     * // Delete a few Events
+     * const { count } = await prisma.event.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends EventDeleteManyArgs>(args?: SelectSubset<T, EventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Events.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Events
+     * const event = await prisma.event.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends EventUpdateManyArgs>(args: SelectSubset<T, EventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Events and returns the data updated in the database.
+     * @param {EventUpdateManyAndReturnArgs} args - Arguments to update many Events.
+     * @example
+     * // Update many Events
+     * const event = await prisma.event.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Events and only return the `id`
+     * const eventWithIdOnly = await prisma.event.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends EventUpdateManyAndReturnArgs>(args: SelectSubset<T, EventUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Event.
+     * @param {EventUpsertArgs} args - Arguments to update or create a Event.
+     * @example
+     * // Update or create a Event
+     * const event = await prisma.event.upsert({
+     *   create: {
+     *     // ... data to create a Event
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Event we want to update
+     *   }
+     * })
+     */
+    upsert<T extends EventUpsertArgs>(args: SelectSubset<T, EventUpsertArgs<ExtArgs>>): Prisma__EventClient<$Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Events.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EventCountArgs} args - Arguments to filter Events to count.
+     * @example
+     * // Count the number of Events
+     * const count = await prisma.event.count({
+     *   where: {
+     *     // ... the filter for the Events we want to count
+     *   }
+     * })
+    **/
+    count<T extends EventCountArgs>(
+      args?: Subset<T, EventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], EventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Event.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends EventAggregateArgs>(args: Subset<T, EventAggregateArgs>): Prisma.PrismaPromise<GetEventAggregateType<T>>
+
+    /**
+     * Group by Event.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends EventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: EventGroupByArgs['orderBy'] }
+        : { orderBy?: EventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, EventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Event model
+   */
+  readonly fields: EventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Event.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__EventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Event model
+   */
+  interface EventFieldRefs {
+    readonly id: FieldRef<"Event", 'String'>
+    readonly title: FieldRef<"Event", 'String'>
+    readonly status: FieldRef<"Event", 'EventStatus'>
+    readonly format: FieldRef<"Event", 'EventFormat'>
+    readonly createdAt: FieldRef<"Event", 'DateTime'>
+    readonly updatedAt: FieldRef<"Event", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Event findUnique
+   */
+  export type EventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Event
+     */
+    select?: EventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Event
+     */
+    omit?: EventOmit<ExtArgs> | null
+    /**
+     * Filter, which Event to fetch.
+     */
+    where: EventWhereUniqueInput
+  }
+
+  /**
+   * Event findUniqueOrThrow
+   */
+  export type EventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Event
+     */
+    select?: EventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Event
+     */
+    omit?: EventOmit<ExtArgs> | null
+    /**
+     * Filter, which Event to fetch.
+     */
+    where: EventWhereUniqueInput
+  }
+
+  /**
+   * Event findFirst
+   */
+  export type EventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Event
+     */
+    select?: EventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Event
+     */
+    omit?: EventOmit<ExtArgs> | null
+    /**
+     * Filter, which Event to fetch.
+     */
+    where?: EventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Events to fetch.
+     */
+    orderBy?: EventOrderByWithRelationInput | EventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Events.
+     */
+    cursor?: EventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Events from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Events.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Events.
+     */
+    distinct?: EventScalarFieldEnum | EventScalarFieldEnum[]
+  }
+
+  /**
+   * Event findFirstOrThrow
+   */
+  export type EventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Event
+     */
+    select?: EventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Event
+     */
+    omit?: EventOmit<ExtArgs> | null
+    /**
+     * Filter, which Event to fetch.
+     */
+    where?: EventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Events to fetch.
+     */
+    orderBy?: EventOrderByWithRelationInput | EventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Events.
+     */
+    cursor?: EventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Events from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Events.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Events.
+     */
+    distinct?: EventScalarFieldEnum | EventScalarFieldEnum[]
+  }
+
+  /**
+   * Event findMany
+   */
+  export type EventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Event
+     */
+    select?: EventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Event
+     */
+    omit?: EventOmit<ExtArgs> | null
+    /**
+     * Filter, which Events to fetch.
+     */
+    where?: EventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Events to fetch.
+     */
+    orderBy?: EventOrderByWithRelationInput | EventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Events.
+     */
+    cursor?: EventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Events from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Events.
+     */
+    skip?: number
+    distinct?: EventScalarFieldEnum | EventScalarFieldEnum[]
+  }
+
+  /**
+   * Event create
+   */
+  export type EventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Event
+     */
+    select?: EventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Event
+     */
+    omit?: EventOmit<ExtArgs> | null
+    /**
+     * The data needed to create a Event.
+     */
+    data: XOR<EventCreateInput, EventUncheckedCreateInput>
+  }
+
+  /**
+   * Event createMany
+   */
+  export type EventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Events.
+     */
+    data: EventCreateManyInput | EventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Event createManyAndReturn
+   */
+  export type EventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Event
+     */
+    select?: EventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Event
+     */
+    omit?: EventOmit<ExtArgs> | null
+    /**
+     * The data used to create many Events.
+     */
+    data: EventCreateManyInput | EventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Event update
+   */
+  export type EventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Event
+     */
+    select?: EventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Event
+     */
+    omit?: EventOmit<ExtArgs> | null
+    /**
+     * The data needed to update a Event.
+     */
+    data: XOR<EventUpdateInput, EventUncheckedUpdateInput>
+    /**
+     * Choose, which Event to update.
+     */
+    where: EventWhereUniqueInput
+  }
+
+  /**
+   * Event updateMany
+   */
+  export type EventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Events.
+     */
+    data: XOR<EventUpdateManyMutationInput, EventUncheckedUpdateManyInput>
+    /**
+     * Filter which Events to update
+     */
+    where?: EventWhereInput
+    /**
+     * Limit how many Events to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Event updateManyAndReturn
+   */
+  export type EventUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Event
+     */
+    select?: EventSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Event
+     */
+    omit?: EventOmit<ExtArgs> | null
+    /**
+     * The data used to update Events.
+     */
+    data: XOR<EventUpdateManyMutationInput, EventUncheckedUpdateManyInput>
+    /**
+     * Filter which Events to update
+     */
+    where?: EventWhereInput
+    /**
+     * Limit how many Events to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Event upsert
+   */
+  export type EventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Event
+     */
+    select?: EventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Event
+     */
+    omit?: EventOmit<ExtArgs> | null
+    /**
+     * The filter to search for the Event to update in case it exists.
+     */
+    where: EventWhereUniqueInput
+    /**
+     * In case the Event found by the `where` argument doesn't exist, create a new Event with this data.
+     */
+    create: XOR<EventCreateInput, EventUncheckedCreateInput>
+    /**
+     * In case the Event was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<EventUpdateInput, EventUncheckedUpdateInput>
+  }
+
+  /**
+   * Event delete
+   */
+  export type EventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Event
+     */
+    select?: EventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Event
+     */
+    omit?: EventOmit<ExtArgs> | null
+    /**
+     * Filter which Event to delete.
+     */
+    where: EventWhereUniqueInput
+  }
+
+  /**
+   * Event deleteMany
+   */
+  export type EventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Events to delete
+     */
+    where?: EventWhereInput
+    /**
+     * Limit how many Events to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * Event without action
+   */
+  export type EventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Event
+     */
+    select?: EventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Event
+     */
+    omit?: EventOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Model PlayerProfile
    */
 
   export type AggregatePlayerProfile = {
     _count: PlayerProfileCountAggregateOutputType | null
-    _avg: PlayerProfileAvgAggregateOutputType | null
-    _sum: PlayerProfileSumAggregateOutputType | null
     _min: PlayerProfileMinAggregateOutputType | null
     _max: PlayerProfileMaxAggregateOutputType | null
-  }
-
-  export type PlayerProfileAvgAggregateOutputType = {
-    golfHandicap: number | null
-  }
-
-  export type PlayerProfileSumAggregateOutputType = {
-    golfHandicap: number | null
   }
 
   export type PlayerProfileMinAggregateOutputType = {
     id: string | null
     userId: string | null
-    golfHandicap: number | null
-    coachId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type PlayerProfileMaxAggregateOutputType = {
     id: string | null
     userId: string | null
-    golfHandicap: number | null
-    coachId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type PlayerProfileCountAggregateOutputType = {
     id: number
     userId: number
-    golfHandicap: number
-    coachId: number
+    createdAt: number
+    updatedAt: number
     _all: number
   }
 
 
-  export type PlayerProfileAvgAggregateInputType = {
-    golfHandicap?: true
-  }
-
-  export type PlayerProfileSumAggregateInputType = {
-    golfHandicap?: true
-  }
-
   export type PlayerProfileMinAggregateInputType = {
     id?: true
     userId?: true
-    golfHandicap?: true
-    coachId?: true
+    createdAt?: true
+    updatedAt?: true
   }
 
   export type PlayerProfileMaxAggregateInputType = {
     id?: true
     userId?: true
-    golfHandicap?: true
-    coachId?: true
+    createdAt?: true
+    updatedAt?: true
   }
 
   export type PlayerProfileCountAggregateInputType = {
     id?: true
     userId?: true
-    golfHandicap?: true
-    coachId?: true
+    createdAt?: true
+    updatedAt?: true
     _all?: true
   }
 
@@ -3008,18 +3834,6 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
-     * Select which fields to average
-    **/
-    _avg?: PlayerProfileAvgAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to sum
-    **/
-    _sum?: PlayerProfileSumAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
      * Select which fields to find the minimum value
     **/
     _min?: PlayerProfileMinAggregateInputType
@@ -3050,8 +3864,6 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: PlayerProfileCountAggregateInputType | true
-    _avg?: PlayerProfileAvgAggregateInputType
-    _sum?: PlayerProfileSumAggregateInputType
     _min?: PlayerProfileMinAggregateInputType
     _max?: PlayerProfileMaxAggregateInputType
   }
@@ -3059,11 +3871,9 @@ export namespace Prisma {
   export type PlayerProfileGroupByOutputType = {
     id: string
     userId: string
-    golfHandicap: number | null
-    coachId: string | null
+    createdAt: Date
+    updatedAt: Date
     _count: PlayerProfileCountAggregateOutputType | null
-    _avg: PlayerProfileAvgAggregateOutputType | null
-    _sum: PlayerProfileSumAggregateOutputType | null
     _min: PlayerProfileMinAggregateOutputType | null
     _max: PlayerProfileMaxAggregateOutputType | null
   }
@@ -3085,62 +3895,55 @@ export namespace Prisma {
   export type PlayerProfileSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
-    golfHandicap?: boolean
-    coachId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
-    coach?: boolean | PlayerProfile$coachArgs<ExtArgs>
   }, ExtArgs["result"]["playerProfile"]>
 
   export type PlayerProfileSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
-    golfHandicap?: boolean
-    coachId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
-    coach?: boolean | PlayerProfile$coachArgs<ExtArgs>
   }, ExtArgs["result"]["playerProfile"]>
 
   export type PlayerProfileSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
-    golfHandicap?: boolean
-    coachId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
-    coach?: boolean | PlayerProfile$coachArgs<ExtArgs>
   }, ExtArgs["result"]["playerProfile"]>
 
   export type PlayerProfileSelectScalar = {
     id?: boolean
     userId?: boolean
-    golfHandicap?: boolean
-    coachId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
   }
 
-  export type PlayerProfileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "golfHandicap" | "coachId", ExtArgs["result"]["playerProfile"]>
+  export type PlayerProfileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "createdAt" | "updatedAt", ExtArgs["result"]["playerProfile"]>
   export type PlayerProfileInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
-    coach?: boolean | PlayerProfile$coachArgs<ExtArgs>
   }
   export type PlayerProfileIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
-    coach?: boolean | PlayerProfile$coachArgs<ExtArgs>
   }
   export type PlayerProfileIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
-    coach?: boolean | PlayerProfile$coachArgs<ExtArgs>
   }
 
   export type $PlayerProfilePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "PlayerProfile"
     objects: {
       user: Prisma.$UserPayload<ExtArgs>
-      coach: Prisma.$UserPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       userId: string
-      golfHandicap: number | null
-      coachId: string | null
+      createdAt: Date
+      updatedAt: Date
     }, ExtArgs["result"]["playerProfile"]>
     composites: {}
   }
@@ -3536,7 +4339,6 @@ export namespace Prisma {
   export interface Prisma__PlayerProfileClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    coach<T extends PlayerProfile$coachArgs<ExtArgs> = {}>(args?: Subset<T, PlayerProfile$coachArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3568,8 +4370,8 @@ export namespace Prisma {
   interface PlayerProfileFieldRefs {
     readonly id: FieldRef<"PlayerProfile", 'String'>
     readonly userId: FieldRef<"PlayerProfile", 'String'>
-    readonly golfHandicap: FieldRef<"PlayerProfile", 'Float'>
-    readonly coachId: FieldRef<"PlayerProfile", 'String'>
+    readonly createdAt: FieldRef<"PlayerProfile", 'DateTime'>
+    readonly updatedAt: FieldRef<"PlayerProfile", 'DateTime'>
   }
     
 
@@ -3766,11 +4568,6 @@ export namespace Prisma {
      * Skip the first `n` PlayerProfiles.
      */
     skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of PlayerProfiles.
-     */
     distinct?: PlayerProfileScalarFieldEnum | PlayerProfileScalarFieldEnum[]
   }
 
@@ -3971,25 +4768,6 @@ export namespace Prisma {
   }
 
   /**
-   * PlayerProfile.coach
-   */
-  export type PlayerProfile$coachArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the User
-     */
-    select?: UserSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the User
-     */
-    omit?: UserOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: UserInclude<ExtArgs> | null
-    where?: UserWhereInput
-  }
-
-  /**
    * PlayerProfile without action
    */
   export type PlayerProfileDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4022,18 +4800,24 @@ export namespace Prisma {
     id: string | null
     coachId: string | null
     playerId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type CoachPlayerLinkMaxAggregateOutputType = {
     id: string | null
     coachId: string | null
     playerId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type CoachPlayerLinkCountAggregateOutputType = {
     id: number
     coachId: number
     playerId: number
+    createdAt: number
+    updatedAt: number
     _all: number
   }
 
@@ -4042,18 +4826,24 @@ export namespace Prisma {
     id?: true
     coachId?: true
     playerId?: true
+    createdAt?: true
+    updatedAt?: true
   }
 
   export type CoachPlayerLinkMaxAggregateInputType = {
     id?: true
     coachId?: true
     playerId?: true
+    createdAt?: true
+    updatedAt?: true
   }
 
   export type CoachPlayerLinkCountAggregateInputType = {
     id?: true
     coachId?: true
     playerId?: true
+    createdAt?: true
+    updatedAt?: true
     _all?: true
   }
 
@@ -4133,6 +4923,8 @@ export namespace Prisma {
     id: string
     coachId: string
     playerId: string
+    createdAt: Date
+    updatedAt: Date
     _count: CoachPlayerLinkCountAggregateOutputType | null
     _min: CoachPlayerLinkMinAggregateOutputType | null
     _max: CoachPlayerLinkMaxAggregateOutputType | null
@@ -4156,56 +4948,59 @@ export namespace Prisma {
     id?: boolean
     coachId?: boolean
     playerId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
     coach?: boolean | UserDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["coachPlayerLink"]>
 
   export type CoachPlayerLinkSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     coachId?: boolean
     playerId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
     coach?: boolean | UserDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["coachPlayerLink"]>
 
   export type CoachPlayerLinkSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     coachId?: boolean
     playerId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
     coach?: boolean | UserDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["coachPlayerLink"]>
 
   export type CoachPlayerLinkSelectScalar = {
     id?: boolean
     coachId?: boolean
     playerId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
   }
 
-  export type CoachPlayerLinkOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "coachId" | "playerId", ExtArgs["result"]["coachPlayerLink"]>
+  export type CoachPlayerLinkOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "coachId" | "playerId" | "createdAt" | "updatedAt", ExtArgs["result"]["coachPlayerLink"]>
   export type CoachPlayerLinkInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     coach?: boolean | UserDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
   }
   export type CoachPlayerLinkIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     coach?: boolean | UserDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
   }
   export type CoachPlayerLinkIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     coach?: boolean | UserDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
   }
 
   export type $CoachPlayerLinkPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "CoachPlayerLink"
     objects: {
       coach: Prisma.$UserPayload<ExtArgs>
-      player: Prisma.$UserPayload<ExtArgs>
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       coachId: string
       playerId: string
+      createdAt: Date
+      updatedAt: Date
     }, ExtArgs["result"]["coachPlayerLink"]>
     composites: {}
   }
@@ -4601,7 +5396,6 @@ export namespace Prisma {
   export interface Prisma__CoachPlayerLinkClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     coach<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    player<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4634,6 +5428,8 @@ export namespace Prisma {
     readonly id: FieldRef<"CoachPlayerLink", 'String'>
     readonly coachId: FieldRef<"CoachPlayerLink", 'String'>
     readonly playerId: FieldRef<"CoachPlayerLink", 'String'>
+    readonly createdAt: FieldRef<"CoachPlayerLink", 'DateTime'>
+    readonly updatedAt: FieldRef<"CoachPlayerLink", 'DateTime'>
   }
     
 
@@ -4830,11 +5626,6 @@ export namespace Prisma {
      * Skip the first `n` CoachPlayerLinks.
      */
     skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of CoachPlayerLinks.
-     */
     distinct?: CoachPlayerLinkScalarFieldEnum | CoachPlayerLinkScalarFieldEnum[]
   }
 
@@ -5065,58 +5856,46 @@ export namespace Prisma {
 
   export type TaskTemplateMinAggregateOutputType = {
     id: string | null
-    name: string | null
-    description: string | null
-    coachId: string | null
-    isActive: boolean | null
+    title: string | null
     createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type TaskTemplateMaxAggregateOutputType = {
     id: string | null
-    name: string | null
-    description: string | null
-    coachId: string | null
-    isActive: boolean | null
+    title: string | null
     createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type TaskTemplateCountAggregateOutputType = {
     id: number
-    name: number
-    description: number
-    coachId: number
-    isActive: number
+    title: number
     createdAt: number
+    updatedAt: number
     _all: number
   }
 
 
   export type TaskTemplateMinAggregateInputType = {
     id?: true
-    name?: true
-    description?: true
-    coachId?: true
-    isActive?: true
+    title?: true
     createdAt?: true
+    updatedAt?: true
   }
 
   export type TaskTemplateMaxAggregateInputType = {
     id?: true
-    name?: true
-    description?: true
-    coachId?: true
-    isActive?: true
+    title?: true
     createdAt?: true
+    updatedAt?: true
   }
 
   export type TaskTemplateCountAggregateInputType = {
     id?: true
-    name?: true
-    description?: true
-    coachId?: true
-    isActive?: true
+    title?: true
     createdAt?: true
+    updatedAt?: true
     _all?: true
   }
 
@@ -5194,11 +5973,9 @@ export namespace Prisma {
 
   export type TaskTemplateGroupByOutputType = {
     id: string
-    name: string
-    description: string | null
-    coachId: string
-    isActive: boolean
+    title: string
     createdAt: Date
+    updatedAt: Date
     _count: TaskTemplateCountAggregateOutputType | null
     _min: TaskTemplateMinAggregateOutputType | null
     _max: TaskTemplateMaxAggregateOutputType | null
@@ -5220,71 +5997,42 @@ export namespace Prisma {
 
   export type TaskTemplateSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    name?: boolean
-    description?: boolean
-    coachId?: boolean
-    isActive?: boolean
+    title?: boolean
     createdAt?: boolean
-    coach?: boolean | UserDefaultArgs<ExtArgs>
-    calendarEvents?: boolean | TaskTemplate$calendarEventsArgs<ExtArgs>
-    _count?: boolean | TaskTemplateCountOutputTypeDefaultArgs<ExtArgs>
+    updatedAt?: boolean
   }, ExtArgs["result"]["taskTemplate"]>
 
   export type TaskTemplateSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    name?: boolean
-    description?: boolean
-    coachId?: boolean
-    isActive?: boolean
+    title?: boolean
     createdAt?: boolean
-    coach?: boolean | UserDefaultArgs<ExtArgs>
+    updatedAt?: boolean
   }, ExtArgs["result"]["taskTemplate"]>
 
   export type TaskTemplateSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    name?: boolean
-    description?: boolean
-    coachId?: boolean
-    isActive?: boolean
+    title?: boolean
     createdAt?: boolean
-    coach?: boolean | UserDefaultArgs<ExtArgs>
+    updatedAt?: boolean
   }, ExtArgs["result"]["taskTemplate"]>
 
   export type TaskTemplateSelectScalar = {
     id?: boolean
-    name?: boolean
-    description?: boolean
-    coachId?: boolean
-    isActive?: boolean
+    title?: boolean
     createdAt?: boolean
+    updatedAt?: boolean
   }
 
-  export type TaskTemplateOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "coachId" | "isActive" | "createdAt", ExtArgs["result"]["taskTemplate"]>
-  export type TaskTemplateInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    coach?: boolean | UserDefaultArgs<ExtArgs>
-    calendarEvents?: boolean | TaskTemplate$calendarEventsArgs<ExtArgs>
-    _count?: boolean | TaskTemplateCountOutputTypeDefaultArgs<ExtArgs>
-  }
-  export type TaskTemplateIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    coach?: boolean | UserDefaultArgs<ExtArgs>
-  }
-  export type TaskTemplateIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    coach?: boolean | UserDefaultArgs<ExtArgs>
-  }
+  export type TaskTemplateOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "createdAt" | "updatedAt", ExtArgs["result"]["taskTemplate"]>
 
   export type $TaskTemplatePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "TaskTemplate"
-    objects: {
-      coach: Prisma.$UserPayload<ExtArgs>
-      calendarEvents: Prisma.$CalendarEventPayload<ExtArgs>[]
-    }
+    objects: {}
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      name: string
-      description: string | null
-      coachId: string
-      isActive: boolean
+      title: string
       createdAt: Date
+      updatedAt: Date
     }, ExtArgs["result"]["taskTemplate"]>
     composites: {}
   }
@@ -5679,8 +6427,6 @@ export namespace Prisma {
    */
   export interface Prisma__TaskTemplateClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    coach<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    calendarEvents<T extends TaskTemplate$calendarEventsArgs<ExtArgs> = {}>(args?: Subset<T, TaskTemplate$calendarEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CalendarEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -5711,11 +6457,9 @@ export namespace Prisma {
    */
   interface TaskTemplateFieldRefs {
     readonly id: FieldRef<"TaskTemplate", 'String'>
-    readonly name: FieldRef<"TaskTemplate", 'String'>
-    readonly description: FieldRef<"TaskTemplate", 'String'>
-    readonly coachId: FieldRef<"TaskTemplate", 'String'>
-    readonly isActive: FieldRef<"TaskTemplate", 'Boolean'>
+    readonly title: FieldRef<"TaskTemplate", 'String'>
     readonly createdAt: FieldRef<"TaskTemplate", 'DateTime'>
+    readonly updatedAt: FieldRef<"TaskTemplate", 'DateTime'>
   }
     
 
@@ -5732,10 +6476,6 @@ export namespace Prisma {
      * Omit specific fields from the TaskTemplate
      */
     omit?: TaskTemplateOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskTemplateInclude<ExtArgs> | null
     /**
      * Filter, which TaskTemplate to fetch.
      */
@@ -5755,10 +6495,6 @@ export namespace Prisma {
      */
     omit?: TaskTemplateOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskTemplateInclude<ExtArgs> | null
-    /**
      * Filter, which TaskTemplate to fetch.
      */
     where: TaskTemplateWhereUniqueInput
@@ -5776,10 +6512,6 @@ export namespace Prisma {
      * Omit specific fields from the TaskTemplate
      */
     omit?: TaskTemplateOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskTemplateInclude<ExtArgs> | null
     /**
      * Filter, which TaskTemplate to fetch.
      */
@@ -5829,10 +6561,6 @@ export namespace Prisma {
      */
     omit?: TaskTemplateOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskTemplateInclude<ExtArgs> | null
-    /**
      * Filter, which TaskTemplate to fetch.
      */
     where?: TaskTemplateWhereInput
@@ -5881,10 +6609,6 @@ export namespace Prisma {
      */
     omit?: TaskTemplateOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskTemplateInclude<ExtArgs> | null
-    /**
      * Filter, which TaskTemplates to fetch.
      */
     where?: TaskTemplateWhereInput
@@ -5912,11 +6636,6 @@ export namespace Prisma {
      * Skip the first `n` TaskTemplates.
      */
     skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of TaskTemplates.
-     */
     distinct?: TaskTemplateScalarFieldEnum | TaskTemplateScalarFieldEnum[]
   }
 
@@ -5932,10 +6651,6 @@ export namespace Prisma {
      * Omit specific fields from the TaskTemplate
      */
     omit?: TaskTemplateOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskTemplateInclude<ExtArgs> | null
     /**
      * The data needed to create a TaskTemplate.
      */
@@ -5970,10 +6685,6 @@ export namespace Prisma {
      */
     data: TaskTemplateCreateManyInput | TaskTemplateCreateManyInput[]
     skipDuplicates?: boolean
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskTemplateIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -5988,10 +6699,6 @@ export namespace Prisma {
      * Omit specific fields from the TaskTemplate
      */
     omit?: TaskTemplateOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskTemplateInclude<ExtArgs> | null
     /**
      * The data needed to update a TaskTemplate.
      */
@@ -6044,10 +6751,6 @@ export namespace Prisma {
      * Limit how many TaskTemplates to update.
      */
     limit?: number
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskTemplateIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -6062,10 +6765,6 @@ export namespace Prisma {
      * Omit specific fields from the TaskTemplate
      */
     omit?: TaskTemplateOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskTemplateInclude<ExtArgs> | null
     /**
      * The filter to search for the TaskTemplate to update in case it exists.
      */
@@ -6093,10 +6792,6 @@ export namespace Prisma {
      */
     omit?: TaskTemplateOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskTemplateInclude<ExtArgs> | null
-    /**
      * Filter which TaskTemplate to delete.
      */
     where: TaskTemplateWhereUniqueInput
@@ -6117,30 +6812,6 @@ export namespace Prisma {
   }
 
   /**
-   * TaskTemplate.calendarEvents
-   */
-  export type TaskTemplate$calendarEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the CalendarEvent
-     */
-    select?: CalendarEventSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the CalendarEvent
-     */
-    omit?: CalendarEventOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CalendarEventInclude<ExtArgs> | null
-    where?: CalendarEventWhereInput
-    orderBy?: CalendarEventOrderByWithRelationInput | CalendarEventOrderByWithRelationInput[]
-    cursor?: CalendarEventWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: CalendarEventScalarFieldEnum | CalendarEventScalarFieldEnum[]
-  }
-
-  /**
    * TaskTemplate without action
    */
   export type TaskTemplateDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6152,10 +6823,6 @@ export namespace Prisma {
      * Omit specific fields from the TaskTemplate
      */
     omit?: TaskTemplateOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskTemplateInclude<ExtArgs> | null
   }
 
 
@@ -6171,58 +6838,52 @@ export namespace Prisma {
 
   export type CalendarEventMinAggregateOutputType = {
     id: string | null
-    taskTemplateId: string | null
-    playerId: string | null
-    startDate: Date | null
-    endDate: Date | null
-    status: $Enums.EventStatus | null
+    title: string | null
+    date: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type CalendarEventMaxAggregateOutputType = {
     id: string | null
-    taskTemplateId: string | null
-    playerId: string | null
-    startDate: Date | null
-    endDate: Date | null
-    status: $Enums.EventStatus | null
+    title: string | null
+    date: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type CalendarEventCountAggregateOutputType = {
     id: number
-    taskTemplateId: number
-    playerId: number
-    startDate: number
-    endDate: number
-    status: number
+    title: number
+    date: number
+    createdAt: number
+    updatedAt: number
     _all: number
   }
 
 
   export type CalendarEventMinAggregateInputType = {
     id?: true
-    taskTemplateId?: true
-    playerId?: true
-    startDate?: true
-    endDate?: true
-    status?: true
+    title?: true
+    date?: true
+    createdAt?: true
+    updatedAt?: true
   }
 
   export type CalendarEventMaxAggregateInputType = {
     id?: true
-    taskTemplateId?: true
-    playerId?: true
-    startDate?: true
-    endDate?: true
-    status?: true
+    title?: true
+    date?: true
+    createdAt?: true
+    updatedAt?: true
   }
 
   export type CalendarEventCountAggregateInputType = {
     id?: true
-    taskTemplateId?: true
-    playerId?: true
-    startDate?: true
-    endDate?: true
-    status?: true
+    title?: true
+    date?: true
+    createdAt?: true
+    updatedAt?: true
     _all?: true
   }
 
@@ -6300,11 +6961,10 @@ export namespace Prisma {
 
   export type CalendarEventGroupByOutputType = {
     id: string
-    taskTemplateId: string
-    playerId: string
-    startDate: Date
-    endDate: Date
-    status: $Enums.EventStatus
+    title: string
+    date: Date
+    createdAt: Date
+    updatedAt: Date
     _count: CalendarEventCountAggregateOutputType | null
     _min: CalendarEventMinAggregateOutputType | null
     _max: CalendarEventMaxAggregateOutputType | null
@@ -6326,78 +6986,47 @@ export namespace Prisma {
 
   export type CalendarEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    taskTemplateId?: boolean
-    playerId?: boolean
-    startDate?: boolean
-    endDate?: boolean
-    status?: boolean
-    taskTemplate?: boolean | TaskTemplateDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
-    taskLogs?: boolean | CalendarEvent$taskLogsArgs<ExtArgs>
-    _count?: boolean | CalendarEventCountOutputTypeDefaultArgs<ExtArgs>
+    title?: boolean
+    date?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
   }, ExtArgs["result"]["calendarEvent"]>
 
   export type CalendarEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    taskTemplateId?: boolean
-    playerId?: boolean
-    startDate?: boolean
-    endDate?: boolean
-    status?: boolean
-    taskTemplate?: boolean | TaskTemplateDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
+    title?: boolean
+    date?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
   }, ExtArgs["result"]["calendarEvent"]>
 
   export type CalendarEventSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    taskTemplateId?: boolean
-    playerId?: boolean
-    startDate?: boolean
-    endDate?: boolean
-    status?: boolean
-    taskTemplate?: boolean | TaskTemplateDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
+    title?: boolean
+    date?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
   }, ExtArgs["result"]["calendarEvent"]>
 
   export type CalendarEventSelectScalar = {
     id?: boolean
-    taskTemplateId?: boolean
-    playerId?: boolean
-    startDate?: boolean
-    endDate?: boolean
-    status?: boolean
+    title?: boolean
+    date?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
   }
 
-  export type CalendarEventOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "taskTemplateId" | "playerId" | "startDate" | "endDate" | "status", ExtArgs["result"]["calendarEvent"]>
-  export type CalendarEventInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    taskTemplate?: boolean | TaskTemplateDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
-    taskLogs?: boolean | CalendarEvent$taskLogsArgs<ExtArgs>
-    _count?: boolean | CalendarEventCountOutputTypeDefaultArgs<ExtArgs>
-  }
-  export type CalendarEventIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    taskTemplate?: boolean | TaskTemplateDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
-  }
-  export type CalendarEventIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    taskTemplate?: boolean | TaskTemplateDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
-  }
+  export type CalendarEventOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "date" | "createdAt" | "updatedAt", ExtArgs["result"]["calendarEvent"]>
 
   export type $CalendarEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "CalendarEvent"
-    objects: {
-      taskTemplate: Prisma.$TaskTemplatePayload<ExtArgs>
-      player: Prisma.$UserPayload<ExtArgs>
-      taskLogs: Prisma.$TaskLogPayload<ExtArgs>[]
-    }
+    objects: {}
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      taskTemplateId: string
-      playerId: string
-      startDate: Date
-      endDate: Date
-      status: $Enums.EventStatus
+      title: string
+      date: Date
+      createdAt: Date
+      updatedAt: Date
     }, ExtArgs["result"]["calendarEvent"]>
     composites: {}
   }
@@ -6792,9 +7421,6 @@ export namespace Prisma {
    */
   export interface Prisma__CalendarEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    taskTemplate<T extends TaskTemplateDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TaskTemplateDefaultArgs<ExtArgs>>): Prisma__TaskTemplateClient<$Result.GetResult<Prisma.$TaskTemplatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    player<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    taskLogs<T extends CalendarEvent$taskLogsArgs<ExtArgs> = {}>(args?: Subset<T, CalendarEvent$taskLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TaskLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -6825,11 +7451,10 @@ export namespace Prisma {
    */
   interface CalendarEventFieldRefs {
     readonly id: FieldRef<"CalendarEvent", 'String'>
-    readonly taskTemplateId: FieldRef<"CalendarEvent", 'String'>
-    readonly playerId: FieldRef<"CalendarEvent", 'String'>
-    readonly startDate: FieldRef<"CalendarEvent", 'DateTime'>
-    readonly endDate: FieldRef<"CalendarEvent", 'DateTime'>
-    readonly status: FieldRef<"CalendarEvent", 'EventStatus'>
+    readonly title: FieldRef<"CalendarEvent", 'String'>
+    readonly date: FieldRef<"CalendarEvent", 'DateTime'>
+    readonly createdAt: FieldRef<"CalendarEvent", 'DateTime'>
+    readonly updatedAt: FieldRef<"CalendarEvent", 'DateTime'>
   }
     
 
@@ -6846,10 +7471,6 @@ export namespace Prisma {
      * Omit specific fields from the CalendarEvent
      */
     omit?: CalendarEventOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CalendarEventInclude<ExtArgs> | null
     /**
      * Filter, which CalendarEvent to fetch.
      */
@@ -6869,10 +7490,6 @@ export namespace Prisma {
      */
     omit?: CalendarEventOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CalendarEventInclude<ExtArgs> | null
-    /**
      * Filter, which CalendarEvent to fetch.
      */
     where: CalendarEventWhereUniqueInput
@@ -6890,10 +7507,6 @@ export namespace Prisma {
      * Omit specific fields from the CalendarEvent
      */
     omit?: CalendarEventOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CalendarEventInclude<ExtArgs> | null
     /**
      * Filter, which CalendarEvent to fetch.
      */
@@ -6943,10 +7556,6 @@ export namespace Prisma {
      */
     omit?: CalendarEventOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CalendarEventInclude<ExtArgs> | null
-    /**
      * Filter, which CalendarEvent to fetch.
      */
     where?: CalendarEventWhereInput
@@ -6995,10 +7604,6 @@ export namespace Prisma {
      */
     omit?: CalendarEventOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CalendarEventInclude<ExtArgs> | null
-    /**
      * Filter, which CalendarEvents to fetch.
      */
     where?: CalendarEventWhereInput
@@ -7026,11 +7631,6 @@ export namespace Prisma {
      * Skip the first `n` CalendarEvents.
      */
     skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of CalendarEvents.
-     */
     distinct?: CalendarEventScalarFieldEnum | CalendarEventScalarFieldEnum[]
   }
 
@@ -7046,10 +7646,6 @@ export namespace Prisma {
      * Omit specific fields from the CalendarEvent
      */
     omit?: CalendarEventOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CalendarEventInclude<ExtArgs> | null
     /**
      * The data needed to create a CalendarEvent.
      */
@@ -7084,10 +7680,6 @@ export namespace Prisma {
      */
     data: CalendarEventCreateManyInput | CalendarEventCreateManyInput[]
     skipDuplicates?: boolean
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CalendarEventIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -7102,10 +7694,6 @@ export namespace Prisma {
      * Omit specific fields from the CalendarEvent
      */
     omit?: CalendarEventOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CalendarEventInclude<ExtArgs> | null
     /**
      * The data needed to update a CalendarEvent.
      */
@@ -7158,10 +7746,6 @@ export namespace Prisma {
      * Limit how many CalendarEvents to update.
      */
     limit?: number
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CalendarEventIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -7176,10 +7760,6 @@ export namespace Prisma {
      * Omit specific fields from the CalendarEvent
      */
     omit?: CalendarEventOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CalendarEventInclude<ExtArgs> | null
     /**
      * The filter to search for the CalendarEvent to update in case it exists.
      */
@@ -7207,10 +7787,6 @@ export namespace Prisma {
      */
     omit?: CalendarEventOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CalendarEventInclude<ExtArgs> | null
-    /**
      * Filter which CalendarEvent to delete.
      */
     where: CalendarEventWhereUniqueInput
@@ -7231,30 +7807,6 @@ export namespace Prisma {
   }
 
   /**
-   * CalendarEvent.taskLogs
-   */
-  export type CalendarEvent$taskLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the TaskLog
-     */
-    select?: TaskLogSelect<ExtArgs> | null
-    /**
-     * Omit specific fields from the TaskLog
-     */
-    omit?: TaskLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskLogInclude<ExtArgs> | null
-    where?: TaskLogWhereInput
-    orderBy?: TaskLogOrderByWithRelationInput | TaskLogOrderByWithRelationInput[]
-    cursor?: TaskLogWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: TaskLogScalarFieldEnum | TaskLogScalarFieldEnum[]
-  }
-
-  /**
    * CalendarEvent without action
    */
   export type CalendarEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -7266,10 +7818,6 @@ export namespace Prisma {
      * Omit specific fields from the CalendarEvent
      */
     omit?: CalendarEventOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: CalendarEventInclude<ExtArgs> | null
   }
 
 
@@ -7285,52 +7833,46 @@ export namespace Prisma {
 
   export type TaskLogMinAggregateOutputType = {
     id: string | null
-    calendarEventId: string | null
-    playerId: string | null
-    value: string | null
-    loggedAt: Date | null
+    taskId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type TaskLogMaxAggregateOutputType = {
     id: string | null
-    calendarEventId: string | null
-    playerId: string | null
-    value: string | null
-    loggedAt: Date | null
+    taskId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
   }
 
   export type TaskLogCountAggregateOutputType = {
     id: number
-    calendarEventId: number
-    playerId: number
-    value: number
-    loggedAt: number
+    taskId: number
+    createdAt: number
+    updatedAt: number
     _all: number
   }
 
 
   export type TaskLogMinAggregateInputType = {
     id?: true
-    calendarEventId?: true
-    playerId?: true
-    value?: true
-    loggedAt?: true
+    taskId?: true
+    createdAt?: true
+    updatedAt?: true
   }
 
   export type TaskLogMaxAggregateInputType = {
     id?: true
-    calendarEventId?: true
-    playerId?: true
-    value?: true
-    loggedAt?: true
+    taskId?: true
+    createdAt?: true
+    updatedAt?: true
   }
 
   export type TaskLogCountAggregateInputType = {
     id?: true
-    calendarEventId?: true
-    playerId?: true
-    value?: true
-    loggedAt?: true
+    taskId?: true
+    createdAt?: true
+    updatedAt?: true
     _all?: true
   }
 
@@ -7408,10 +7950,9 @@ export namespace Prisma {
 
   export type TaskLogGroupByOutputType = {
     id: string
-    calendarEventId: string
-    playerId: string
-    value: string | null
-    loggedAt: Date
+    taskId: string
+    createdAt: Date
+    updatedAt: Date
     _count: TaskLogCountAggregateOutputType | null
     _min: TaskLogMinAggregateOutputType | null
     _max: TaskLogMaxAggregateOutputType | null
@@ -7433,68 +7974,42 @@ export namespace Prisma {
 
   export type TaskLogSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    calendarEventId?: boolean
-    playerId?: boolean
-    value?: boolean
-    loggedAt?: boolean
-    calendarEvent?: boolean | CalendarEventDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
+    taskId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
   }, ExtArgs["result"]["taskLog"]>
 
   export type TaskLogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    calendarEventId?: boolean
-    playerId?: boolean
-    value?: boolean
-    loggedAt?: boolean
-    calendarEvent?: boolean | CalendarEventDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
+    taskId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
   }, ExtArgs["result"]["taskLog"]>
 
   export type TaskLogSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    calendarEventId?: boolean
-    playerId?: boolean
-    value?: boolean
-    loggedAt?: boolean
-    calendarEvent?: boolean | CalendarEventDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
+    taskId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
   }, ExtArgs["result"]["taskLog"]>
 
   export type TaskLogSelectScalar = {
     id?: boolean
-    calendarEventId?: boolean
-    playerId?: boolean
-    value?: boolean
-    loggedAt?: boolean
+    taskId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
   }
 
-  export type TaskLogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "calendarEventId" | "playerId" | "value" | "loggedAt", ExtArgs["result"]["taskLog"]>
-  export type TaskLogInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    calendarEvent?: boolean | CalendarEventDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
-  }
-  export type TaskLogIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    calendarEvent?: boolean | CalendarEventDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
-  }
-  export type TaskLogIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    calendarEvent?: boolean | CalendarEventDefaultArgs<ExtArgs>
-    player?: boolean | UserDefaultArgs<ExtArgs>
-  }
+  export type TaskLogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "taskId" | "createdAt" | "updatedAt", ExtArgs["result"]["taskLog"]>
 
   export type $TaskLogPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "TaskLog"
-    objects: {
-      calendarEvent: Prisma.$CalendarEventPayload<ExtArgs>
-      player: Prisma.$UserPayload<ExtArgs>
-    }
+    objects: {}
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      calendarEventId: string
-      playerId: string
-      value: string | null
-      loggedAt: Date
+      taskId: string
+      createdAt: Date
+      updatedAt: Date
     }, ExtArgs["result"]["taskLog"]>
     composites: {}
   }
@@ -7889,8 +8404,6 @@ export namespace Prisma {
    */
   export interface Prisma__TaskLogClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    calendarEvent<T extends CalendarEventDefaultArgs<ExtArgs> = {}>(args?: Subset<T, CalendarEventDefaultArgs<ExtArgs>>): Prisma__CalendarEventClient<$Result.GetResult<Prisma.$CalendarEventPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-    player<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7921,10 +8434,9 @@ export namespace Prisma {
    */
   interface TaskLogFieldRefs {
     readonly id: FieldRef<"TaskLog", 'String'>
-    readonly calendarEventId: FieldRef<"TaskLog", 'String'>
-    readonly playerId: FieldRef<"TaskLog", 'String'>
-    readonly value: FieldRef<"TaskLog", 'String'>
-    readonly loggedAt: FieldRef<"TaskLog", 'DateTime'>
+    readonly taskId: FieldRef<"TaskLog", 'String'>
+    readonly createdAt: FieldRef<"TaskLog", 'DateTime'>
+    readonly updatedAt: FieldRef<"TaskLog", 'DateTime'>
   }
     
 
@@ -7941,10 +8453,6 @@ export namespace Prisma {
      * Omit specific fields from the TaskLog
      */
     omit?: TaskLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskLogInclude<ExtArgs> | null
     /**
      * Filter, which TaskLog to fetch.
      */
@@ -7964,10 +8472,6 @@ export namespace Prisma {
      */
     omit?: TaskLogOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskLogInclude<ExtArgs> | null
-    /**
      * Filter, which TaskLog to fetch.
      */
     where: TaskLogWhereUniqueInput
@@ -7985,10 +8489,6 @@ export namespace Prisma {
      * Omit specific fields from the TaskLog
      */
     omit?: TaskLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskLogInclude<ExtArgs> | null
     /**
      * Filter, which TaskLog to fetch.
      */
@@ -8038,10 +8538,6 @@ export namespace Prisma {
      */
     omit?: TaskLogOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskLogInclude<ExtArgs> | null
-    /**
      * Filter, which TaskLog to fetch.
      */
     where?: TaskLogWhereInput
@@ -8090,10 +8586,6 @@ export namespace Prisma {
      */
     omit?: TaskLogOmit<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskLogInclude<ExtArgs> | null
-    /**
      * Filter, which TaskLogs to fetch.
      */
     where?: TaskLogWhereInput
@@ -8121,11 +8613,6 @@ export namespace Prisma {
      * Skip the first `n` TaskLogs.
      */
     skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of TaskLogs.
-     */
     distinct?: TaskLogScalarFieldEnum | TaskLogScalarFieldEnum[]
   }
 
@@ -8141,10 +8628,6 @@ export namespace Prisma {
      * Omit specific fields from the TaskLog
      */
     omit?: TaskLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskLogInclude<ExtArgs> | null
     /**
      * The data needed to create a TaskLog.
      */
@@ -8179,10 +8662,6 @@ export namespace Prisma {
      */
     data: TaskLogCreateManyInput | TaskLogCreateManyInput[]
     skipDuplicates?: boolean
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskLogIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -8197,10 +8676,6 @@ export namespace Prisma {
      * Omit specific fields from the TaskLog
      */
     omit?: TaskLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskLogInclude<ExtArgs> | null
     /**
      * The data needed to update a TaskLog.
      */
@@ -8253,10 +8728,6 @@ export namespace Prisma {
      * Limit how many TaskLogs to update.
      */
     limit?: number
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskLogIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -8271,10 +8742,6 @@ export namespace Prisma {
      * Omit specific fields from the TaskLog
      */
     omit?: TaskLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskLogInclude<ExtArgs> | null
     /**
      * The filter to search for the TaskLog to update in case it exists.
      */
@@ -8301,10 +8768,6 @@ export namespace Prisma {
      * Omit specific fields from the TaskLog
      */
     omit?: TaskLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskLogInclude<ExtArgs> | null
     /**
      * Filter which TaskLog to delete.
      */
@@ -8337,10 +8800,6 @@ export namespace Prisma {
      * Omit specific fields from the TaskLog
      */
     omit?: TaskLogOmit<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: TaskLogInclude<ExtArgs> | null
   }
 
 
@@ -8356,7 +8815,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenMinAggregateOutputType = {
     id: string | null
-    email: string | null
     token: string | null
     expiresAt: Date | null
     createdAt: Date | null
@@ -8364,7 +8822,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenMaxAggregateOutputType = {
     id: string | null
-    email: string | null
     token: string | null
     expiresAt: Date | null
     createdAt: Date | null
@@ -8372,7 +8829,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenCountAggregateOutputType = {
     id: number
-    email: number
     token: number
     expiresAt: number
     createdAt: number
@@ -8382,7 +8838,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenMinAggregateInputType = {
     id?: true
-    email?: true
     token?: true
     expiresAt?: true
     createdAt?: true
@@ -8390,7 +8845,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenMaxAggregateInputType = {
     id?: true
-    email?: true
     token?: true
     expiresAt?: true
     createdAt?: true
@@ -8398,7 +8852,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenCountAggregateInputType = {
     id?: true
-    email?: true
     token?: true
     expiresAt?: true
     createdAt?: true
@@ -8479,7 +8932,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenGroupByOutputType = {
     id: string
-    email: string
     token: string
     expiresAt: Date
     createdAt: Date
@@ -8504,7 +8956,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    email?: boolean
     token?: boolean
     expiresAt?: boolean
     createdAt?: boolean
@@ -8512,7 +8963,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    email?: boolean
     token?: boolean
     expiresAt?: boolean
     createdAt?: boolean
@@ -8520,7 +8970,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    email?: boolean
     token?: boolean
     expiresAt?: boolean
     createdAt?: boolean
@@ -8528,20 +8977,18 @@ export namespace Prisma {
 
   export type PasswordResetTokenSelectScalar = {
     id?: boolean
-    email?: boolean
     token?: boolean
     expiresAt?: boolean
     createdAt?: boolean
   }
 
-  export type PasswordResetTokenOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "token" | "expiresAt" | "createdAt", ExtArgs["result"]["passwordResetToken"]>
+  export type PasswordResetTokenOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "token" | "expiresAt" | "createdAt", ExtArgs["result"]["passwordResetToken"]>
 
   export type $PasswordResetTokenPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "PasswordResetToken"
     objects: {}
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      email: string
       token: string
       expiresAt: Date
       createdAt: Date
@@ -8969,7 +9416,6 @@ export namespace Prisma {
    */
   interface PasswordResetTokenFieldRefs {
     readonly id: FieldRef<"PasswordResetToken", 'String'>
-    readonly email: FieldRef<"PasswordResetToken", 'String'>
     readonly token: FieldRef<"PasswordResetToken", 'String'>
     readonly expiresAt: FieldRef<"PasswordResetToken", 'DateTime'>
     readonly createdAt: FieldRef<"PasswordResetToken", 'DateTime'>
@@ -9149,11 +9595,6 @@ export namespace Prisma {
      * Skip the first `n` PasswordResetTokens.
      */
     skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of PasswordResetTokens.
-     */
     distinct?: PasswordResetTokenScalarFieldEnum | PasswordResetTokenScalarFieldEnum[]
   }
 
@@ -9361,11 +9802,10 @@ export namespace Prisma {
   export const UserScalarFieldEnum: {
     id: 'id',
     email: 'email',
+    password: 'password',
     passwordHash: 'passwordHash',
     firstName: 'firstName',
     lastName: 'lastName',
-    profileImage: 'profileImage',
-    clubId: 'clubId',
     role: 'role',
     lastLogin: 'lastLogin',
     createdAt: 'createdAt',
@@ -9375,11 +9815,23 @@ export namespace Prisma {
   export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+  export const EventScalarFieldEnum: {
+    id: 'id',
+    title: 'title',
+    status: 'status',
+    format: 'format',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type EventScalarFieldEnum = (typeof EventScalarFieldEnum)[keyof typeof EventScalarFieldEnum]
+
+
   export const PlayerProfileScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
-    golfHandicap: 'golfHandicap',
-    coachId: 'coachId'
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
   };
 
   export type PlayerProfileScalarFieldEnum = (typeof PlayerProfileScalarFieldEnum)[keyof typeof PlayerProfileScalarFieldEnum]
@@ -9388,7 +9840,9 @@ export namespace Prisma {
   export const CoachPlayerLinkScalarFieldEnum: {
     id: 'id',
     coachId: 'coachId',
-    playerId: 'playerId'
+    playerId: 'playerId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
   };
 
   export type CoachPlayerLinkScalarFieldEnum = (typeof CoachPlayerLinkScalarFieldEnum)[keyof typeof CoachPlayerLinkScalarFieldEnum]
@@ -9396,11 +9850,9 @@ export namespace Prisma {
 
   export const TaskTemplateScalarFieldEnum: {
     id: 'id',
-    name: 'name',
-    description: 'description',
-    coachId: 'coachId',
-    isActive: 'isActive',
-    createdAt: 'createdAt'
+    title: 'title',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
   };
 
   export type TaskTemplateScalarFieldEnum = (typeof TaskTemplateScalarFieldEnum)[keyof typeof TaskTemplateScalarFieldEnum]
@@ -9408,11 +9860,10 @@ export namespace Prisma {
 
   export const CalendarEventScalarFieldEnum: {
     id: 'id',
-    taskTemplateId: 'taskTemplateId',
-    playerId: 'playerId',
-    startDate: 'startDate',
-    endDate: 'endDate',
-    status: 'status'
+    title: 'title',
+    date: 'date',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
   };
 
   export type CalendarEventScalarFieldEnum = (typeof CalendarEventScalarFieldEnum)[keyof typeof CalendarEventScalarFieldEnum]
@@ -9420,10 +9871,9 @@ export namespace Prisma {
 
   export const TaskLogScalarFieldEnum: {
     id: 'id',
-    calendarEventId: 'calendarEventId',
-    playerId: 'playerId',
-    value: 'value',
-    loggedAt: 'loggedAt'
+    taskId: 'taskId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
   };
 
   export type TaskLogScalarFieldEnum = (typeof TaskLogScalarFieldEnum)[keyof typeof TaskLogScalarFieldEnum]
@@ -9431,7 +9881,6 @@ export namespace Prisma {
 
   export const PasswordResetTokenScalarFieldEnum: {
     id: 'id',
-    email: 'email',
     token: 'token',
     expiresAt: 'expiresAt',
     createdAt: 'createdAt'
@@ -9512,27 +9961,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Float'
-   */
-  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
-    
-
-
-  /**
-   * Reference to a field of type 'Float[]'
-   */
-  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'Boolean'
-   */
-  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
-    
-
-
-  /**
    * Reference to a field of type 'EventStatus'
    */
   export type EnumEventStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EventStatus'>
@@ -9543,6 +9971,20 @@ export namespace Prisma {
    * Reference to a field of type 'EventStatus[]'
    */
   export type ListEnumEventStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EventStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'EventFormat'
+   */
+  export type EnumEventFormatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EventFormat'>
+    
+
+
+  /**
+   * Reference to a field of type 'EventFormat[]'
+   */
+  export type ListEnumEventFormatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EventFormat[]'>
     
 
 
@@ -9569,43 +10011,31 @@ export namespace Prisma {
     NOT?: UserWhereInput | UserWhereInput[]
     id?: StringFilter<"User"> | string
     email?: StringFilter<"User"> | string
-    passwordHash?: StringFilter<"User"> | string
-    firstName?: StringNullableFilter<"User"> | string | null
-    lastName?: StringNullableFilter<"User"> | string | null
-    profileImage?: StringNullableFilter<"User"> | string | null
-    clubId?: StringNullableFilter<"User"> | string | null
+    password?: StringFilter<"User"> | string
+    passwordHash?: StringNullableFilter<"User"> | string | null
+    firstName?: StringFilter<"User"> | string
+    lastName?: StringFilter<"User"> | string
     role?: EnumRoleFilter<"User"> | $Enums.Role
     lastLogin?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     playerProfile?: XOR<PlayerProfileNullableScalarRelationFilter, PlayerProfileWhereInput> | null
-    coachedPlayers?: PlayerProfileListRelationFilter
-    coachLinks?: CoachPlayerLinkListRelationFilter
-    playerLinks?: CoachPlayerLinkListRelationFilter
-    taskTemplates?: TaskTemplateListRelationFilter
-    calendarEvents?: CalendarEventListRelationFilter
-    taskLogs?: TaskLogListRelationFilter
+    coachPlayerLink?: CoachPlayerLinkListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
     id?: SortOrder
     email?: SortOrder
-    passwordHash?: SortOrder
-    firstName?: SortOrderInput | SortOrder
-    lastName?: SortOrderInput | SortOrder
-    profileImage?: SortOrderInput | SortOrder
-    clubId?: SortOrderInput | SortOrder
+    password?: SortOrder
+    passwordHash?: SortOrderInput | SortOrder
+    firstName?: SortOrder
+    lastName?: SortOrder
     role?: SortOrder
     lastLogin?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     playerProfile?: PlayerProfileOrderByWithRelationInput
-    coachedPlayers?: PlayerProfileOrderByRelationAggregateInput
-    coachLinks?: CoachPlayerLinkOrderByRelationAggregateInput
-    playerLinks?: CoachPlayerLinkOrderByRelationAggregateInput
-    taskTemplates?: TaskTemplateOrderByRelationAggregateInput
-    calendarEvents?: CalendarEventOrderByRelationAggregateInput
-    taskLogs?: TaskLogOrderByRelationAggregateInput
+    coachPlayerLink?: CoachPlayerLinkOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -9614,32 +10044,25 @@ export namespace Prisma {
     AND?: UserWhereInput | UserWhereInput[]
     OR?: UserWhereInput[]
     NOT?: UserWhereInput | UserWhereInput[]
-    passwordHash?: StringFilter<"User"> | string
-    firstName?: StringNullableFilter<"User"> | string | null
-    lastName?: StringNullableFilter<"User"> | string | null
-    profileImage?: StringNullableFilter<"User"> | string | null
-    clubId?: StringNullableFilter<"User"> | string | null
+    password?: StringFilter<"User"> | string
+    passwordHash?: StringNullableFilter<"User"> | string | null
+    firstName?: StringFilter<"User"> | string
+    lastName?: StringFilter<"User"> | string
     role?: EnumRoleFilter<"User"> | $Enums.Role
     lastLogin?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     playerProfile?: XOR<PlayerProfileNullableScalarRelationFilter, PlayerProfileWhereInput> | null
-    coachedPlayers?: PlayerProfileListRelationFilter
-    coachLinks?: CoachPlayerLinkListRelationFilter
-    playerLinks?: CoachPlayerLinkListRelationFilter
-    taskTemplates?: TaskTemplateListRelationFilter
-    calendarEvents?: CalendarEventListRelationFilter
-    taskLogs?: TaskLogListRelationFilter
+    coachPlayerLink?: CoachPlayerLinkListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
     id?: SortOrder
     email?: SortOrder
-    passwordHash?: SortOrder
-    firstName?: SortOrderInput | SortOrder
-    lastName?: SortOrderInput | SortOrder
-    profileImage?: SortOrderInput | SortOrder
-    clubId?: SortOrderInput | SortOrder
+    password?: SortOrder
+    passwordHash?: SortOrderInput | SortOrder
+    firstName?: SortOrder
+    lastName?: SortOrder
     role?: SortOrder
     lastLogin?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -9655,15 +10078,71 @@ export namespace Prisma {
     NOT?: UserScalarWhereWithAggregatesInput | UserScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"User"> | string
     email?: StringWithAggregatesFilter<"User"> | string
-    passwordHash?: StringWithAggregatesFilter<"User"> | string
-    firstName?: StringNullableWithAggregatesFilter<"User"> | string | null
-    lastName?: StringNullableWithAggregatesFilter<"User"> | string | null
-    profileImage?: StringNullableWithAggregatesFilter<"User"> | string | null
-    clubId?: StringNullableWithAggregatesFilter<"User"> | string | null
+    password?: StringWithAggregatesFilter<"User"> | string
+    passwordHash?: StringNullableWithAggregatesFilter<"User"> | string | null
+    firstName?: StringWithAggregatesFilter<"User"> | string
+    lastName?: StringWithAggregatesFilter<"User"> | string
     role?: EnumRoleWithAggregatesFilter<"User"> | $Enums.Role
     lastLogin?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
+  }
+
+  export type EventWhereInput = {
+    AND?: EventWhereInput | EventWhereInput[]
+    OR?: EventWhereInput[]
+    NOT?: EventWhereInput | EventWhereInput[]
+    id?: StringFilter<"Event"> | string
+    title?: StringFilter<"Event"> | string
+    status?: EnumEventStatusFilter<"Event"> | $Enums.EventStatus
+    format?: EnumEventFormatFilter<"Event"> | $Enums.EventFormat
+    createdAt?: DateTimeFilter<"Event"> | Date | string
+    updatedAt?: DateTimeFilter<"Event"> | Date | string
+  }
+
+  export type EventOrderByWithRelationInput = {
+    id?: SortOrder
+    title?: SortOrder
+    status?: SortOrder
+    format?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: EventWhereInput | EventWhereInput[]
+    OR?: EventWhereInput[]
+    NOT?: EventWhereInput | EventWhereInput[]
+    title?: StringFilter<"Event"> | string
+    status?: EnumEventStatusFilter<"Event"> | $Enums.EventStatus
+    format?: EnumEventFormatFilter<"Event"> | $Enums.EventFormat
+    createdAt?: DateTimeFilter<"Event"> | Date | string
+    updatedAt?: DateTimeFilter<"Event"> | Date | string
+  }, "id">
+
+  export type EventOrderByWithAggregationInput = {
+    id?: SortOrder
+    title?: SortOrder
+    status?: SortOrder
+    format?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: EventCountOrderByAggregateInput
+    _max?: EventMaxOrderByAggregateInput
+    _min?: EventMinOrderByAggregateInput
+  }
+
+  export type EventScalarWhereWithAggregatesInput = {
+    AND?: EventScalarWhereWithAggregatesInput | EventScalarWhereWithAggregatesInput[]
+    OR?: EventScalarWhereWithAggregatesInput[]
+    NOT?: EventScalarWhereWithAggregatesInput | EventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Event"> | string
+    title?: StringWithAggregatesFilter<"Event"> | string
+    status?: EnumEventStatusWithAggregatesFilter<"Event"> | $Enums.EventStatus
+    format?: EnumEventFormatWithAggregatesFilter<"Event"> | $Enums.EventFormat
+    createdAt?: DateTimeWithAggregatesFilter<"Event"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Event"> | Date | string
   }
 
   export type PlayerProfileWhereInput = {
@@ -9672,19 +10151,17 @@ export namespace Prisma {
     NOT?: PlayerProfileWhereInput | PlayerProfileWhereInput[]
     id?: StringFilter<"PlayerProfile"> | string
     userId?: StringFilter<"PlayerProfile"> | string
-    golfHandicap?: FloatNullableFilter<"PlayerProfile"> | number | null
-    coachId?: StringNullableFilter<"PlayerProfile"> | string | null
+    createdAt?: DateTimeFilter<"PlayerProfile"> | Date | string
+    updatedAt?: DateTimeFilter<"PlayerProfile"> | Date | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
-    coach?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
   }
 
   export type PlayerProfileOrderByWithRelationInput = {
     id?: SortOrder
     userId?: SortOrder
-    golfHandicap?: SortOrderInput | SortOrder
-    coachId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
     user?: UserOrderByWithRelationInput
-    coach?: UserOrderByWithRelationInput
   }
 
   export type PlayerProfileWhereUniqueInput = Prisma.AtLeast<{
@@ -9693,22 +10170,19 @@ export namespace Prisma {
     AND?: PlayerProfileWhereInput | PlayerProfileWhereInput[]
     OR?: PlayerProfileWhereInput[]
     NOT?: PlayerProfileWhereInput | PlayerProfileWhereInput[]
-    golfHandicap?: FloatNullableFilter<"PlayerProfile"> | number | null
-    coachId?: StringNullableFilter<"PlayerProfile"> | string | null
+    createdAt?: DateTimeFilter<"PlayerProfile"> | Date | string
+    updatedAt?: DateTimeFilter<"PlayerProfile"> | Date | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
-    coach?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
   }, "id" | "userId">
 
   export type PlayerProfileOrderByWithAggregationInput = {
     id?: SortOrder
     userId?: SortOrder
-    golfHandicap?: SortOrderInput | SortOrder
-    coachId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
     _count?: PlayerProfileCountOrderByAggregateInput
-    _avg?: PlayerProfileAvgOrderByAggregateInput
     _max?: PlayerProfileMaxOrderByAggregateInput
     _min?: PlayerProfileMinOrderByAggregateInput
-    _sum?: PlayerProfileSumOrderByAggregateInput
   }
 
   export type PlayerProfileScalarWhereWithAggregatesInput = {
@@ -9717,8 +10191,8 @@ export namespace Prisma {
     NOT?: PlayerProfileScalarWhereWithAggregatesInput | PlayerProfileScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"PlayerProfile"> | string
     userId?: StringWithAggregatesFilter<"PlayerProfile"> | string
-    golfHandicap?: FloatNullableWithAggregatesFilter<"PlayerProfile"> | number | null
-    coachId?: StringNullableWithAggregatesFilter<"PlayerProfile"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PlayerProfile"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PlayerProfile"> | Date | string
   }
 
   export type CoachPlayerLinkWhereInput = {
@@ -9728,34 +10202,38 @@ export namespace Prisma {
     id?: StringFilter<"CoachPlayerLink"> | string
     coachId?: StringFilter<"CoachPlayerLink"> | string
     playerId?: StringFilter<"CoachPlayerLink"> | string
+    createdAt?: DateTimeFilter<"CoachPlayerLink"> | Date | string
+    updatedAt?: DateTimeFilter<"CoachPlayerLink"> | Date | string
     coach?: XOR<UserScalarRelationFilter, UserWhereInput>
-    player?: XOR<UserScalarRelationFilter, UserWhereInput>
   }
 
   export type CoachPlayerLinkOrderByWithRelationInput = {
     id?: SortOrder
     coachId?: SortOrder
     playerId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
     coach?: UserOrderByWithRelationInput
-    player?: UserOrderByWithRelationInput
   }
 
   export type CoachPlayerLinkWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    coachId_playerId?: CoachPlayerLinkCoachIdPlayerIdCompoundUniqueInput
     AND?: CoachPlayerLinkWhereInput | CoachPlayerLinkWhereInput[]
     OR?: CoachPlayerLinkWhereInput[]
     NOT?: CoachPlayerLinkWhereInput | CoachPlayerLinkWhereInput[]
     coachId?: StringFilter<"CoachPlayerLink"> | string
     playerId?: StringFilter<"CoachPlayerLink"> | string
+    createdAt?: DateTimeFilter<"CoachPlayerLink"> | Date | string
+    updatedAt?: DateTimeFilter<"CoachPlayerLink"> | Date | string
     coach?: XOR<UserScalarRelationFilter, UserWhereInput>
-    player?: XOR<UserScalarRelationFilter, UserWhereInput>
-  }, "id" | "coachId_playerId">
+  }, "id">
 
   export type CoachPlayerLinkOrderByWithAggregationInput = {
     id?: SortOrder
     coachId?: SortOrder
     playerId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
     _count?: CoachPlayerLinkCountOrderByAggregateInput
     _max?: CoachPlayerLinkMaxOrderByAggregateInput
     _min?: CoachPlayerLinkMinOrderByAggregateInput
@@ -9768,6 +10246,8 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"CoachPlayerLink"> | string
     coachId?: StringWithAggregatesFilter<"CoachPlayerLink"> | string
     playerId?: StringWithAggregatesFilter<"CoachPlayerLink"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"CoachPlayerLink"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"CoachPlayerLink"> | Date | string
   }
 
   export type TaskTemplateWhereInput = {
@@ -9775,24 +10255,16 @@ export namespace Prisma {
     OR?: TaskTemplateWhereInput[]
     NOT?: TaskTemplateWhereInput | TaskTemplateWhereInput[]
     id?: StringFilter<"TaskTemplate"> | string
-    name?: StringFilter<"TaskTemplate"> | string
-    description?: StringNullableFilter<"TaskTemplate"> | string | null
-    coachId?: StringFilter<"TaskTemplate"> | string
-    isActive?: BoolFilter<"TaskTemplate"> | boolean
+    title?: StringFilter<"TaskTemplate"> | string
     createdAt?: DateTimeFilter<"TaskTemplate"> | Date | string
-    coach?: XOR<UserScalarRelationFilter, UserWhereInput>
-    calendarEvents?: CalendarEventListRelationFilter
+    updatedAt?: DateTimeFilter<"TaskTemplate"> | Date | string
   }
 
   export type TaskTemplateOrderByWithRelationInput = {
     id?: SortOrder
-    name?: SortOrder
-    description?: SortOrderInput | SortOrder
-    coachId?: SortOrder
-    isActive?: SortOrder
+    title?: SortOrder
     createdAt?: SortOrder
-    coach?: UserOrderByWithRelationInput
-    calendarEvents?: CalendarEventOrderByRelationAggregateInput
+    updatedAt?: SortOrder
   }
 
   export type TaskTemplateWhereUniqueInput = Prisma.AtLeast<{
@@ -9800,22 +10272,16 @@ export namespace Prisma {
     AND?: TaskTemplateWhereInput | TaskTemplateWhereInput[]
     OR?: TaskTemplateWhereInput[]
     NOT?: TaskTemplateWhereInput | TaskTemplateWhereInput[]
-    name?: StringFilter<"TaskTemplate"> | string
-    description?: StringNullableFilter<"TaskTemplate"> | string | null
-    coachId?: StringFilter<"TaskTemplate"> | string
-    isActive?: BoolFilter<"TaskTemplate"> | boolean
+    title?: StringFilter<"TaskTemplate"> | string
     createdAt?: DateTimeFilter<"TaskTemplate"> | Date | string
-    coach?: XOR<UserScalarRelationFilter, UserWhereInput>
-    calendarEvents?: CalendarEventListRelationFilter
+    updatedAt?: DateTimeFilter<"TaskTemplate"> | Date | string
   }, "id">
 
   export type TaskTemplateOrderByWithAggregationInput = {
     id?: SortOrder
-    name?: SortOrder
-    description?: SortOrderInput | SortOrder
-    coachId?: SortOrder
-    isActive?: SortOrder
+    title?: SortOrder
     createdAt?: SortOrder
+    updatedAt?: SortOrder
     _count?: TaskTemplateCountOrderByAggregateInput
     _max?: TaskTemplateMaxOrderByAggregateInput
     _min?: TaskTemplateMinOrderByAggregateInput
@@ -9826,11 +10292,9 @@ export namespace Prisma {
     OR?: TaskTemplateScalarWhereWithAggregatesInput[]
     NOT?: TaskTemplateScalarWhereWithAggregatesInput | TaskTemplateScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"TaskTemplate"> | string
-    name?: StringWithAggregatesFilter<"TaskTemplate"> | string
-    description?: StringNullableWithAggregatesFilter<"TaskTemplate"> | string | null
-    coachId?: StringWithAggregatesFilter<"TaskTemplate"> | string
-    isActive?: BoolWithAggregatesFilter<"TaskTemplate"> | boolean
+    title?: StringWithAggregatesFilter<"TaskTemplate"> | string
     createdAt?: DateTimeWithAggregatesFilter<"TaskTemplate"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"TaskTemplate"> | Date | string
   }
 
   export type CalendarEventWhereInput = {
@@ -9838,26 +10302,18 @@ export namespace Prisma {
     OR?: CalendarEventWhereInput[]
     NOT?: CalendarEventWhereInput | CalendarEventWhereInput[]
     id?: StringFilter<"CalendarEvent"> | string
-    taskTemplateId?: StringFilter<"CalendarEvent"> | string
-    playerId?: StringFilter<"CalendarEvent"> | string
-    startDate?: DateTimeFilter<"CalendarEvent"> | Date | string
-    endDate?: DateTimeFilter<"CalendarEvent"> | Date | string
-    status?: EnumEventStatusFilter<"CalendarEvent"> | $Enums.EventStatus
-    taskTemplate?: XOR<TaskTemplateScalarRelationFilter, TaskTemplateWhereInput>
-    player?: XOR<UserScalarRelationFilter, UserWhereInput>
-    taskLogs?: TaskLogListRelationFilter
+    title?: StringFilter<"CalendarEvent"> | string
+    date?: DateTimeFilter<"CalendarEvent"> | Date | string
+    createdAt?: DateTimeFilter<"CalendarEvent"> | Date | string
+    updatedAt?: DateTimeFilter<"CalendarEvent"> | Date | string
   }
 
   export type CalendarEventOrderByWithRelationInput = {
     id?: SortOrder
-    taskTemplateId?: SortOrder
-    playerId?: SortOrder
-    startDate?: SortOrder
-    endDate?: SortOrder
-    status?: SortOrder
-    taskTemplate?: TaskTemplateOrderByWithRelationInput
-    player?: UserOrderByWithRelationInput
-    taskLogs?: TaskLogOrderByRelationAggregateInput
+    title?: SortOrder
+    date?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type CalendarEventWhereUniqueInput = Prisma.AtLeast<{
@@ -9865,23 +10321,18 @@ export namespace Prisma {
     AND?: CalendarEventWhereInput | CalendarEventWhereInput[]
     OR?: CalendarEventWhereInput[]
     NOT?: CalendarEventWhereInput | CalendarEventWhereInput[]
-    taskTemplateId?: StringFilter<"CalendarEvent"> | string
-    playerId?: StringFilter<"CalendarEvent"> | string
-    startDate?: DateTimeFilter<"CalendarEvent"> | Date | string
-    endDate?: DateTimeFilter<"CalendarEvent"> | Date | string
-    status?: EnumEventStatusFilter<"CalendarEvent"> | $Enums.EventStatus
-    taskTemplate?: XOR<TaskTemplateScalarRelationFilter, TaskTemplateWhereInput>
-    player?: XOR<UserScalarRelationFilter, UserWhereInput>
-    taskLogs?: TaskLogListRelationFilter
+    title?: StringFilter<"CalendarEvent"> | string
+    date?: DateTimeFilter<"CalendarEvent"> | Date | string
+    createdAt?: DateTimeFilter<"CalendarEvent"> | Date | string
+    updatedAt?: DateTimeFilter<"CalendarEvent"> | Date | string
   }, "id">
 
   export type CalendarEventOrderByWithAggregationInput = {
     id?: SortOrder
-    taskTemplateId?: SortOrder
-    playerId?: SortOrder
-    startDate?: SortOrder
-    endDate?: SortOrder
-    status?: SortOrder
+    title?: SortOrder
+    date?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
     _count?: CalendarEventCountOrderByAggregateInput
     _max?: CalendarEventMaxOrderByAggregateInput
     _min?: CalendarEventMinOrderByAggregateInput
@@ -9892,11 +10343,10 @@ export namespace Prisma {
     OR?: CalendarEventScalarWhereWithAggregatesInput[]
     NOT?: CalendarEventScalarWhereWithAggregatesInput | CalendarEventScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"CalendarEvent"> | string
-    taskTemplateId?: StringWithAggregatesFilter<"CalendarEvent"> | string
-    playerId?: StringWithAggregatesFilter<"CalendarEvent"> | string
-    startDate?: DateTimeWithAggregatesFilter<"CalendarEvent"> | Date | string
-    endDate?: DateTimeWithAggregatesFilter<"CalendarEvent"> | Date | string
-    status?: EnumEventStatusWithAggregatesFilter<"CalendarEvent"> | $Enums.EventStatus
+    title?: StringWithAggregatesFilter<"CalendarEvent"> | string
+    date?: DateTimeWithAggregatesFilter<"CalendarEvent"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"CalendarEvent"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"CalendarEvent"> | Date | string
   }
 
   export type TaskLogWhereInput = {
@@ -9904,22 +10354,16 @@ export namespace Prisma {
     OR?: TaskLogWhereInput[]
     NOT?: TaskLogWhereInput | TaskLogWhereInput[]
     id?: StringFilter<"TaskLog"> | string
-    calendarEventId?: StringFilter<"TaskLog"> | string
-    playerId?: StringFilter<"TaskLog"> | string
-    value?: StringNullableFilter<"TaskLog"> | string | null
-    loggedAt?: DateTimeFilter<"TaskLog"> | Date | string
-    calendarEvent?: XOR<CalendarEventScalarRelationFilter, CalendarEventWhereInput>
-    player?: XOR<UserScalarRelationFilter, UserWhereInput>
+    taskId?: StringFilter<"TaskLog"> | string
+    createdAt?: DateTimeFilter<"TaskLog"> | Date | string
+    updatedAt?: DateTimeFilter<"TaskLog"> | Date | string
   }
 
   export type TaskLogOrderByWithRelationInput = {
     id?: SortOrder
-    calendarEventId?: SortOrder
-    playerId?: SortOrder
-    value?: SortOrderInput | SortOrder
-    loggedAt?: SortOrder
-    calendarEvent?: CalendarEventOrderByWithRelationInput
-    player?: UserOrderByWithRelationInput
+    taskId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type TaskLogWhereUniqueInput = Prisma.AtLeast<{
@@ -9927,20 +10371,16 @@ export namespace Prisma {
     AND?: TaskLogWhereInput | TaskLogWhereInput[]
     OR?: TaskLogWhereInput[]
     NOT?: TaskLogWhereInput | TaskLogWhereInput[]
-    calendarEventId?: StringFilter<"TaskLog"> | string
-    playerId?: StringFilter<"TaskLog"> | string
-    value?: StringNullableFilter<"TaskLog"> | string | null
-    loggedAt?: DateTimeFilter<"TaskLog"> | Date | string
-    calendarEvent?: XOR<CalendarEventScalarRelationFilter, CalendarEventWhereInput>
-    player?: XOR<UserScalarRelationFilter, UserWhereInput>
+    taskId?: StringFilter<"TaskLog"> | string
+    createdAt?: DateTimeFilter<"TaskLog"> | Date | string
+    updatedAt?: DateTimeFilter<"TaskLog"> | Date | string
   }, "id">
 
   export type TaskLogOrderByWithAggregationInput = {
     id?: SortOrder
-    calendarEventId?: SortOrder
-    playerId?: SortOrder
-    value?: SortOrderInput | SortOrder
-    loggedAt?: SortOrder
+    taskId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
     _count?: TaskLogCountOrderByAggregateInput
     _max?: TaskLogMaxOrderByAggregateInput
     _min?: TaskLogMinOrderByAggregateInput
@@ -9951,10 +10391,9 @@ export namespace Prisma {
     OR?: TaskLogScalarWhereWithAggregatesInput[]
     NOT?: TaskLogScalarWhereWithAggregatesInput | TaskLogScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"TaskLog"> | string
-    calendarEventId?: StringWithAggregatesFilter<"TaskLog"> | string
-    playerId?: StringWithAggregatesFilter<"TaskLog"> | string
-    value?: StringNullableWithAggregatesFilter<"TaskLog"> | string | null
-    loggedAt?: DateTimeWithAggregatesFilter<"TaskLog"> | Date | string
+    taskId?: StringWithAggregatesFilter<"TaskLog"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"TaskLog"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"TaskLog"> | Date | string
   }
 
   export type PasswordResetTokenWhereInput = {
@@ -9962,7 +10401,6 @@ export namespace Prisma {
     OR?: PasswordResetTokenWhereInput[]
     NOT?: PasswordResetTokenWhereInput | PasswordResetTokenWhereInput[]
     id?: StringFilter<"PasswordResetToken"> | string
-    email?: StringFilter<"PasswordResetToken"> | string
     token?: StringFilter<"PasswordResetToken"> | string
     expiresAt?: DateTimeFilter<"PasswordResetToken"> | Date | string
     createdAt?: DateTimeFilter<"PasswordResetToken"> | Date | string
@@ -9970,7 +10408,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenOrderByWithRelationInput = {
     id?: SortOrder
-    email?: SortOrder
     token?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
@@ -9982,14 +10419,12 @@ export namespace Prisma {
     AND?: PasswordResetTokenWhereInput | PasswordResetTokenWhereInput[]
     OR?: PasswordResetTokenWhereInput[]
     NOT?: PasswordResetTokenWhereInput | PasswordResetTokenWhereInput[]
-    email?: StringFilter<"PasswordResetToken"> | string
     expiresAt?: DateTimeFilter<"PasswordResetToken"> | Date | string
     createdAt?: DateTimeFilter<"PasswordResetToken"> | Date | string
   }, "id" | "token">
 
   export type PasswordResetTokenOrderByWithAggregationInput = {
     id?: SortOrder
-    email?: SortOrder
     token?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
@@ -10003,7 +10438,6 @@ export namespace Prisma {
     OR?: PasswordResetTokenScalarWhereWithAggregatesInput[]
     NOT?: PasswordResetTokenScalarWhereWithAggregatesInput | PasswordResetTokenScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"PasswordResetToken"> | string
-    email?: StringWithAggregatesFilter<"PasswordResetToken"> | string
     token?: StringWithAggregatesFilter<"PasswordResetToken"> | string
     expiresAt?: DateTimeWithAggregatesFilter<"PasswordResetToken"> | Date | string
     createdAt?: DateTimeWithAggregatesFilter<"PasswordResetToken"> | Date | string
@@ -10012,95 +10446,70 @@ export namespace Prisma {
   export type UserCreateInput = {
     id?: string
     email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
+    password: string
+    passwordHash?: string | null
+    firstName: string
+    lastName: string
     role?: $Enums.Role
     lastLogin?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     playerProfile?: PlayerProfileCreateNestedOneWithoutUserInput
-    coachedPlayers?: PlayerProfileCreateNestedManyWithoutCoachInput
-    coachLinks?: CoachPlayerLinkCreateNestedManyWithoutCoachInput
-    playerLinks?: CoachPlayerLinkCreateNestedManyWithoutPlayerInput
-    taskTemplates?: TaskTemplateCreateNestedManyWithoutCoachInput
-    calendarEvents?: CalendarEventCreateNestedManyWithoutPlayerInput
-    taskLogs?: TaskLogCreateNestedManyWithoutPlayerInput
+    coachPlayerLink?: CoachPlayerLinkCreateNestedManyWithoutCoachInput
   }
 
   export type UserUncheckedCreateInput = {
     id?: string
     email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
+    password: string
+    passwordHash?: string | null
+    firstName: string
+    lastName: string
     role?: $Enums.Role
     lastLogin?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     playerProfile?: PlayerProfileUncheckedCreateNestedOneWithoutUserInput
-    coachedPlayers?: PlayerProfileUncheckedCreateNestedManyWithoutCoachInput
-    coachLinks?: CoachPlayerLinkUncheckedCreateNestedManyWithoutCoachInput
-    playerLinks?: CoachPlayerLinkUncheckedCreateNestedManyWithoutPlayerInput
-    taskTemplates?: TaskTemplateUncheckedCreateNestedManyWithoutCoachInput
-    calendarEvents?: CalendarEventUncheckedCreateNestedManyWithoutPlayerInput
-    taskLogs?: TaskLogUncheckedCreateNestedManyWithoutPlayerInput
+    coachPlayerLink?: CoachPlayerLinkUncheckedCreateNestedManyWithoutCoachInput
   }
 
   export type UserUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: StringFieldUpdateOperationsInput | string
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: StringFieldUpdateOperationsInput | string
+    lastName?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     playerProfile?: PlayerProfileUpdateOneWithoutUserNestedInput
-    coachedPlayers?: PlayerProfileUpdateManyWithoutCoachNestedInput
-    coachLinks?: CoachPlayerLinkUpdateManyWithoutCoachNestedInput
-    playerLinks?: CoachPlayerLinkUpdateManyWithoutPlayerNestedInput
-    taskTemplates?: TaskTemplateUpdateManyWithoutCoachNestedInput
-    calendarEvents?: CalendarEventUpdateManyWithoutPlayerNestedInput
-    taskLogs?: TaskLogUpdateManyWithoutPlayerNestedInput
+    coachPlayerLink?: CoachPlayerLinkUpdateManyWithoutCoachNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: StringFieldUpdateOperationsInput | string
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: StringFieldUpdateOperationsInput | string
+    lastName?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     playerProfile?: PlayerProfileUncheckedUpdateOneWithoutUserNestedInput
-    coachedPlayers?: PlayerProfileUncheckedUpdateManyWithoutCoachNestedInput
-    coachLinks?: CoachPlayerLinkUncheckedUpdateManyWithoutCoachNestedInput
-    playerLinks?: CoachPlayerLinkUncheckedUpdateManyWithoutPlayerNestedInput
-    taskTemplates?: TaskTemplateUncheckedUpdateManyWithoutCoachNestedInput
-    calendarEvents?: CalendarEventUncheckedUpdateManyWithoutPlayerNestedInput
-    taskLogs?: TaskLogUncheckedUpdateManyWithoutPlayerNestedInput
+    coachPlayerLink?: CoachPlayerLinkUncheckedUpdateManyWithoutCoachNestedInput
   }
 
   export type UserCreateManyInput = {
     id?: string
     email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
+    password: string
+    passwordHash?: string | null
+    firstName: string
+    lastName: string
     role?: $Enums.Role
     lastLogin?: Date | string | null
     createdAt?: Date | string
@@ -10110,11 +10519,10 @@ export namespace Prisma {
   export type UserUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: StringFieldUpdateOperationsInput | string
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: StringFieldUpdateOperationsInput | string
+    lastName?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -10124,292 +10532,338 @@ export namespace Prisma {
   export type UserUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: StringFieldUpdateOperationsInput | string
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: StringFieldUpdateOperationsInput | string
+    lastName?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type EventCreateInput = {
+    id?: string
+    title: string
+    status?: $Enums.EventStatus
+    format: $Enums.EventFormat
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type EventUncheckedCreateInput = {
+    id?: string
+    title: string
+    status?: $Enums.EventStatus
+    format: $Enums.EventFormat
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type EventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+    format?: EnumEventFormatFieldUpdateOperationsInput | $Enums.EventFormat
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type EventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+    format?: EnumEventFormatFieldUpdateOperationsInput | $Enums.EventFormat
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type EventCreateManyInput = {
+    id?: string
+    title: string
+    status?: $Enums.EventStatus
+    format: $Enums.EventFormat
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type EventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+    format?: EnumEventFormatFieldUpdateOperationsInput | $Enums.EventFormat
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type EventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+    format?: EnumEventFormatFieldUpdateOperationsInput | $Enums.EventFormat
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type PlayerProfileCreateInput = {
     id?: string
-    golfHandicap?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
     user: UserCreateNestedOneWithoutPlayerProfileInput
-    coach?: UserCreateNestedOneWithoutCoachedPlayersInput
   }
 
   export type PlayerProfileUncheckedCreateInput = {
     id?: string
     userId: string
-    golfHandicap?: number | null
-    coachId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type PlayerProfileUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    golfHandicap?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutPlayerProfileNestedInput
-    coach?: UserUpdateOneWithoutCoachedPlayersNestedInput
   }
 
   export type PlayerProfileUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    golfHandicap?: NullableFloatFieldUpdateOperationsInput | number | null
-    coachId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PlayerProfileCreateManyInput = {
     id?: string
     userId: string
-    golfHandicap?: number | null
-    coachId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type PlayerProfileUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    golfHandicap?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PlayerProfileUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    golfHandicap?: NullableFloatFieldUpdateOperationsInput | number | null
-    coachId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CoachPlayerLinkCreateInput = {
     id?: string
-    coach: UserCreateNestedOneWithoutCoachLinksInput
-    player: UserCreateNestedOneWithoutPlayerLinksInput
+    playerId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    coach: UserCreateNestedOneWithoutCoachPlayerLinkInput
   }
 
   export type CoachPlayerLinkUncheckedCreateInput = {
     id?: string
     coachId: string
     playerId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type CoachPlayerLinkUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    coach?: UserUpdateOneRequiredWithoutCoachLinksNestedInput
-    player?: UserUpdateOneRequiredWithoutPlayerLinksNestedInput
+    playerId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    coach?: UserUpdateOneRequiredWithoutCoachPlayerLinkNestedInput
   }
 
   export type CoachPlayerLinkUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     coachId?: StringFieldUpdateOperationsInput | string
     playerId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CoachPlayerLinkCreateManyInput = {
     id?: string
     coachId: string
     playerId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type CoachPlayerLinkUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    playerId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CoachPlayerLinkUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     coachId?: StringFieldUpdateOperationsInput | string
     playerId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type TaskTemplateCreateInput = {
     id?: string
-    name: string
-    description?: string | null
-    isActive?: boolean
+    title: string
     createdAt?: Date | string
-    coach: UserCreateNestedOneWithoutTaskTemplatesInput
-    calendarEvents?: CalendarEventCreateNestedManyWithoutTaskTemplateInput
+    updatedAt?: Date | string
   }
 
   export type TaskTemplateUncheckedCreateInput = {
     id?: string
-    name: string
-    description?: string | null
-    coachId: string
-    isActive?: boolean
+    title: string
     createdAt?: Date | string
-    calendarEvents?: CalendarEventUncheckedCreateNestedManyWithoutTaskTemplateInput
+    updatedAt?: Date | string
   }
 
   export type TaskTemplateUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    isActive?: BoolFieldUpdateOperationsInput | boolean
+    title?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    coach?: UserUpdateOneRequiredWithoutTaskTemplatesNestedInput
-    calendarEvents?: CalendarEventUpdateManyWithoutTaskTemplateNestedInput
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type TaskTemplateUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    coachId?: StringFieldUpdateOperationsInput | string
-    isActive?: BoolFieldUpdateOperationsInput | boolean
+    title?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    calendarEvents?: CalendarEventUncheckedUpdateManyWithoutTaskTemplateNestedInput
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type TaskTemplateCreateManyInput = {
     id?: string
-    name: string
-    description?: string | null
-    coachId: string
-    isActive?: boolean
+    title: string
     createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type TaskTemplateUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    isActive?: BoolFieldUpdateOperationsInput | boolean
+    title?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type TaskTemplateUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    coachId?: StringFieldUpdateOperationsInput | string
-    isActive?: BoolFieldUpdateOperationsInput | boolean
+    title?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CalendarEventCreateInput = {
     id?: string
-    startDate: Date | string
-    endDate: Date | string
-    status?: $Enums.EventStatus
-    taskTemplate: TaskTemplateCreateNestedOneWithoutCalendarEventsInput
-    player: UserCreateNestedOneWithoutCalendarEventsInput
-    taskLogs?: TaskLogCreateNestedManyWithoutCalendarEventInput
+    title: string
+    date: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type CalendarEventUncheckedCreateInput = {
     id?: string
-    taskTemplateId: string
-    playerId: string
-    startDate: Date | string
-    endDate: Date | string
-    status?: $Enums.EventStatus
-    taskLogs?: TaskLogUncheckedCreateNestedManyWithoutCalendarEventInput
+    title: string
+    date: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type CalendarEventUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
-    taskTemplate?: TaskTemplateUpdateOneRequiredWithoutCalendarEventsNestedInput
-    player?: UserUpdateOneRequiredWithoutCalendarEventsNestedInput
-    taskLogs?: TaskLogUpdateManyWithoutCalendarEventNestedInput
+    title?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CalendarEventUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    taskTemplateId?: StringFieldUpdateOperationsInput | string
-    playerId?: StringFieldUpdateOperationsInput | string
-    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
-    taskLogs?: TaskLogUncheckedUpdateManyWithoutCalendarEventNestedInput
+    title?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CalendarEventCreateManyInput = {
     id?: string
-    taskTemplateId: string
-    playerId: string
-    startDate: Date | string
-    endDate: Date | string
-    status?: $Enums.EventStatus
+    title: string
+    date: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type CalendarEventUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+    title?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CalendarEventUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    taskTemplateId?: StringFieldUpdateOperationsInput | string
-    playerId?: StringFieldUpdateOperationsInput | string
-    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+    title?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type TaskLogCreateInput = {
     id?: string
-    value?: string | null
-    loggedAt?: Date | string
-    calendarEvent: CalendarEventCreateNestedOneWithoutTaskLogsInput
-    player: UserCreateNestedOneWithoutTaskLogsInput
+    taskId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type TaskLogUncheckedCreateInput = {
     id?: string
-    calendarEventId: string
-    playerId: string
-    value?: string | null
-    loggedAt?: Date | string
+    taskId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type TaskLogUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    value?: NullableStringFieldUpdateOperationsInput | string | null
-    loggedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    calendarEvent?: CalendarEventUpdateOneRequiredWithoutTaskLogsNestedInput
-    player?: UserUpdateOneRequiredWithoutTaskLogsNestedInput
+    taskId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type TaskLogUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    calendarEventId?: StringFieldUpdateOperationsInput | string
-    playerId?: StringFieldUpdateOperationsInput | string
-    value?: NullableStringFieldUpdateOperationsInput | string | null
-    loggedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    taskId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type TaskLogCreateManyInput = {
     id?: string
-    calendarEventId: string
-    playerId: string
-    value?: string | null
-    loggedAt?: Date | string
+    taskId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type TaskLogUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    value?: NullableStringFieldUpdateOperationsInput | string | null
-    loggedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    taskId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type TaskLogUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    calendarEventId?: StringFieldUpdateOperationsInput | string
-    playerId?: StringFieldUpdateOperationsInput | string
-    value?: NullableStringFieldUpdateOperationsInput | string | null
-    loggedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    taskId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PasswordResetTokenCreateInput = {
     id?: string
-    email: string
     token: string
     expiresAt: Date | string
     createdAt?: Date | string
@@ -10417,7 +10871,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenUncheckedCreateInput = {
     id?: string
-    email: string
     token: string
     expiresAt: Date | string
     createdAt?: Date | string
@@ -10425,7 +10878,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
     token?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -10433,7 +10885,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
     token?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -10441,7 +10892,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenCreateManyInput = {
     id?: string
-    email: string
     token: string
     expiresAt: Date | string
     createdAt?: Date | string
@@ -10449,7 +10899,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
     token?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -10457,7 +10906,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
     token?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -10527,34 +10975,10 @@ export namespace Prisma {
     isNot?: PlayerProfileWhereInput | null
   }
 
-  export type PlayerProfileListRelationFilter = {
-    every?: PlayerProfileWhereInput
-    some?: PlayerProfileWhereInput
-    none?: PlayerProfileWhereInput
-  }
-
   export type CoachPlayerLinkListRelationFilter = {
     every?: CoachPlayerLinkWhereInput
     some?: CoachPlayerLinkWhereInput
     none?: CoachPlayerLinkWhereInput
-  }
-
-  export type TaskTemplateListRelationFilter = {
-    every?: TaskTemplateWhereInput
-    some?: TaskTemplateWhereInput
-    none?: TaskTemplateWhereInput
-  }
-
-  export type CalendarEventListRelationFilter = {
-    every?: CalendarEventWhereInput
-    some?: CalendarEventWhereInput
-    none?: CalendarEventWhereInput
-  }
-
-  export type TaskLogListRelationFilter = {
-    every?: TaskLogWhereInput
-    some?: TaskLogWhereInput
-    none?: TaskLogWhereInput
   }
 
   export type SortOrderInput = {
@@ -10562,34 +10986,17 @@ export namespace Prisma {
     nulls?: NullsOrder
   }
 
-  export type PlayerProfileOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
   export type CoachPlayerLinkOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type TaskTemplateOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type CalendarEventOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type TaskLogOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type UserCountOrderByAggregateInput = {
     id?: SortOrder
     email?: SortOrder
+    password?: SortOrder
     passwordHash?: SortOrder
     firstName?: SortOrder
     lastName?: SortOrder
-    profileImage?: SortOrder
-    clubId?: SortOrder
     role?: SortOrder
     lastLogin?: SortOrder
     createdAt?: SortOrder
@@ -10599,11 +11006,10 @@ export namespace Prisma {
   export type UserMaxOrderByAggregateInput = {
     id?: SortOrder
     email?: SortOrder
+    password?: SortOrder
     passwordHash?: SortOrder
     firstName?: SortOrder
     lastName?: SortOrder
-    profileImage?: SortOrder
-    clubId?: SortOrder
     role?: SortOrder
     lastLogin?: SortOrder
     createdAt?: SortOrder
@@ -10613,11 +11019,10 @@ export namespace Prisma {
   export type UserMinOrderByAggregateInput = {
     id?: SortOrder
     email?: SortOrder
+    password?: SortOrder
     passwordHash?: SortOrder
     firstName?: SortOrder
     lastName?: SortOrder
-    profileImage?: SortOrder
-    clubId?: SortOrder
     role?: SortOrder
     lastLogin?: SortOrder
     createdAt?: SortOrder
@@ -10698,135 +11103,6 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
-  export type FloatNullableFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
-  }
-
-  export type UserScalarRelationFilter = {
-    is?: UserWhereInput
-    isNot?: UserWhereInput
-  }
-
-  export type UserNullableScalarRelationFilter = {
-    is?: UserWhereInput | null
-    isNot?: UserWhereInput | null
-  }
-
-  export type PlayerProfileCountOrderByAggregateInput = {
-    id?: SortOrder
-    userId?: SortOrder
-    golfHandicap?: SortOrder
-    coachId?: SortOrder
-  }
-
-  export type PlayerProfileAvgOrderByAggregateInput = {
-    golfHandicap?: SortOrder
-  }
-
-  export type PlayerProfileMaxOrderByAggregateInput = {
-    id?: SortOrder
-    userId?: SortOrder
-    golfHandicap?: SortOrder
-    coachId?: SortOrder
-  }
-
-  export type PlayerProfileMinOrderByAggregateInput = {
-    id?: SortOrder
-    userId?: SortOrder
-    golfHandicap?: SortOrder
-    coachId?: SortOrder
-  }
-
-  export type PlayerProfileSumOrderByAggregateInput = {
-    golfHandicap?: SortOrder
-  }
-
-  export type FloatNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedFloatNullableFilter<$PrismaModel>
-    _min?: NestedFloatNullableFilter<$PrismaModel>
-    _max?: NestedFloatNullableFilter<$PrismaModel>
-  }
-
-  export type CoachPlayerLinkCoachIdPlayerIdCompoundUniqueInput = {
-    coachId: string
-    playerId: string
-  }
-
-  export type CoachPlayerLinkCountOrderByAggregateInput = {
-    id?: SortOrder
-    coachId?: SortOrder
-    playerId?: SortOrder
-  }
-
-  export type CoachPlayerLinkMaxOrderByAggregateInput = {
-    id?: SortOrder
-    coachId?: SortOrder
-    playerId?: SortOrder
-  }
-
-  export type CoachPlayerLinkMinOrderByAggregateInput = {
-    id?: SortOrder
-    coachId?: SortOrder
-    playerId?: SortOrder
-  }
-
-  export type BoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
-  export type TaskTemplateCountOrderByAggregateInput = {
-    id?: SortOrder
-    name?: SortOrder
-    description?: SortOrder
-    coachId?: SortOrder
-    isActive?: SortOrder
-    createdAt?: SortOrder
-  }
-
-  export type TaskTemplateMaxOrderByAggregateInput = {
-    id?: SortOrder
-    name?: SortOrder
-    description?: SortOrder
-    coachId?: SortOrder
-    isActive?: SortOrder
-    createdAt?: SortOrder
-  }
-
-  export type TaskTemplateMinOrderByAggregateInput = {
-    id?: SortOrder
-    name?: SortOrder
-    description?: SortOrder
-    coachId?: SortOrder
-    isActive?: SortOrder
-    createdAt?: SortOrder
-  }
-
-  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
-  }
-
   export type EnumEventStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.EventStatus | EnumEventStatusFieldRefInput<$PrismaModel>
     in?: $Enums.EventStatus[] | ListEnumEventStatusFieldRefInput<$PrismaModel>
@@ -10834,36 +11110,38 @@ export namespace Prisma {
     not?: NestedEnumEventStatusFilter<$PrismaModel> | $Enums.EventStatus
   }
 
-  export type TaskTemplateScalarRelationFilter = {
-    is?: TaskTemplateWhereInput
-    isNot?: TaskTemplateWhereInput
+  export type EnumEventFormatFilter<$PrismaModel = never> = {
+    equals?: $Enums.EventFormat | EnumEventFormatFieldRefInput<$PrismaModel>
+    in?: $Enums.EventFormat[] | ListEnumEventFormatFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EventFormat[] | ListEnumEventFormatFieldRefInput<$PrismaModel>
+    not?: NestedEnumEventFormatFilter<$PrismaModel> | $Enums.EventFormat
   }
 
-  export type CalendarEventCountOrderByAggregateInput = {
+  export type EventCountOrderByAggregateInput = {
     id?: SortOrder
-    taskTemplateId?: SortOrder
-    playerId?: SortOrder
-    startDate?: SortOrder
-    endDate?: SortOrder
+    title?: SortOrder
     status?: SortOrder
+    format?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
-  export type CalendarEventMaxOrderByAggregateInput = {
+  export type EventMaxOrderByAggregateInput = {
     id?: SortOrder
-    taskTemplateId?: SortOrder
-    playerId?: SortOrder
-    startDate?: SortOrder
-    endDate?: SortOrder
+    title?: SortOrder
     status?: SortOrder
+    format?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
-  export type CalendarEventMinOrderByAggregateInput = {
+  export type EventMinOrderByAggregateInput = {
     id?: SortOrder
-    taskTemplateId?: SortOrder
-    playerId?: SortOrder
-    startDate?: SortOrder
-    endDate?: SortOrder
+    title?: SortOrder
     status?: SortOrder
+    format?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type EnumEventStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -10876,38 +11154,134 @@ export namespace Prisma {
     _max?: NestedEnumEventStatusFilter<$PrismaModel>
   }
 
-  export type CalendarEventScalarRelationFilter = {
-    is?: CalendarEventWhereInput
-    isNot?: CalendarEventWhereInput
+  export type EnumEventFormatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.EventFormat | EnumEventFormatFieldRefInput<$PrismaModel>
+    in?: $Enums.EventFormat[] | ListEnumEventFormatFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EventFormat[] | ListEnumEventFormatFieldRefInput<$PrismaModel>
+    not?: NestedEnumEventFormatWithAggregatesFilter<$PrismaModel> | $Enums.EventFormat
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumEventFormatFilter<$PrismaModel>
+    _max?: NestedEnumEventFormatFilter<$PrismaModel>
+  }
+
+  export type UserScalarRelationFilter = {
+    is?: UserWhereInput
+    isNot?: UserWhereInput
+  }
+
+  export type PlayerProfileCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PlayerProfileMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PlayerProfileMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CoachPlayerLinkCountOrderByAggregateInput = {
+    id?: SortOrder
+    coachId?: SortOrder
+    playerId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CoachPlayerLinkMaxOrderByAggregateInput = {
+    id?: SortOrder
+    coachId?: SortOrder
+    playerId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CoachPlayerLinkMinOrderByAggregateInput = {
+    id?: SortOrder
+    coachId?: SortOrder
+    playerId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TaskTemplateCountOrderByAggregateInput = {
+    id?: SortOrder
+    title?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TaskTemplateMaxOrderByAggregateInput = {
+    id?: SortOrder
+    title?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TaskTemplateMinOrderByAggregateInput = {
+    id?: SortOrder
+    title?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CalendarEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    title?: SortOrder
+    date?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CalendarEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    title?: SortOrder
+    date?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CalendarEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    title?: SortOrder
+    date?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type TaskLogCountOrderByAggregateInput = {
     id?: SortOrder
-    calendarEventId?: SortOrder
-    playerId?: SortOrder
-    value?: SortOrder
-    loggedAt?: SortOrder
+    taskId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type TaskLogMaxOrderByAggregateInput = {
     id?: SortOrder
-    calendarEventId?: SortOrder
-    playerId?: SortOrder
-    value?: SortOrder
-    loggedAt?: SortOrder
+    taskId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type TaskLogMinOrderByAggregateInput = {
     id?: SortOrder
-    calendarEventId?: SortOrder
-    playerId?: SortOrder
-    value?: SortOrder
-    loggedAt?: SortOrder
+    taskId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type PasswordResetTokenCountOrderByAggregateInput = {
     id?: SortOrder
-    email?: SortOrder
     token?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
@@ -10915,7 +11289,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenMaxOrderByAggregateInput = {
     id?: SortOrder
-    email?: SortOrder
     token?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
@@ -10923,7 +11296,6 @@ export namespace Prisma {
 
   export type PasswordResetTokenMinOrderByAggregateInput = {
     id?: SortOrder
-    email?: SortOrder
     token?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
@@ -10935,46 +11307,11 @@ export namespace Prisma {
     connect?: PlayerProfileWhereUniqueInput
   }
 
-  export type PlayerProfileCreateNestedManyWithoutCoachInput = {
-    create?: XOR<PlayerProfileCreateWithoutCoachInput, PlayerProfileUncheckedCreateWithoutCoachInput> | PlayerProfileCreateWithoutCoachInput[] | PlayerProfileUncheckedCreateWithoutCoachInput[]
-    connectOrCreate?: PlayerProfileCreateOrConnectWithoutCoachInput | PlayerProfileCreateOrConnectWithoutCoachInput[]
-    createMany?: PlayerProfileCreateManyCoachInputEnvelope
-    connect?: PlayerProfileWhereUniqueInput | PlayerProfileWhereUniqueInput[]
-  }
-
   export type CoachPlayerLinkCreateNestedManyWithoutCoachInput = {
     create?: XOR<CoachPlayerLinkCreateWithoutCoachInput, CoachPlayerLinkUncheckedCreateWithoutCoachInput> | CoachPlayerLinkCreateWithoutCoachInput[] | CoachPlayerLinkUncheckedCreateWithoutCoachInput[]
     connectOrCreate?: CoachPlayerLinkCreateOrConnectWithoutCoachInput | CoachPlayerLinkCreateOrConnectWithoutCoachInput[]
     createMany?: CoachPlayerLinkCreateManyCoachInputEnvelope
     connect?: CoachPlayerLinkWhereUniqueInput | CoachPlayerLinkWhereUniqueInput[]
-  }
-
-  export type CoachPlayerLinkCreateNestedManyWithoutPlayerInput = {
-    create?: XOR<CoachPlayerLinkCreateWithoutPlayerInput, CoachPlayerLinkUncheckedCreateWithoutPlayerInput> | CoachPlayerLinkCreateWithoutPlayerInput[] | CoachPlayerLinkUncheckedCreateWithoutPlayerInput[]
-    connectOrCreate?: CoachPlayerLinkCreateOrConnectWithoutPlayerInput | CoachPlayerLinkCreateOrConnectWithoutPlayerInput[]
-    createMany?: CoachPlayerLinkCreateManyPlayerInputEnvelope
-    connect?: CoachPlayerLinkWhereUniqueInput | CoachPlayerLinkWhereUniqueInput[]
-  }
-
-  export type TaskTemplateCreateNestedManyWithoutCoachInput = {
-    create?: XOR<TaskTemplateCreateWithoutCoachInput, TaskTemplateUncheckedCreateWithoutCoachInput> | TaskTemplateCreateWithoutCoachInput[] | TaskTemplateUncheckedCreateWithoutCoachInput[]
-    connectOrCreate?: TaskTemplateCreateOrConnectWithoutCoachInput | TaskTemplateCreateOrConnectWithoutCoachInput[]
-    createMany?: TaskTemplateCreateManyCoachInputEnvelope
-    connect?: TaskTemplateWhereUniqueInput | TaskTemplateWhereUniqueInput[]
-  }
-
-  export type CalendarEventCreateNestedManyWithoutPlayerInput = {
-    create?: XOR<CalendarEventCreateWithoutPlayerInput, CalendarEventUncheckedCreateWithoutPlayerInput> | CalendarEventCreateWithoutPlayerInput[] | CalendarEventUncheckedCreateWithoutPlayerInput[]
-    connectOrCreate?: CalendarEventCreateOrConnectWithoutPlayerInput | CalendarEventCreateOrConnectWithoutPlayerInput[]
-    createMany?: CalendarEventCreateManyPlayerInputEnvelope
-    connect?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-  }
-
-  export type TaskLogCreateNestedManyWithoutPlayerInput = {
-    create?: XOR<TaskLogCreateWithoutPlayerInput, TaskLogUncheckedCreateWithoutPlayerInput> | TaskLogCreateWithoutPlayerInput[] | TaskLogUncheckedCreateWithoutPlayerInput[]
-    connectOrCreate?: TaskLogCreateOrConnectWithoutPlayerInput | TaskLogCreateOrConnectWithoutPlayerInput[]
-    createMany?: TaskLogCreateManyPlayerInputEnvelope
-    connect?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
   }
 
   export type PlayerProfileUncheckedCreateNestedOneWithoutUserInput = {
@@ -10983,46 +11320,11 @@ export namespace Prisma {
     connect?: PlayerProfileWhereUniqueInput
   }
 
-  export type PlayerProfileUncheckedCreateNestedManyWithoutCoachInput = {
-    create?: XOR<PlayerProfileCreateWithoutCoachInput, PlayerProfileUncheckedCreateWithoutCoachInput> | PlayerProfileCreateWithoutCoachInput[] | PlayerProfileUncheckedCreateWithoutCoachInput[]
-    connectOrCreate?: PlayerProfileCreateOrConnectWithoutCoachInput | PlayerProfileCreateOrConnectWithoutCoachInput[]
-    createMany?: PlayerProfileCreateManyCoachInputEnvelope
-    connect?: PlayerProfileWhereUniqueInput | PlayerProfileWhereUniqueInput[]
-  }
-
   export type CoachPlayerLinkUncheckedCreateNestedManyWithoutCoachInput = {
     create?: XOR<CoachPlayerLinkCreateWithoutCoachInput, CoachPlayerLinkUncheckedCreateWithoutCoachInput> | CoachPlayerLinkCreateWithoutCoachInput[] | CoachPlayerLinkUncheckedCreateWithoutCoachInput[]
     connectOrCreate?: CoachPlayerLinkCreateOrConnectWithoutCoachInput | CoachPlayerLinkCreateOrConnectWithoutCoachInput[]
     createMany?: CoachPlayerLinkCreateManyCoachInputEnvelope
     connect?: CoachPlayerLinkWhereUniqueInput | CoachPlayerLinkWhereUniqueInput[]
-  }
-
-  export type CoachPlayerLinkUncheckedCreateNestedManyWithoutPlayerInput = {
-    create?: XOR<CoachPlayerLinkCreateWithoutPlayerInput, CoachPlayerLinkUncheckedCreateWithoutPlayerInput> | CoachPlayerLinkCreateWithoutPlayerInput[] | CoachPlayerLinkUncheckedCreateWithoutPlayerInput[]
-    connectOrCreate?: CoachPlayerLinkCreateOrConnectWithoutPlayerInput | CoachPlayerLinkCreateOrConnectWithoutPlayerInput[]
-    createMany?: CoachPlayerLinkCreateManyPlayerInputEnvelope
-    connect?: CoachPlayerLinkWhereUniqueInput | CoachPlayerLinkWhereUniqueInput[]
-  }
-
-  export type TaskTemplateUncheckedCreateNestedManyWithoutCoachInput = {
-    create?: XOR<TaskTemplateCreateWithoutCoachInput, TaskTemplateUncheckedCreateWithoutCoachInput> | TaskTemplateCreateWithoutCoachInput[] | TaskTemplateUncheckedCreateWithoutCoachInput[]
-    connectOrCreate?: TaskTemplateCreateOrConnectWithoutCoachInput | TaskTemplateCreateOrConnectWithoutCoachInput[]
-    createMany?: TaskTemplateCreateManyCoachInputEnvelope
-    connect?: TaskTemplateWhereUniqueInput | TaskTemplateWhereUniqueInput[]
-  }
-
-  export type CalendarEventUncheckedCreateNestedManyWithoutPlayerInput = {
-    create?: XOR<CalendarEventCreateWithoutPlayerInput, CalendarEventUncheckedCreateWithoutPlayerInput> | CalendarEventCreateWithoutPlayerInput[] | CalendarEventUncheckedCreateWithoutPlayerInput[]
-    connectOrCreate?: CalendarEventCreateOrConnectWithoutPlayerInput | CalendarEventCreateOrConnectWithoutPlayerInput[]
-    createMany?: CalendarEventCreateManyPlayerInputEnvelope
-    connect?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-  }
-
-  export type TaskLogUncheckedCreateNestedManyWithoutPlayerInput = {
-    create?: XOR<TaskLogCreateWithoutPlayerInput, TaskLogUncheckedCreateWithoutPlayerInput> | TaskLogCreateWithoutPlayerInput[] | TaskLogUncheckedCreateWithoutPlayerInput[]
-    connectOrCreate?: TaskLogCreateOrConnectWithoutPlayerInput | TaskLogCreateOrConnectWithoutPlayerInput[]
-    createMany?: TaskLogCreateManyPlayerInputEnvelope
-    connect?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -11055,20 +11357,6 @@ export namespace Prisma {
     update?: XOR<XOR<PlayerProfileUpdateToOneWithWhereWithoutUserInput, PlayerProfileUpdateWithoutUserInput>, PlayerProfileUncheckedUpdateWithoutUserInput>
   }
 
-  export type PlayerProfileUpdateManyWithoutCoachNestedInput = {
-    create?: XOR<PlayerProfileCreateWithoutCoachInput, PlayerProfileUncheckedCreateWithoutCoachInput> | PlayerProfileCreateWithoutCoachInput[] | PlayerProfileUncheckedCreateWithoutCoachInput[]
-    connectOrCreate?: PlayerProfileCreateOrConnectWithoutCoachInput | PlayerProfileCreateOrConnectWithoutCoachInput[]
-    upsert?: PlayerProfileUpsertWithWhereUniqueWithoutCoachInput | PlayerProfileUpsertWithWhereUniqueWithoutCoachInput[]
-    createMany?: PlayerProfileCreateManyCoachInputEnvelope
-    set?: PlayerProfileWhereUniqueInput | PlayerProfileWhereUniqueInput[]
-    disconnect?: PlayerProfileWhereUniqueInput | PlayerProfileWhereUniqueInput[]
-    delete?: PlayerProfileWhereUniqueInput | PlayerProfileWhereUniqueInput[]
-    connect?: PlayerProfileWhereUniqueInput | PlayerProfileWhereUniqueInput[]
-    update?: PlayerProfileUpdateWithWhereUniqueWithoutCoachInput | PlayerProfileUpdateWithWhereUniqueWithoutCoachInput[]
-    updateMany?: PlayerProfileUpdateManyWithWhereWithoutCoachInput | PlayerProfileUpdateManyWithWhereWithoutCoachInput[]
-    deleteMany?: PlayerProfileScalarWhereInput | PlayerProfileScalarWhereInput[]
-  }
-
   export type CoachPlayerLinkUpdateManyWithoutCoachNestedInput = {
     create?: XOR<CoachPlayerLinkCreateWithoutCoachInput, CoachPlayerLinkUncheckedCreateWithoutCoachInput> | CoachPlayerLinkCreateWithoutCoachInput[] | CoachPlayerLinkUncheckedCreateWithoutCoachInput[]
     connectOrCreate?: CoachPlayerLinkCreateOrConnectWithoutCoachInput | CoachPlayerLinkCreateOrConnectWithoutCoachInput[]
@@ -11083,62 +11371,6 @@ export namespace Prisma {
     deleteMany?: CoachPlayerLinkScalarWhereInput | CoachPlayerLinkScalarWhereInput[]
   }
 
-  export type CoachPlayerLinkUpdateManyWithoutPlayerNestedInput = {
-    create?: XOR<CoachPlayerLinkCreateWithoutPlayerInput, CoachPlayerLinkUncheckedCreateWithoutPlayerInput> | CoachPlayerLinkCreateWithoutPlayerInput[] | CoachPlayerLinkUncheckedCreateWithoutPlayerInput[]
-    connectOrCreate?: CoachPlayerLinkCreateOrConnectWithoutPlayerInput | CoachPlayerLinkCreateOrConnectWithoutPlayerInput[]
-    upsert?: CoachPlayerLinkUpsertWithWhereUniqueWithoutPlayerInput | CoachPlayerLinkUpsertWithWhereUniqueWithoutPlayerInput[]
-    createMany?: CoachPlayerLinkCreateManyPlayerInputEnvelope
-    set?: CoachPlayerLinkWhereUniqueInput | CoachPlayerLinkWhereUniqueInput[]
-    disconnect?: CoachPlayerLinkWhereUniqueInput | CoachPlayerLinkWhereUniqueInput[]
-    delete?: CoachPlayerLinkWhereUniqueInput | CoachPlayerLinkWhereUniqueInput[]
-    connect?: CoachPlayerLinkWhereUniqueInput | CoachPlayerLinkWhereUniqueInput[]
-    update?: CoachPlayerLinkUpdateWithWhereUniqueWithoutPlayerInput | CoachPlayerLinkUpdateWithWhereUniqueWithoutPlayerInput[]
-    updateMany?: CoachPlayerLinkUpdateManyWithWhereWithoutPlayerInput | CoachPlayerLinkUpdateManyWithWhereWithoutPlayerInput[]
-    deleteMany?: CoachPlayerLinkScalarWhereInput | CoachPlayerLinkScalarWhereInput[]
-  }
-
-  export type TaskTemplateUpdateManyWithoutCoachNestedInput = {
-    create?: XOR<TaskTemplateCreateWithoutCoachInput, TaskTemplateUncheckedCreateWithoutCoachInput> | TaskTemplateCreateWithoutCoachInput[] | TaskTemplateUncheckedCreateWithoutCoachInput[]
-    connectOrCreate?: TaskTemplateCreateOrConnectWithoutCoachInput | TaskTemplateCreateOrConnectWithoutCoachInput[]
-    upsert?: TaskTemplateUpsertWithWhereUniqueWithoutCoachInput | TaskTemplateUpsertWithWhereUniqueWithoutCoachInput[]
-    createMany?: TaskTemplateCreateManyCoachInputEnvelope
-    set?: TaskTemplateWhereUniqueInput | TaskTemplateWhereUniqueInput[]
-    disconnect?: TaskTemplateWhereUniqueInput | TaskTemplateWhereUniqueInput[]
-    delete?: TaskTemplateWhereUniqueInput | TaskTemplateWhereUniqueInput[]
-    connect?: TaskTemplateWhereUniqueInput | TaskTemplateWhereUniqueInput[]
-    update?: TaskTemplateUpdateWithWhereUniqueWithoutCoachInput | TaskTemplateUpdateWithWhereUniqueWithoutCoachInput[]
-    updateMany?: TaskTemplateUpdateManyWithWhereWithoutCoachInput | TaskTemplateUpdateManyWithWhereWithoutCoachInput[]
-    deleteMany?: TaskTemplateScalarWhereInput | TaskTemplateScalarWhereInput[]
-  }
-
-  export type CalendarEventUpdateManyWithoutPlayerNestedInput = {
-    create?: XOR<CalendarEventCreateWithoutPlayerInput, CalendarEventUncheckedCreateWithoutPlayerInput> | CalendarEventCreateWithoutPlayerInput[] | CalendarEventUncheckedCreateWithoutPlayerInput[]
-    connectOrCreate?: CalendarEventCreateOrConnectWithoutPlayerInput | CalendarEventCreateOrConnectWithoutPlayerInput[]
-    upsert?: CalendarEventUpsertWithWhereUniqueWithoutPlayerInput | CalendarEventUpsertWithWhereUniqueWithoutPlayerInput[]
-    createMany?: CalendarEventCreateManyPlayerInputEnvelope
-    set?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    disconnect?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    delete?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    connect?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    update?: CalendarEventUpdateWithWhereUniqueWithoutPlayerInput | CalendarEventUpdateWithWhereUniqueWithoutPlayerInput[]
-    updateMany?: CalendarEventUpdateManyWithWhereWithoutPlayerInput | CalendarEventUpdateManyWithWhereWithoutPlayerInput[]
-    deleteMany?: CalendarEventScalarWhereInput | CalendarEventScalarWhereInput[]
-  }
-
-  export type TaskLogUpdateManyWithoutPlayerNestedInput = {
-    create?: XOR<TaskLogCreateWithoutPlayerInput, TaskLogUncheckedCreateWithoutPlayerInput> | TaskLogCreateWithoutPlayerInput[] | TaskLogUncheckedCreateWithoutPlayerInput[]
-    connectOrCreate?: TaskLogCreateOrConnectWithoutPlayerInput | TaskLogCreateOrConnectWithoutPlayerInput[]
-    upsert?: TaskLogUpsertWithWhereUniqueWithoutPlayerInput | TaskLogUpsertWithWhereUniqueWithoutPlayerInput[]
-    createMany?: TaskLogCreateManyPlayerInputEnvelope
-    set?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    disconnect?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    delete?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    connect?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    update?: TaskLogUpdateWithWhereUniqueWithoutPlayerInput | TaskLogUpdateWithWhereUniqueWithoutPlayerInput[]
-    updateMany?: TaskLogUpdateManyWithWhereWithoutPlayerInput | TaskLogUpdateManyWithWhereWithoutPlayerInput[]
-    deleteMany?: TaskLogScalarWhereInput | TaskLogScalarWhereInput[]
-  }
-
   export type PlayerProfileUncheckedUpdateOneWithoutUserNestedInput = {
     create?: XOR<PlayerProfileCreateWithoutUserInput, PlayerProfileUncheckedCreateWithoutUserInput>
     connectOrCreate?: PlayerProfileCreateOrConnectWithoutUserInput
@@ -11147,20 +11379,6 @@ export namespace Prisma {
     delete?: PlayerProfileWhereInput | boolean
     connect?: PlayerProfileWhereUniqueInput
     update?: XOR<XOR<PlayerProfileUpdateToOneWithWhereWithoutUserInput, PlayerProfileUpdateWithoutUserInput>, PlayerProfileUncheckedUpdateWithoutUserInput>
-  }
-
-  export type PlayerProfileUncheckedUpdateManyWithoutCoachNestedInput = {
-    create?: XOR<PlayerProfileCreateWithoutCoachInput, PlayerProfileUncheckedCreateWithoutCoachInput> | PlayerProfileCreateWithoutCoachInput[] | PlayerProfileUncheckedCreateWithoutCoachInput[]
-    connectOrCreate?: PlayerProfileCreateOrConnectWithoutCoachInput | PlayerProfileCreateOrConnectWithoutCoachInput[]
-    upsert?: PlayerProfileUpsertWithWhereUniqueWithoutCoachInput | PlayerProfileUpsertWithWhereUniqueWithoutCoachInput[]
-    createMany?: PlayerProfileCreateManyCoachInputEnvelope
-    set?: PlayerProfileWhereUniqueInput | PlayerProfileWhereUniqueInput[]
-    disconnect?: PlayerProfileWhereUniqueInput | PlayerProfileWhereUniqueInput[]
-    delete?: PlayerProfileWhereUniqueInput | PlayerProfileWhereUniqueInput[]
-    connect?: PlayerProfileWhereUniqueInput | PlayerProfileWhereUniqueInput[]
-    update?: PlayerProfileUpdateWithWhereUniqueWithoutCoachInput | PlayerProfileUpdateWithWhereUniqueWithoutCoachInput[]
-    updateMany?: PlayerProfileUpdateManyWithWhereWithoutCoachInput | PlayerProfileUpdateManyWithWhereWithoutCoachInput[]
-    deleteMany?: PlayerProfileScalarWhereInput | PlayerProfileScalarWhereInput[]
   }
 
   export type CoachPlayerLinkUncheckedUpdateManyWithoutCoachNestedInput = {
@@ -11177,80 +11395,18 @@ export namespace Prisma {
     deleteMany?: CoachPlayerLinkScalarWhereInput | CoachPlayerLinkScalarWhereInput[]
   }
 
-  export type CoachPlayerLinkUncheckedUpdateManyWithoutPlayerNestedInput = {
-    create?: XOR<CoachPlayerLinkCreateWithoutPlayerInput, CoachPlayerLinkUncheckedCreateWithoutPlayerInput> | CoachPlayerLinkCreateWithoutPlayerInput[] | CoachPlayerLinkUncheckedCreateWithoutPlayerInput[]
-    connectOrCreate?: CoachPlayerLinkCreateOrConnectWithoutPlayerInput | CoachPlayerLinkCreateOrConnectWithoutPlayerInput[]
-    upsert?: CoachPlayerLinkUpsertWithWhereUniqueWithoutPlayerInput | CoachPlayerLinkUpsertWithWhereUniqueWithoutPlayerInput[]
-    createMany?: CoachPlayerLinkCreateManyPlayerInputEnvelope
-    set?: CoachPlayerLinkWhereUniqueInput | CoachPlayerLinkWhereUniqueInput[]
-    disconnect?: CoachPlayerLinkWhereUniqueInput | CoachPlayerLinkWhereUniqueInput[]
-    delete?: CoachPlayerLinkWhereUniqueInput | CoachPlayerLinkWhereUniqueInput[]
-    connect?: CoachPlayerLinkWhereUniqueInput | CoachPlayerLinkWhereUniqueInput[]
-    update?: CoachPlayerLinkUpdateWithWhereUniqueWithoutPlayerInput | CoachPlayerLinkUpdateWithWhereUniqueWithoutPlayerInput[]
-    updateMany?: CoachPlayerLinkUpdateManyWithWhereWithoutPlayerInput | CoachPlayerLinkUpdateManyWithWhereWithoutPlayerInput[]
-    deleteMany?: CoachPlayerLinkScalarWhereInput | CoachPlayerLinkScalarWhereInput[]
+  export type EnumEventStatusFieldUpdateOperationsInput = {
+    set?: $Enums.EventStatus
   }
 
-  export type TaskTemplateUncheckedUpdateManyWithoutCoachNestedInput = {
-    create?: XOR<TaskTemplateCreateWithoutCoachInput, TaskTemplateUncheckedCreateWithoutCoachInput> | TaskTemplateCreateWithoutCoachInput[] | TaskTemplateUncheckedCreateWithoutCoachInput[]
-    connectOrCreate?: TaskTemplateCreateOrConnectWithoutCoachInput | TaskTemplateCreateOrConnectWithoutCoachInput[]
-    upsert?: TaskTemplateUpsertWithWhereUniqueWithoutCoachInput | TaskTemplateUpsertWithWhereUniqueWithoutCoachInput[]
-    createMany?: TaskTemplateCreateManyCoachInputEnvelope
-    set?: TaskTemplateWhereUniqueInput | TaskTemplateWhereUniqueInput[]
-    disconnect?: TaskTemplateWhereUniqueInput | TaskTemplateWhereUniqueInput[]
-    delete?: TaskTemplateWhereUniqueInput | TaskTemplateWhereUniqueInput[]
-    connect?: TaskTemplateWhereUniqueInput | TaskTemplateWhereUniqueInput[]
-    update?: TaskTemplateUpdateWithWhereUniqueWithoutCoachInput | TaskTemplateUpdateWithWhereUniqueWithoutCoachInput[]
-    updateMany?: TaskTemplateUpdateManyWithWhereWithoutCoachInput | TaskTemplateUpdateManyWithWhereWithoutCoachInput[]
-    deleteMany?: TaskTemplateScalarWhereInput | TaskTemplateScalarWhereInput[]
-  }
-
-  export type CalendarEventUncheckedUpdateManyWithoutPlayerNestedInput = {
-    create?: XOR<CalendarEventCreateWithoutPlayerInput, CalendarEventUncheckedCreateWithoutPlayerInput> | CalendarEventCreateWithoutPlayerInput[] | CalendarEventUncheckedCreateWithoutPlayerInput[]
-    connectOrCreate?: CalendarEventCreateOrConnectWithoutPlayerInput | CalendarEventCreateOrConnectWithoutPlayerInput[]
-    upsert?: CalendarEventUpsertWithWhereUniqueWithoutPlayerInput | CalendarEventUpsertWithWhereUniqueWithoutPlayerInput[]
-    createMany?: CalendarEventCreateManyPlayerInputEnvelope
-    set?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    disconnect?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    delete?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    connect?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    update?: CalendarEventUpdateWithWhereUniqueWithoutPlayerInput | CalendarEventUpdateWithWhereUniqueWithoutPlayerInput[]
-    updateMany?: CalendarEventUpdateManyWithWhereWithoutPlayerInput | CalendarEventUpdateManyWithWhereWithoutPlayerInput[]
-    deleteMany?: CalendarEventScalarWhereInput | CalendarEventScalarWhereInput[]
-  }
-
-  export type TaskLogUncheckedUpdateManyWithoutPlayerNestedInput = {
-    create?: XOR<TaskLogCreateWithoutPlayerInput, TaskLogUncheckedCreateWithoutPlayerInput> | TaskLogCreateWithoutPlayerInput[] | TaskLogUncheckedCreateWithoutPlayerInput[]
-    connectOrCreate?: TaskLogCreateOrConnectWithoutPlayerInput | TaskLogCreateOrConnectWithoutPlayerInput[]
-    upsert?: TaskLogUpsertWithWhereUniqueWithoutPlayerInput | TaskLogUpsertWithWhereUniqueWithoutPlayerInput[]
-    createMany?: TaskLogCreateManyPlayerInputEnvelope
-    set?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    disconnect?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    delete?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    connect?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    update?: TaskLogUpdateWithWhereUniqueWithoutPlayerInput | TaskLogUpdateWithWhereUniqueWithoutPlayerInput[]
-    updateMany?: TaskLogUpdateManyWithWhereWithoutPlayerInput | TaskLogUpdateManyWithWhereWithoutPlayerInput[]
-    deleteMany?: TaskLogScalarWhereInput | TaskLogScalarWhereInput[]
+  export type EnumEventFormatFieldUpdateOperationsInput = {
+    set?: $Enums.EventFormat
   }
 
   export type UserCreateNestedOneWithoutPlayerProfileInput = {
     create?: XOR<UserCreateWithoutPlayerProfileInput, UserUncheckedCreateWithoutPlayerProfileInput>
     connectOrCreate?: UserCreateOrConnectWithoutPlayerProfileInput
     connect?: UserWhereUniqueInput
-  }
-
-  export type UserCreateNestedOneWithoutCoachedPlayersInput = {
-    create?: XOR<UserCreateWithoutCoachedPlayersInput, UserUncheckedCreateWithoutCoachedPlayersInput>
-    connectOrCreate?: UserCreateOrConnectWithoutCoachedPlayersInput
-    connect?: UserWhereUniqueInput
-  }
-
-  export type NullableFloatFieldUpdateOperationsInput = {
-    set?: number | null
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
   }
 
   export type UserUpdateOneRequiredWithoutPlayerProfileNestedInput = {
@@ -11261,204 +11417,18 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutPlayerProfileInput, UserUpdateWithoutPlayerProfileInput>, UserUncheckedUpdateWithoutPlayerProfileInput>
   }
 
-  export type UserUpdateOneWithoutCoachedPlayersNestedInput = {
-    create?: XOR<UserCreateWithoutCoachedPlayersInput, UserUncheckedCreateWithoutCoachedPlayersInput>
-    connectOrCreate?: UserCreateOrConnectWithoutCoachedPlayersInput
-    upsert?: UserUpsertWithoutCoachedPlayersInput
-    disconnect?: UserWhereInput | boolean
-    delete?: UserWhereInput | boolean
-    connect?: UserWhereUniqueInput
-    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutCoachedPlayersInput, UserUpdateWithoutCoachedPlayersInput>, UserUncheckedUpdateWithoutCoachedPlayersInput>
-  }
-
-  export type UserCreateNestedOneWithoutCoachLinksInput = {
-    create?: XOR<UserCreateWithoutCoachLinksInput, UserUncheckedCreateWithoutCoachLinksInput>
-    connectOrCreate?: UserCreateOrConnectWithoutCoachLinksInput
+  export type UserCreateNestedOneWithoutCoachPlayerLinkInput = {
+    create?: XOR<UserCreateWithoutCoachPlayerLinkInput, UserUncheckedCreateWithoutCoachPlayerLinkInput>
+    connectOrCreate?: UserCreateOrConnectWithoutCoachPlayerLinkInput
     connect?: UserWhereUniqueInput
   }
 
-  export type UserCreateNestedOneWithoutPlayerLinksInput = {
-    create?: XOR<UserCreateWithoutPlayerLinksInput, UserUncheckedCreateWithoutPlayerLinksInput>
-    connectOrCreate?: UserCreateOrConnectWithoutPlayerLinksInput
+  export type UserUpdateOneRequiredWithoutCoachPlayerLinkNestedInput = {
+    create?: XOR<UserCreateWithoutCoachPlayerLinkInput, UserUncheckedCreateWithoutCoachPlayerLinkInput>
+    connectOrCreate?: UserCreateOrConnectWithoutCoachPlayerLinkInput
+    upsert?: UserUpsertWithoutCoachPlayerLinkInput
     connect?: UserWhereUniqueInput
-  }
-
-  export type UserUpdateOneRequiredWithoutCoachLinksNestedInput = {
-    create?: XOR<UserCreateWithoutCoachLinksInput, UserUncheckedCreateWithoutCoachLinksInput>
-    connectOrCreate?: UserCreateOrConnectWithoutCoachLinksInput
-    upsert?: UserUpsertWithoutCoachLinksInput
-    connect?: UserWhereUniqueInput
-    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutCoachLinksInput, UserUpdateWithoutCoachLinksInput>, UserUncheckedUpdateWithoutCoachLinksInput>
-  }
-
-  export type UserUpdateOneRequiredWithoutPlayerLinksNestedInput = {
-    create?: XOR<UserCreateWithoutPlayerLinksInput, UserUncheckedCreateWithoutPlayerLinksInput>
-    connectOrCreate?: UserCreateOrConnectWithoutPlayerLinksInput
-    upsert?: UserUpsertWithoutPlayerLinksInput
-    connect?: UserWhereUniqueInput
-    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutPlayerLinksInput, UserUpdateWithoutPlayerLinksInput>, UserUncheckedUpdateWithoutPlayerLinksInput>
-  }
-
-  export type UserCreateNestedOneWithoutTaskTemplatesInput = {
-    create?: XOR<UserCreateWithoutTaskTemplatesInput, UserUncheckedCreateWithoutTaskTemplatesInput>
-    connectOrCreate?: UserCreateOrConnectWithoutTaskTemplatesInput
-    connect?: UserWhereUniqueInput
-  }
-
-  export type CalendarEventCreateNestedManyWithoutTaskTemplateInput = {
-    create?: XOR<CalendarEventCreateWithoutTaskTemplateInput, CalendarEventUncheckedCreateWithoutTaskTemplateInput> | CalendarEventCreateWithoutTaskTemplateInput[] | CalendarEventUncheckedCreateWithoutTaskTemplateInput[]
-    connectOrCreate?: CalendarEventCreateOrConnectWithoutTaskTemplateInput | CalendarEventCreateOrConnectWithoutTaskTemplateInput[]
-    createMany?: CalendarEventCreateManyTaskTemplateInputEnvelope
-    connect?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-  }
-
-  export type CalendarEventUncheckedCreateNestedManyWithoutTaskTemplateInput = {
-    create?: XOR<CalendarEventCreateWithoutTaskTemplateInput, CalendarEventUncheckedCreateWithoutTaskTemplateInput> | CalendarEventCreateWithoutTaskTemplateInput[] | CalendarEventUncheckedCreateWithoutTaskTemplateInput[]
-    connectOrCreate?: CalendarEventCreateOrConnectWithoutTaskTemplateInput | CalendarEventCreateOrConnectWithoutTaskTemplateInput[]
-    createMany?: CalendarEventCreateManyTaskTemplateInputEnvelope
-    connect?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-  }
-
-  export type BoolFieldUpdateOperationsInput = {
-    set?: boolean
-  }
-
-  export type UserUpdateOneRequiredWithoutTaskTemplatesNestedInput = {
-    create?: XOR<UserCreateWithoutTaskTemplatesInput, UserUncheckedCreateWithoutTaskTemplatesInput>
-    connectOrCreate?: UserCreateOrConnectWithoutTaskTemplatesInput
-    upsert?: UserUpsertWithoutTaskTemplatesInput
-    connect?: UserWhereUniqueInput
-    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutTaskTemplatesInput, UserUpdateWithoutTaskTemplatesInput>, UserUncheckedUpdateWithoutTaskTemplatesInput>
-  }
-
-  export type CalendarEventUpdateManyWithoutTaskTemplateNestedInput = {
-    create?: XOR<CalendarEventCreateWithoutTaskTemplateInput, CalendarEventUncheckedCreateWithoutTaskTemplateInput> | CalendarEventCreateWithoutTaskTemplateInput[] | CalendarEventUncheckedCreateWithoutTaskTemplateInput[]
-    connectOrCreate?: CalendarEventCreateOrConnectWithoutTaskTemplateInput | CalendarEventCreateOrConnectWithoutTaskTemplateInput[]
-    upsert?: CalendarEventUpsertWithWhereUniqueWithoutTaskTemplateInput | CalendarEventUpsertWithWhereUniqueWithoutTaskTemplateInput[]
-    createMany?: CalendarEventCreateManyTaskTemplateInputEnvelope
-    set?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    disconnect?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    delete?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    connect?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    update?: CalendarEventUpdateWithWhereUniqueWithoutTaskTemplateInput | CalendarEventUpdateWithWhereUniqueWithoutTaskTemplateInput[]
-    updateMany?: CalendarEventUpdateManyWithWhereWithoutTaskTemplateInput | CalendarEventUpdateManyWithWhereWithoutTaskTemplateInput[]
-    deleteMany?: CalendarEventScalarWhereInput | CalendarEventScalarWhereInput[]
-  }
-
-  export type CalendarEventUncheckedUpdateManyWithoutTaskTemplateNestedInput = {
-    create?: XOR<CalendarEventCreateWithoutTaskTemplateInput, CalendarEventUncheckedCreateWithoutTaskTemplateInput> | CalendarEventCreateWithoutTaskTemplateInput[] | CalendarEventUncheckedCreateWithoutTaskTemplateInput[]
-    connectOrCreate?: CalendarEventCreateOrConnectWithoutTaskTemplateInput | CalendarEventCreateOrConnectWithoutTaskTemplateInput[]
-    upsert?: CalendarEventUpsertWithWhereUniqueWithoutTaskTemplateInput | CalendarEventUpsertWithWhereUniqueWithoutTaskTemplateInput[]
-    createMany?: CalendarEventCreateManyTaskTemplateInputEnvelope
-    set?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    disconnect?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    delete?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    connect?: CalendarEventWhereUniqueInput | CalendarEventWhereUniqueInput[]
-    update?: CalendarEventUpdateWithWhereUniqueWithoutTaskTemplateInput | CalendarEventUpdateWithWhereUniqueWithoutTaskTemplateInput[]
-    updateMany?: CalendarEventUpdateManyWithWhereWithoutTaskTemplateInput | CalendarEventUpdateManyWithWhereWithoutTaskTemplateInput[]
-    deleteMany?: CalendarEventScalarWhereInput | CalendarEventScalarWhereInput[]
-  }
-
-  export type TaskTemplateCreateNestedOneWithoutCalendarEventsInput = {
-    create?: XOR<TaskTemplateCreateWithoutCalendarEventsInput, TaskTemplateUncheckedCreateWithoutCalendarEventsInput>
-    connectOrCreate?: TaskTemplateCreateOrConnectWithoutCalendarEventsInput
-    connect?: TaskTemplateWhereUniqueInput
-  }
-
-  export type UserCreateNestedOneWithoutCalendarEventsInput = {
-    create?: XOR<UserCreateWithoutCalendarEventsInput, UserUncheckedCreateWithoutCalendarEventsInput>
-    connectOrCreate?: UserCreateOrConnectWithoutCalendarEventsInput
-    connect?: UserWhereUniqueInput
-  }
-
-  export type TaskLogCreateNestedManyWithoutCalendarEventInput = {
-    create?: XOR<TaskLogCreateWithoutCalendarEventInput, TaskLogUncheckedCreateWithoutCalendarEventInput> | TaskLogCreateWithoutCalendarEventInput[] | TaskLogUncheckedCreateWithoutCalendarEventInput[]
-    connectOrCreate?: TaskLogCreateOrConnectWithoutCalendarEventInput | TaskLogCreateOrConnectWithoutCalendarEventInput[]
-    createMany?: TaskLogCreateManyCalendarEventInputEnvelope
-    connect?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-  }
-
-  export type TaskLogUncheckedCreateNestedManyWithoutCalendarEventInput = {
-    create?: XOR<TaskLogCreateWithoutCalendarEventInput, TaskLogUncheckedCreateWithoutCalendarEventInput> | TaskLogCreateWithoutCalendarEventInput[] | TaskLogUncheckedCreateWithoutCalendarEventInput[]
-    connectOrCreate?: TaskLogCreateOrConnectWithoutCalendarEventInput | TaskLogCreateOrConnectWithoutCalendarEventInput[]
-    createMany?: TaskLogCreateManyCalendarEventInputEnvelope
-    connect?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-  }
-
-  export type EnumEventStatusFieldUpdateOperationsInput = {
-    set?: $Enums.EventStatus
-  }
-
-  export type TaskTemplateUpdateOneRequiredWithoutCalendarEventsNestedInput = {
-    create?: XOR<TaskTemplateCreateWithoutCalendarEventsInput, TaskTemplateUncheckedCreateWithoutCalendarEventsInput>
-    connectOrCreate?: TaskTemplateCreateOrConnectWithoutCalendarEventsInput
-    upsert?: TaskTemplateUpsertWithoutCalendarEventsInput
-    connect?: TaskTemplateWhereUniqueInput
-    update?: XOR<XOR<TaskTemplateUpdateToOneWithWhereWithoutCalendarEventsInput, TaskTemplateUpdateWithoutCalendarEventsInput>, TaskTemplateUncheckedUpdateWithoutCalendarEventsInput>
-  }
-
-  export type UserUpdateOneRequiredWithoutCalendarEventsNestedInput = {
-    create?: XOR<UserCreateWithoutCalendarEventsInput, UserUncheckedCreateWithoutCalendarEventsInput>
-    connectOrCreate?: UserCreateOrConnectWithoutCalendarEventsInput
-    upsert?: UserUpsertWithoutCalendarEventsInput
-    connect?: UserWhereUniqueInput
-    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutCalendarEventsInput, UserUpdateWithoutCalendarEventsInput>, UserUncheckedUpdateWithoutCalendarEventsInput>
-  }
-
-  export type TaskLogUpdateManyWithoutCalendarEventNestedInput = {
-    create?: XOR<TaskLogCreateWithoutCalendarEventInput, TaskLogUncheckedCreateWithoutCalendarEventInput> | TaskLogCreateWithoutCalendarEventInput[] | TaskLogUncheckedCreateWithoutCalendarEventInput[]
-    connectOrCreate?: TaskLogCreateOrConnectWithoutCalendarEventInput | TaskLogCreateOrConnectWithoutCalendarEventInput[]
-    upsert?: TaskLogUpsertWithWhereUniqueWithoutCalendarEventInput | TaskLogUpsertWithWhereUniqueWithoutCalendarEventInput[]
-    createMany?: TaskLogCreateManyCalendarEventInputEnvelope
-    set?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    disconnect?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    delete?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    connect?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    update?: TaskLogUpdateWithWhereUniqueWithoutCalendarEventInput | TaskLogUpdateWithWhereUniqueWithoutCalendarEventInput[]
-    updateMany?: TaskLogUpdateManyWithWhereWithoutCalendarEventInput | TaskLogUpdateManyWithWhereWithoutCalendarEventInput[]
-    deleteMany?: TaskLogScalarWhereInput | TaskLogScalarWhereInput[]
-  }
-
-  export type TaskLogUncheckedUpdateManyWithoutCalendarEventNestedInput = {
-    create?: XOR<TaskLogCreateWithoutCalendarEventInput, TaskLogUncheckedCreateWithoutCalendarEventInput> | TaskLogCreateWithoutCalendarEventInput[] | TaskLogUncheckedCreateWithoutCalendarEventInput[]
-    connectOrCreate?: TaskLogCreateOrConnectWithoutCalendarEventInput | TaskLogCreateOrConnectWithoutCalendarEventInput[]
-    upsert?: TaskLogUpsertWithWhereUniqueWithoutCalendarEventInput | TaskLogUpsertWithWhereUniqueWithoutCalendarEventInput[]
-    createMany?: TaskLogCreateManyCalendarEventInputEnvelope
-    set?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    disconnect?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    delete?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    connect?: TaskLogWhereUniqueInput | TaskLogWhereUniqueInput[]
-    update?: TaskLogUpdateWithWhereUniqueWithoutCalendarEventInput | TaskLogUpdateWithWhereUniqueWithoutCalendarEventInput[]
-    updateMany?: TaskLogUpdateManyWithWhereWithoutCalendarEventInput | TaskLogUpdateManyWithWhereWithoutCalendarEventInput[]
-    deleteMany?: TaskLogScalarWhereInput | TaskLogScalarWhereInput[]
-  }
-
-  export type CalendarEventCreateNestedOneWithoutTaskLogsInput = {
-    create?: XOR<CalendarEventCreateWithoutTaskLogsInput, CalendarEventUncheckedCreateWithoutTaskLogsInput>
-    connectOrCreate?: CalendarEventCreateOrConnectWithoutTaskLogsInput
-    connect?: CalendarEventWhereUniqueInput
-  }
-
-  export type UserCreateNestedOneWithoutTaskLogsInput = {
-    create?: XOR<UserCreateWithoutTaskLogsInput, UserUncheckedCreateWithoutTaskLogsInput>
-    connectOrCreate?: UserCreateOrConnectWithoutTaskLogsInput
-    connect?: UserWhereUniqueInput
-  }
-
-  export type CalendarEventUpdateOneRequiredWithoutTaskLogsNestedInput = {
-    create?: XOR<CalendarEventCreateWithoutTaskLogsInput, CalendarEventUncheckedCreateWithoutTaskLogsInput>
-    connectOrCreate?: CalendarEventCreateOrConnectWithoutTaskLogsInput
-    upsert?: CalendarEventUpsertWithoutTaskLogsInput
-    connect?: CalendarEventWhereUniqueInput
-    update?: XOR<XOR<CalendarEventUpdateToOneWithWhereWithoutTaskLogsInput, CalendarEventUpdateWithoutTaskLogsInput>, CalendarEventUncheckedUpdateWithoutTaskLogsInput>
-  }
-
-  export type UserUpdateOneRequiredWithoutTaskLogsNestedInput = {
-    create?: XOR<UserCreateWithoutTaskLogsInput, UserUncheckedCreateWithoutTaskLogsInput>
-    connectOrCreate?: UserCreateOrConnectWithoutTaskLogsInput
-    upsert?: UserUpsertWithoutTaskLogsInput
-    connect?: UserWhereUniqueInput
-    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutTaskLogsInput, UserUpdateWithoutTaskLogsInput>, UserUncheckedUpdateWithoutTaskLogsInput>
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutCoachPlayerLinkInput, UserUpdateWithoutCoachPlayerLinkInput>, UserUncheckedUpdateWithoutCoachPlayerLinkInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -11612,51 +11582,18 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
-  export type NestedFloatNullableFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
-  }
-
-  export type NestedFloatNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedFloatNullableFilter<$PrismaModel>
-    _min?: NestedFloatNullableFilter<$PrismaModel>
-    _max?: NestedFloatNullableFilter<$PrismaModel>
-  }
-
-  export type NestedBoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
-  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
-  }
-
   export type NestedEnumEventStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.EventStatus | EnumEventStatusFieldRefInput<$PrismaModel>
     in?: $Enums.EventStatus[] | ListEnumEventStatusFieldRefInput<$PrismaModel>
     notIn?: $Enums.EventStatus[] | ListEnumEventStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumEventStatusFilter<$PrismaModel> | $Enums.EventStatus
+  }
+
+  export type NestedEnumEventFormatFilter<$PrismaModel = never> = {
+    equals?: $Enums.EventFormat | EnumEventFormatFieldRefInput<$PrismaModel>
+    in?: $Enums.EventFormat[] | ListEnumEventFormatFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EventFormat[] | ListEnumEventFormatFieldRefInput<$PrismaModel>
+    not?: NestedEnumEventFormatFilter<$PrismaModel> | $Enums.EventFormat
   }
 
   export type NestedEnumEventStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -11669,16 +11606,26 @@ export namespace Prisma {
     _max?: NestedEnumEventStatusFilter<$PrismaModel>
   }
 
+  export type NestedEnumEventFormatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.EventFormat | EnumEventFormatFieldRefInput<$PrismaModel>
+    in?: $Enums.EventFormat[] | ListEnumEventFormatFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EventFormat[] | ListEnumEventFormatFieldRefInput<$PrismaModel>
+    not?: NestedEnumEventFormatWithAggregatesFilter<$PrismaModel> | $Enums.EventFormat
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumEventFormatFilter<$PrismaModel>
+    _max?: NestedEnumEventFormatFilter<$PrismaModel>
+  }
+
   export type PlayerProfileCreateWithoutUserInput = {
     id?: string
-    golfHandicap?: number | null
-    coach?: UserCreateNestedOneWithoutCoachedPlayersInput
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type PlayerProfileUncheckedCreateWithoutUserInput = {
     id?: string
-    golfHandicap?: number | null
-    coachId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type PlayerProfileCreateOrConnectWithoutUserInput = {
@@ -11686,36 +11633,18 @@ export namespace Prisma {
     create: XOR<PlayerProfileCreateWithoutUserInput, PlayerProfileUncheckedCreateWithoutUserInput>
   }
 
-  export type PlayerProfileCreateWithoutCoachInput = {
-    id?: string
-    golfHandicap?: number | null
-    user: UserCreateNestedOneWithoutPlayerProfileInput
-  }
-
-  export type PlayerProfileUncheckedCreateWithoutCoachInput = {
-    id?: string
-    userId: string
-    golfHandicap?: number | null
-  }
-
-  export type PlayerProfileCreateOrConnectWithoutCoachInput = {
-    where: PlayerProfileWhereUniqueInput
-    create: XOR<PlayerProfileCreateWithoutCoachInput, PlayerProfileUncheckedCreateWithoutCoachInput>
-  }
-
-  export type PlayerProfileCreateManyCoachInputEnvelope = {
-    data: PlayerProfileCreateManyCoachInput | PlayerProfileCreateManyCoachInput[]
-    skipDuplicates?: boolean
-  }
-
   export type CoachPlayerLinkCreateWithoutCoachInput = {
     id?: string
-    player: UserCreateNestedOneWithoutPlayerLinksInput
+    playerId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type CoachPlayerLinkUncheckedCreateWithoutCoachInput = {
     id?: string
     playerId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type CoachPlayerLinkCreateOrConnectWithoutCoachInput = {
@@ -11725,106 +11654,6 @@ export namespace Prisma {
 
   export type CoachPlayerLinkCreateManyCoachInputEnvelope = {
     data: CoachPlayerLinkCreateManyCoachInput | CoachPlayerLinkCreateManyCoachInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type CoachPlayerLinkCreateWithoutPlayerInput = {
-    id?: string
-    coach: UserCreateNestedOneWithoutCoachLinksInput
-  }
-
-  export type CoachPlayerLinkUncheckedCreateWithoutPlayerInput = {
-    id?: string
-    coachId: string
-  }
-
-  export type CoachPlayerLinkCreateOrConnectWithoutPlayerInput = {
-    where: CoachPlayerLinkWhereUniqueInput
-    create: XOR<CoachPlayerLinkCreateWithoutPlayerInput, CoachPlayerLinkUncheckedCreateWithoutPlayerInput>
-  }
-
-  export type CoachPlayerLinkCreateManyPlayerInputEnvelope = {
-    data: CoachPlayerLinkCreateManyPlayerInput | CoachPlayerLinkCreateManyPlayerInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type TaskTemplateCreateWithoutCoachInput = {
-    id?: string
-    name: string
-    description?: string | null
-    isActive?: boolean
-    createdAt?: Date | string
-    calendarEvents?: CalendarEventCreateNestedManyWithoutTaskTemplateInput
-  }
-
-  export type TaskTemplateUncheckedCreateWithoutCoachInput = {
-    id?: string
-    name: string
-    description?: string | null
-    isActive?: boolean
-    createdAt?: Date | string
-    calendarEvents?: CalendarEventUncheckedCreateNestedManyWithoutTaskTemplateInput
-  }
-
-  export type TaskTemplateCreateOrConnectWithoutCoachInput = {
-    where: TaskTemplateWhereUniqueInput
-    create: XOR<TaskTemplateCreateWithoutCoachInput, TaskTemplateUncheckedCreateWithoutCoachInput>
-  }
-
-  export type TaskTemplateCreateManyCoachInputEnvelope = {
-    data: TaskTemplateCreateManyCoachInput | TaskTemplateCreateManyCoachInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type CalendarEventCreateWithoutPlayerInput = {
-    id?: string
-    startDate: Date | string
-    endDate: Date | string
-    status?: $Enums.EventStatus
-    taskTemplate: TaskTemplateCreateNestedOneWithoutCalendarEventsInput
-    taskLogs?: TaskLogCreateNestedManyWithoutCalendarEventInput
-  }
-
-  export type CalendarEventUncheckedCreateWithoutPlayerInput = {
-    id?: string
-    taskTemplateId: string
-    startDate: Date | string
-    endDate: Date | string
-    status?: $Enums.EventStatus
-    taskLogs?: TaskLogUncheckedCreateNestedManyWithoutCalendarEventInput
-  }
-
-  export type CalendarEventCreateOrConnectWithoutPlayerInput = {
-    where: CalendarEventWhereUniqueInput
-    create: XOR<CalendarEventCreateWithoutPlayerInput, CalendarEventUncheckedCreateWithoutPlayerInput>
-  }
-
-  export type CalendarEventCreateManyPlayerInputEnvelope = {
-    data: CalendarEventCreateManyPlayerInput | CalendarEventCreateManyPlayerInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type TaskLogCreateWithoutPlayerInput = {
-    id?: string
-    value?: string | null
-    loggedAt?: Date | string
-    calendarEvent: CalendarEventCreateNestedOneWithoutTaskLogsInput
-  }
-
-  export type TaskLogUncheckedCreateWithoutPlayerInput = {
-    id?: string
-    calendarEventId: string
-    value?: string | null
-    loggedAt?: Date | string
-  }
-
-  export type TaskLogCreateOrConnectWithoutPlayerInput = {
-    where: TaskLogWhereUniqueInput
-    create: XOR<TaskLogCreateWithoutPlayerInput, TaskLogUncheckedCreateWithoutPlayerInput>
-  }
-
-  export type TaskLogCreateManyPlayerInputEnvelope = {
-    data: TaskLogCreateManyPlayerInput | TaskLogCreateManyPlayerInput[]
     skipDuplicates?: boolean
   }
 
@@ -11841,40 +11670,14 @@ export namespace Prisma {
 
   export type PlayerProfileUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
-    golfHandicap?: NullableFloatFieldUpdateOperationsInput | number | null
-    coach?: UserUpdateOneWithoutCoachedPlayersNestedInput
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PlayerProfileUncheckedUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
-    golfHandicap?: NullableFloatFieldUpdateOperationsInput | number | null
-    coachId?: NullableStringFieldUpdateOperationsInput | string | null
-  }
-
-  export type PlayerProfileUpsertWithWhereUniqueWithoutCoachInput = {
-    where: PlayerProfileWhereUniqueInput
-    update: XOR<PlayerProfileUpdateWithoutCoachInput, PlayerProfileUncheckedUpdateWithoutCoachInput>
-    create: XOR<PlayerProfileCreateWithoutCoachInput, PlayerProfileUncheckedCreateWithoutCoachInput>
-  }
-
-  export type PlayerProfileUpdateWithWhereUniqueWithoutCoachInput = {
-    where: PlayerProfileWhereUniqueInput
-    data: XOR<PlayerProfileUpdateWithoutCoachInput, PlayerProfileUncheckedUpdateWithoutCoachInput>
-  }
-
-  export type PlayerProfileUpdateManyWithWhereWithoutCoachInput = {
-    where: PlayerProfileScalarWhereInput
-    data: XOR<PlayerProfileUpdateManyMutationInput, PlayerProfileUncheckedUpdateManyWithoutCoachInput>
-  }
-
-  export type PlayerProfileScalarWhereInput = {
-    AND?: PlayerProfileScalarWhereInput | PlayerProfileScalarWhereInput[]
-    OR?: PlayerProfileScalarWhereInput[]
-    NOT?: PlayerProfileScalarWhereInput | PlayerProfileScalarWhereInput[]
-    id?: StringFilter<"PlayerProfile"> | string
-    userId?: StringFilter<"PlayerProfile"> | string
-    golfHandicap?: FloatNullableFilter<"PlayerProfile"> | number | null
-    coachId?: StringNullableFilter<"PlayerProfile"> | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CoachPlayerLinkUpsertWithWhereUniqueWithoutCoachInput = {
@@ -11900,195 +11703,41 @@ export namespace Prisma {
     id?: StringFilter<"CoachPlayerLink"> | string
     coachId?: StringFilter<"CoachPlayerLink"> | string
     playerId?: StringFilter<"CoachPlayerLink"> | string
-  }
-
-  export type CoachPlayerLinkUpsertWithWhereUniqueWithoutPlayerInput = {
-    where: CoachPlayerLinkWhereUniqueInput
-    update: XOR<CoachPlayerLinkUpdateWithoutPlayerInput, CoachPlayerLinkUncheckedUpdateWithoutPlayerInput>
-    create: XOR<CoachPlayerLinkCreateWithoutPlayerInput, CoachPlayerLinkUncheckedCreateWithoutPlayerInput>
-  }
-
-  export type CoachPlayerLinkUpdateWithWhereUniqueWithoutPlayerInput = {
-    where: CoachPlayerLinkWhereUniqueInput
-    data: XOR<CoachPlayerLinkUpdateWithoutPlayerInput, CoachPlayerLinkUncheckedUpdateWithoutPlayerInput>
-  }
-
-  export type CoachPlayerLinkUpdateManyWithWhereWithoutPlayerInput = {
-    where: CoachPlayerLinkScalarWhereInput
-    data: XOR<CoachPlayerLinkUpdateManyMutationInput, CoachPlayerLinkUncheckedUpdateManyWithoutPlayerInput>
-  }
-
-  export type TaskTemplateUpsertWithWhereUniqueWithoutCoachInput = {
-    where: TaskTemplateWhereUniqueInput
-    update: XOR<TaskTemplateUpdateWithoutCoachInput, TaskTemplateUncheckedUpdateWithoutCoachInput>
-    create: XOR<TaskTemplateCreateWithoutCoachInput, TaskTemplateUncheckedCreateWithoutCoachInput>
-  }
-
-  export type TaskTemplateUpdateWithWhereUniqueWithoutCoachInput = {
-    where: TaskTemplateWhereUniqueInput
-    data: XOR<TaskTemplateUpdateWithoutCoachInput, TaskTemplateUncheckedUpdateWithoutCoachInput>
-  }
-
-  export type TaskTemplateUpdateManyWithWhereWithoutCoachInput = {
-    where: TaskTemplateScalarWhereInput
-    data: XOR<TaskTemplateUpdateManyMutationInput, TaskTemplateUncheckedUpdateManyWithoutCoachInput>
-  }
-
-  export type TaskTemplateScalarWhereInput = {
-    AND?: TaskTemplateScalarWhereInput | TaskTemplateScalarWhereInput[]
-    OR?: TaskTemplateScalarWhereInput[]
-    NOT?: TaskTemplateScalarWhereInput | TaskTemplateScalarWhereInput[]
-    id?: StringFilter<"TaskTemplate"> | string
-    name?: StringFilter<"TaskTemplate"> | string
-    description?: StringNullableFilter<"TaskTemplate"> | string | null
-    coachId?: StringFilter<"TaskTemplate"> | string
-    isActive?: BoolFilter<"TaskTemplate"> | boolean
-    createdAt?: DateTimeFilter<"TaskTemplate"> | Date | string
-  }
-
-  export type CalendarEventUpsertWithWhereUniqueWithoutPlayerInput = {
-    where: CalendarEventWhereUniqueInput
-    update: XOR<CalendarEventUpdateWithoutPlayerInput, CalendarEventUncheckedUpdateWithoutPlayerInput>
-    create: XOR<CalendarEventCreateWithoutPlayerInput, CalendarEventUncheckedCreateWithoutPlayerInput>
-  }
-
-  export type CalendarEventUpdateWithWhereUniqueWithoutPlayerInput = {
-    where: CalendarEventWhereUniqueInput
-    data: XOR<CalendarEventUpdateWithoutPlayerInput, CalendarEventUncheckedUpdateWithoutPlayerInput>
-  }
-
-  export type CalendarEventUpdateManyWithWhereWithoutPlayerInput = {
-    where: CalendarEventScalarWhereInput
-    data: XOR<CalendarEventUpdateManyMutationInput, CalendarEventUncheckedUpdateManyWithoutPlayerInput>
-  }
-
-  export type CalendarEventScalarWhereInput = {
-    AND?: CalendarEventScalarWhereInput | CalendarEventScalarWhereInput[]
-    OR?: CalendarEventScalarWhereInput[]
-    NOT?: CalendarEventScalarWhereInput | CalendarEventScalarWhereInput[]
-    id?: StringFilter<"CalendarEvent"> | string
-    taskTemplateId?: StringFilter<"CalendarEvent"> | string
-    playerId?: StringFilter<"CalendarEvent"> | string
-    startDate?: DateTimeFilter<"CalendarEvent"> | Date | string
-    endDate?: DateTimeFilter<"CalendarEvent"> | Date | string
-    status?: EnumEventStatusFilter<"CalendarEvent"> | $Enums.EventStatus
-  }
-
-  export type TaskLogUpsertWithWhereUniqueWithoutPlayerInput = {
-    where: TaskLogWhereUniqueInput
-    update: XOR<TaskLogUpdateWithoutPlayerInput, TaskLogUncheckedUpdateWithoutPlayerInput>
-    create: XOR<TaskLogCreateWithoutPlayerInput, TaskLogUncheckedCreateWithoutPlayerInput>
-  }
-
-  export type TaskLogUpdateWithWhereUniqueWithoutPlayerInput = {
-    where: TaskLogWhereUniqueInput
-    data: XOR<TaskLogUpdateWithoutPlayerInput, TaskLogUncheckedUpdateWithoutPlayerInput>
-  }
-
-  export type TaskLogUpdateManyWithWhereWithoutPlayerInput = {
-    where: TaskLogScalarWhereInput
-    data: XOR<TaskLogUpdateManyMutationInput, TaskLogUncheckedUpdateManyWithoutPlayerInput>
-  }
-
-  export type TaskLogScalarWhereInput = {
-    AND?: TaskLogScalarWhereInput | TaskLogScalarWhereInput[]
-    OR?: TaskLogScalarWhereInput[]
-    NOT?: TaskLogScalarWhereInput | TaskLogScalarWhereInput[]
-    id?: StringFilter<"TaskLog"> | string
-    calendarEventId?: StringFilter<"TaskLog"> | string
-    playerId?: StringFilter<"TaskLog"> | string
-    value?: StringNullableFilter<"TaskLog"> | string | null
-    loggedAt?: DateTimeFilter<"TaskLog"> | Date | string
+    createdAt?: DateTimeFilter<"CoachPlayerLink"> | Date | string
+    updatedAt?: DateTimeFilter<"CoachPlayerLink"> | Date | string
   }
 
   export type UserCreateWithoutPlayerProfileInput = {
     id?: string
     email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
+    password: string
+    passwordHash?: string | null
+    firstName: string
+    lastName: string
     role?: $Enums.Role
     lastLogin?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    coachedPlayers?: PlayerProfileCreateNestedManyWithoutCoachInput
-    coachLinks?: CoachPlayerLinkCreateNestedManyWithoutCoachInput
-    playerLinks?: CoachPlayerLinkCreateNestedManyWithoutPlayerInput
-    taskTemplates?: TaskTemplateCreateNestedManyWithoutCoachInput
-    calendarEvents?: CalendarEventCreateNestedManyWithoutPlayerInput
-    taskLogs?: TaskLogCreateNestedManyWithoutPlayerInput
+    coachPlayerLink?: CoachPlayerLinkCreateNestedManyWithoutCoachInput
   }
 
   export type UserUncheckedCreateWithoutPlayerProfileInput = {
     id?: string
     email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
+    password: string
+    passwordHash?: string | null
+    firstName: string
+    lastName: string
     role?: $Enums.Role
     lastLogin?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    coachedPlayers?: PlayerProfileUncheckedCreateNestedManyWithoutCoachInput
-    coachLinks?: CoachPlayerLinkUncheckedCreateNestedManyWithoutCoachInput
-    playerLinks?: CoachPlayerLinkUncheckedCreateNestedManyWithoutPlayerInput
-    taskTemplates?: TaskTemplateUncheckedCreateNestedManyWithoutCoachInput
-    calendarEvents?: CalendarEventUncheckedCreateNestedManyWithoutPlayerInput
-    taskLogs?: TaskLogUncheckedCreateNestedManyWithoutPlayerInput
+    coachPlayerLink?: CoachPlayerLinkUncheckedCreateNestedManyWithoutCoachInput
   }
 
   export type UserCreateOrConnectWithoutPlayerProfileInput = {
     where: UserWhereUniqueInput
     create: XOR<UserCreateWithoutPlayerProfileInput, UserUncheckedCreateWithoutPlayerProfileInput>
-  }
-
-  export type UserCreateWithoutCoachedPlayersInput = {
-    id?: string
-    email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
-    role?: $Enums.Role
-    lastLogin?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    playerProfile?: PlayerProfileCreateNestedOneWithoutUserInput
-    coachLinks?: CoachPlayerLinkCreateNestedManyWithoutCoachInput
-    playerLinks?: CoachPlayerLinkCreateNestedManyWithoutPlayerInput
-    taskTemplates?: TaskTemplateCreateNestedManyWithoutCoachInput
-    calendarEvents?: CalendarEventCreateNestedManyWithoutPlayerInput
-    taskLogs?: TaskLogCreateNestedManyWithoutPlayerInput
-  }
-
-  export type UserUncheckedCreateWithoutCoachedPlayersInput = {
-    id?: string
-    email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
-    role?: $Enums.Role
-    lastLogin?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    playerProfile?: PlayerProfileUncheckedCreateNestedOneWithoutUserInput
-    coachLinks?: CoachPlayerLinkUncheckedCreateNestedManyWithoutCoachInput
-    playerLinks?: CoachPlayerLinkUncheckedCreateNestedManyWithoutPlayerInput
-    taskTemplates?: TaskTemplateUncheckedCreateNestedManyWithoutCoachInput
-    calendarEvents?: CalendarEventUncheckedCreateNestedManyWithoutPlayerInput
-    taskLogs?: TaskLogUncheckedCreateNestedManyWithoutPlayerInput
-  }
-
-  export type UserCreateOrConnectWithoutCoachedPlayersInput = {
-    where: UserWhereUniqueInput
-    create: XOR<UserCreateWithoutCoachedPlayersInput, UserUncheckedCreateWithoutCoachedPlayersInput>
   }
 
   export type UserUpsertWithoutPlayerProfileInput = {
@@ -12105,982 +11754,129 @@ export namespace Prisma {
   export type UserUpdateWithoutPlayerProfileInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: StringFieldUpdateOperationsInput | string
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: StringFieldUpdateOperationsInput | string
+    lastName?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    coachedPlayers?: PlayerProfileUpdateManyWithoutCoachNestedInput
-    coachLinks?: CoachPlayerLinkUpdateManyWithoutCoachNestedInput
-    playerLinks?: CoachPlayerLinkUpdateManyWithoutPlayerNestedInput
-    taskTemplates?: TaskTemplateUpdateManyWithoutCoachNestedInput
-    calendarEvents?: CalendarEventUpdateManyWithoutPlayerNestedInput
-    taskLogs?: TaskLogUpdateManyWithoutPlayerNestedInput
+    coachPlayerLink?: CoachPlayerLinkUpdateManyWithoutCoachNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPlayerProfileInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: StringFieldUpdateOperationsInput | string
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: StringFieldUpdateOperationsInput | string
+    lastName?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    coachedPlayers?: PlayerProfileUncheckedUpdateManyWithoutCoachNestedInput
-    coachLinks?: CoachPlayerLinkUncheckedUpdateManyWithoutCoachNestedInput
-    playerLinks?: CoachPlayerLinkUncheckedUpdateManyWithoutPlayerNestedInput
-    taskTemplates?: TaskTemplateUncheckedUpdateManyWithoutCoachNestedInput
-    calendarEvents?: CalendarEventUncheckedUpdateManyWithoutPlayerNestedInput
-    taskLogs?: TaskLogUncheckedUpdateManyWithoutPlayerNestedInput
+    coachPlayerLink?: CoachPlayerLinkUncheckedUpdateManyWithoutCoachNestedInput
   }
 
-  export type UserUpsertWithoutCoachedPlayersInput = {
-    update: XOR<UserUpdateWithoutCoachedPlayersInput, UserUncheckedUpdateWithoutCoachedPlayersInput>
-    create: XOR<UserCreateWithoutCoachedPlayersInput, UserUncheckedCreateWithoutCoachedPlayersInput>
-    where?: UserWhereInput
-  }
-
-  export type UserUpdateToOneWithWhereWithoutCoachedPlayersInput = {
-    where?: UserWhereInput
-    data: XOR<UserUpdateWithoutCoachedPlayersInput, UserUncheckedUpdateWithoutCoachedPlayersInput>
-  }
-
-  export type UserUpdateWithoutCoachedPlayersInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
-    lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    playerProfile?: PlayerProfileUpdateOneWithoutUserNestedInput
-    coachLinks?: CoachPlayerLinkUpdateManyWithoutCoachNestedInput
-    playerLinks?: CoachPlayerLinkUpdateManyWithoutPlayerNestedInput
-    taskTemplates?: TaskTemplateUpdateManyWithoutCoachNestedInput
-    calendarEvents?: CalendarEventUpdateManyWithoutPlayerNestedInput
-    taskLogs?: TaskLogUpdateManyWithoutPlayerNestedInput
-  }
-
-  export type UserUncheckedUpdateWithoutCoachedPlayersInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
-    lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    playerProfile?: PlayerProfileUncheckedUpdateOneWithoutUserNestedInput
-    coachLinks?: CoachPlayerLinkUncheckedUpdateManyWithoutCoachNestedInput
-    playerLinks?: CoachPlayerLinkUncheckedUpdateManyWithoutPlayerNestedInput
-    taskTemplates?: TaskTemplateUncheckedUpdateManyWithoutCoachNestedInput
-    calendarEvents?: CalendarEventUncheckedUpdateManyWithoutPlayerNestedInput
-    taskLogs?: TaskLogUncheckedUpdateManyWithoutPlayerNestedInput
-  }
-
-  export type UserCreateWithoutCoachLinksInput = {
+  export type UserCreateWithoutCoachPlayerLinkInput = {
     id?: string
     email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
+    password: string
+    passwordHash?: string | null
+    firstName: string
+    lastName: string
     role?: $Enums.Role
     lastLogin?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     playerProfile?: PlayerProfileCreateNestedOneWithoutUserInput
-    coachedPlayers?: PlayerProfileCreateNestedManyWithoutCoachInput
-    playerLinks?: CoachPlayerLinkCreateNestedManyWithoutPlayerInput
-    taskTemplates?: TaskTemplateCreateNestedManyWithoutCoachInput
-    calendarEvents?: CalendarEventCreateNestedManyWithoutPlayerInput
-    taskLogs?: TaskLogCreateNestedManyWithoutPlayerInput
   }
 
-  export type UserUncheckedCreateWithoutCoachLinksInput = {
+  export type UserUncheckedCreateWithoutCoachPlayerLinkInput = {
     id?: string
     email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
+    password: string
+    passwordHash?: string | null
+    firstName: string
+    lastName: string
     role?: $Enums.Role
     lastLogin?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     playerProfile?: PlayerProfileUncheckedCreateNestedOneWithoutUserInput
-    coachedPlayers?: PlayerProfileUncheckedCreateNestedManyWithoutCoachInput
-    playerLinks?: CoachPlayerLinkUncheckedCreateNestedManyWithoutPlayerInput
-    taskTemplates?: TaskTemplateUncheckedCreateNestedManyWithoutCoachInput
-    calendarEvents?: CalendarEventUncheckedCreateNestedManyWithoutPlayerInput
-    taskLogs?: TaskLogUncheckedCreateNestedManyWithoutPlayerInput
   }
 
-  export type UserCreateOrConnectWithoutCoachLinksInput = {
+  export type UserCreateOrConnectWithoutCoachPlayerLinkInput = {
     where: UserWhereUniqueInput
-    create: XOR<UserCreateWithoutCoachLinksInput, UserUncheckedCreateWithoutCoachLinksInput>
+    create: XOR<UserCreateWithoutCoachPlayerLinkInput, UserUncheckedCreateWithoutCoachPlayerLinkInput>
   }
 
-  export type UserCreateWithoutPlayerLinksInput = {
-    id?: string
-    email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
-    role?: $Enums.Role
-    lastLogin?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    playerProfile?: PlayerProfileCreateNestedOneWithoutUserInput
-    coachedPlayers?: PlayerProfileCreateNestedManyWithoutCoachInput
-    coachLinks?: CoachPlayerLinkCreateNestedManyWithoutCoachInput
-    taskTemplates?: TaskTemplateCreateNestedManyWithoutCoachInput
-    calendarEvents?: CalendarEventCreateNestedManyWithoutPlayerInput
-    taskLogs?: TaskLogCreateNestedManyWithoutPlayerInput
-  }
-
-  export type UserUncheckedCreateWithoutPlayerLinksInput = {
-    id?: string
-    email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
-    role?: $Enums.Role
-    lastLogin?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    playerProfile?: PlayerProfileUncheckedCreateNestedOneWithoutUserInput
-    coachedPlayers?: PlayerProfileUncheckedCreateNestedManyWithoutCoachInput
-    coachLinks?: CoachPlayerLinkUncheckedCreateNestedManyWithoutCoachInput
-    taskTemplates?: TaskTemplateUncheckedCreateNestedManyWithoutCoachInput
-    calendarEvents?: CalendarEventUncheckedCreateNestedManyWithoutPlayerInput
-    taskLogs?: TaskLogUncheckedCreateNestedManyWithoutPlayerInput
-  }
-
-  export type UserCreateOrConnectWithoutPlayerLinksInput = {
-    where: UserWhereUniqueInput
-    create: XOR<UserCreateWithoutPlayerLinksInput, UserUncheckedCreateWithoutPlayerLinksInput>
-  }
-
-  export type UserUpsertWithoutCoachLinksInput = {
-    update: XOR<UserUpdateWithoutCoachLinksInput, UserUncheckedUpdateWithoutCoachLinksInput>
-    create: XOR<UserCreateWithoutCoachLinksInput, UserUncheckedCreateWithoutCoachLinksInput>
+  export type UserUpsertWithoutCoachPlayerLinkInput = {
+    update: XOR<UserUpdateWithoutCoachPlayerLinkInput, UserUncheckedUpdateWithoutCoachPlayerLinkInput>
+    create: XOR<UserCreateWithoutCoachPlayerLinkInput, UserUncheckedCreateWithoutCoachPlayerLinkInput>
     where?: UserWhereInput
   }
 
-  export type UserUpdateToOneWithWhereWithoutCoachLinksInput = {
+  export type UserUpdateToOneWithWhereWithoutCoachPlayerLinkInput = {
     where?: UserWhereInput
-    data: XOR<UserUpdateWithoutCoachLinksInput, UserUncheckedUpdateWithoutCoachLinksInput>
+    data: XOR<UserUpdateWithoutCoachPlayerLinkInput, UserUncheckedUpdateWithoutCoachPlayerLinkInput>
   }
 
-  export type UserUpdateWithoutCoachLinksInput = {
+  export type UserUpdateWithoutCoachPlayerLinkInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: StringFieldUpdateOperationsInput | string
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: StringFieldUpdateOperationsInput | string
+    lastName?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     playerProfile?: PlayerProfileUpdateOneWithoutUserNestedInput
-    coachedPlayers?: PlayerProfileUpdateManyWithoutCoachNestedInput
-    playerLinks?: CoachPlayerLinkUpdateManyWithoutPlayerNestedInput
-    taskTemplates?: TaskTemplateUpdateManyWithoutCoachNestedInput
-    calendarEvents?: CalendarEventUpdateManyWithoutPlayerNestedInput
-    taskLogs?: TaskLogUpdateManyWithoutPlayerNestedInput
   }
 
-  export type UserUncheckedUpdateWithoutCoachLinksInput = {
+  export type UserUncheckedUpdateWithoutCoachPlayerLinkInput = {
     id?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: StringFieldUpdateOperationsInput | string
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    firstName?: StringFieldUpdateOperationsInput | string
+    lastName?: StringFieldUpdateOperationsInput | string
     role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     playerProfile?: PlayerProfileUncheckedUpdateOneWithoutUserNestedInput
-    coachedPlayers?: PlayerProfileUncheckedUpdateManyWithoutCoachNestedInput
-    playerLinks?: CoachPlayerLinkUncheckedUpdateManyWithoutPlayerNestedInput
-    taskTemplates?: TaskTemplateUncheckedUpdateManyWithoutCoachNestedInput
-    calendarEvents?: CalendarEventUncheckedUpdateManyWithoutPlayerNestedInput
-    taskLogs?: TaskLogUncheckedUpdateManyWithoutPlayerNestedInput
-  }
-
-  export type UserUpsertWithoutPlayerLinksInput = {
-    update: XOR<UserUpdateWithoutPlayerLinksInput, UserUncheckedUpdateWithoutPlayerLinksInput>
-    create: XOR<UserCreateWithoutPlayerLinksInput, UserUncheckedCreateWithoutPlayerLinksInput>
-    where?: UserWhereInput
-  }
-
-  export type UserUpdateToOneWithWhereWithoutPlayerLinksInput = {
-    where?: UserWhereInput
-    data: XOR<UserUpdateWithoutPlayerLinksInput, UserUncheckedUpdateWithoutPlayerLinksInput>
-  }
-
-  export type UserUpdateWithoutPlayerLinksInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
-    lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    playerProfile?: PlayerProfileUpdateOneWithoutUserNestedInput
-    coachedPlayers?: PlayerProfileUpdateManyWithoutCoachNestedInput
-    coachLinks?: CoachPlayerLinkUpdateManyWithoutCoachNestedInput
-    taskTemplates?: TaskTemplateUpdateManyWithoutCoachNestedInput
-    calendarEvents?: CalendarEventUpdateManyWithoutPlayerNestedInput
-    taskLogs?: TaskLogUpdateManyWithoutPlayerNestedInput
-  }
-
-  export type UserUncheckedUpdateWithoutPlayerLinksInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
-    lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    playerProfile?: PlayerProfileUncheckedUpdateOneWithoutUserNestedInput
-    coachedPlayers?: PlayerProfileUncheckedUpdateManyWithoutCoachNestedInput
-    coachLinks?: CoachPlayerLinkUncheckedUpdateManyWithoutCoachNestedInput
-    taskTemplates?: TaskTemplateUncheckedUpdateManyWithoutCoachNestedInput
-    calendarEvents?: CalendarEventUncheckedUpdateManyWithoutPlayerNestedInput
-    taskLogs?: TaskLogUncheckedUpdateManyWithoutPlayerNestedInput
-  }
-
-  export type UserCreateWithoutTaskTemplatesInput = {
-    id?: string
-    email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
-    role?: $Enums.Role
-    lastLogin?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    playerProfile?: PlayerProfileCreateNestedOneWithoutUserInput
-    coachedPlayers?: PlayerProfileCreateNestedManyWithoutCoachInput
-    coachLinks?: CoachPlayerLinkCreateNestedManyWithoutCoachInput
-    playerLinks?: CoachPlayerLinkCreateNestedManyWithoutPlayerInput
-    calendarEvents?: CalendarEventCreateNestedManyWithoutPlayerInput
-    taskLogs?: TaskLogCreateNestedManyWithoutPlayerInput
-  }
-
-  export type UserUncheckedCreateWithoutTaskTemplatesInput = {
-    id?: string
-    email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
-    role?: $Enums.Role
-    lastLogin?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    playerProfile?: PlayerProfileUncheckedCreateNestedOneWithoutUserInput
-    coachedPlayers?: PlayerProfileUncheckedCreateNestedManyWithoutCoachInput
-    coachLinks?: CoachPlayerLinkUncheckedCreateNestedManyWithoutCoachInput
-    playerLinks?: CoachPlayerLinkUncheckedCreateNestedManyWithoutPlayerInput
-    calendarEvents?: CalendarEventUncheckedCreateNestedManyWithoutPlayerInput
-    taskLogs?: TaskLogUncheckedCreateNestedManyWithoutPlayerInput
-  }
-
-  export type UserCreateOrConnectWithoutTaskTemplatesInput = {
-    where: UserWhereUniqueInput
-    create: XOR<UserCreateWithoutTaskTemplatesInput, UserUncheckedCreateWithoutTaskTemplatesInput>
-  }
-
-  export type CalendarEventCreateWithoutTaskTemplateInput = {
-    id?: string
-    startDate: Date | string
-    endDate: Date | string
-    status?: $Enums.EventStatus
-    player: UserCreateNestedOneWithoutCalendarEventsInput
-    taskLogs?: TaskLogCreateNestedManyWithoutCalendarEventInput
-  }
-
-  export type CalendarEventUncheckedCreateWithoutTaskTemplateInput = {
-    id?: string
-    playerId: string
-    startDate: Date | string
-    endDate: Date | string
-    status?: $Enums.EventStatus
-    taskLogs?: TaskLogUncheckedCreateNestedManyWithoutCalendarEventInput
-  }
-
-  export type CalendarEventCreateOrConnectWithoutTaskTemplateInput = {
-    where: CalendarEventWhereUniqueInput
-    create: XOR<CalendarEventCreateWithoutTaskTemplateInput, CalendarEventUncheckedCreateWithoutTaskTemplateInput>
-  }
-
-  export type CalendarEventCreateManyTaskTemplateInputEnvelope = {
-    data: CalendarEventCreateManyTaskTemplateInput | CalendarEventCreateManyTaskTemplateInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type UserUpsertWithoutTaskTemplatesInput = {
-    update: XOR<UserUpdateWithoutTaskTemplatesInput, UserUncheckedUpdateWithoutTaskTemplatesInput>
-    create: XOR<UserCreateWithoutTaskTemplatesInput, UserUncheckedCreateWithoutTaskTemplatesInput>
-    where?: UserWhereInput
-  }
-
-  export type UserUpdateToOneWithWhereWithoutTaskTemplatesInput = {
-    where?: UserWhereInput
-    data: XOR<UserUpdateWithoutTaskTemplatesInput, UserUncheckedUpdateWithoutTaskTemplatesInput>
-  }
-
-  export type UserUpdateWithoutTaskTemplatesInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
-    lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    playerProfile?: PlayerProfileUpdateOneWithoutUserNestedInput
-    coachedPlayers?: PlayerProfileUpdateManyWithoutCoachNestedInput
-    coachLinks?: CoachPlayerLinkUpdateManyWithoutCoachNestedInput
-    playerLinks?: CoachPlayerLinkUpdateManyWithoutPlayerNestedInput
-    calendarEvents?: CalendarEventUpdateManyWithoutPlayerNestedInput
-    taskLogs?: TaskLogUpdateManyWithoutPlayerNestedInput
-  }
-
-  export type UserUncheckedUpdateWithoutTaskTemplatesInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
-    lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    playerProfile?: PlayerProfileUncheckedUpdateOneWithoutUserNestedInput
-    coachedPlayers?: PlayerProfileUncheckedUpdateManyWithoutCoachNestedInput
-    coachLinks?: CoachPlayerLinkUncheckedUpdateManyWithoutCoachNestedInput
-    playerLinks?: CoachPlayerLinkUncheckedUpdateManyWithoutPlayerNestedInput
-    calendarEvents?: CalendarEventUncheckedUpdateManyWithoutPlayerNestedInput
-    taskLogs?: TaskLogUncheckedUpdateManyWithoutPlayerNestedInput
-  }
-
-  export type CalendarEventUpsertWithWhereUniqueWithoutTaskTemplateInput = {
-    where: CalendarEventWhereUniqueInput
-    update: XOR<CalendarEventUpdateWithoutTaskTemplateInput, CalendarEventUncheckedUpdateWithoutTaskTemplateInput>
-    create: XOR<CalendarEventCreateWithoutTaskTemplateInput, CalendarEventUncheckedCreateWithoutTaskTemplateInput>
-  }
-
-  export type CalendarEventUpdateWithWhereUniqueWithoutTaskTemplateInput = {
-    where: CalendarEventWhereUniqueInput
-    data: XOR<CalendarEventUpdateWithoutTaskTemplateInput, CalendarEventUncheckedUpdateWithoutTaskTemplateInput>
-  }
-
-  export type CalendarEventUpdateManyWithWhereWithoutTaskTemplateInput = {
-    where: CalendarEventScalarWhereInput
-    data: XOR<CalendarEventUpdateManyMutationInput, CalendarEventUncheckedUpdateManyWithoutTaskTemplateInput>
-  }
-
-  export type TaskTemplateCreateWithoutCalendarEventsInput = {
-    id?: string
-    name: string
-    description?: string | null
-    isActive?: boolean
-    createdAt?: Date | string
-    coach: UserCreateNestedOneWithoutTaskTemplatesInput
-  }
-
-  export type TaskTemplateUncheckedCreateWithoutCalendarEventsInput = {
-    id?: string
-    name: string
-    description?: string | null
-    coachId: string
-    isActive?: boolean
-    createdAt?: Date | string
-  }
-
-  export type TaskTemplateCreateOrConnectWithoutCalendarEventsInput = {
-    where: TaskTemplateWhereUniqueInput
-    create: XOR<TaskTemplateCreateWithoutCalendarEventsInput, TaskTemplateUncheckedCreateWithoutCalendarEventsInput>
-  }
-
-  export type UserCreateWithoutCalendarEventsInput = {
-    id?: string
-    email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
-    role?: $Enums.Role
-    lastLogin?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    playerProfile?: PlayerProfileCreateNestedOneWithoutUserInput
-    coachedPlayers?: PlayerProfileCreateNestedManyWithoutCoachInput
-    coachLinks?: CoachPlayerLinkCreateNestedManyWithoutCoachInput
-    playerLinks?: CoachPlayerLinkCreateNestedManyWithoutPlayerInput
-    taskTemplates?: TaskTemplateCreateNestedManyWithoutCoachInput
-    taskLogs?: TaskLogCreateNestedManyWithoutPlayerInput
-  }
-
-  export type UserUncheckedCreateWithoutCalendarEventsInput = {
-    id?: string
-    email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
-    role?: $Enums.Role
-    lastLogin?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    playerProfile?: PlayerProfileUncheckedCreateNestedOneWithoutUserInput
-    coachedPlayers?: PlayerProfileUncheckedCreateNestedManyWithoutCoachInput
-    coachLinks?: CoachPlayerLinkUncheckedCreateNestedManyWithoutCoachInput
-    playerLinks?: CoachPlayerLinkUncheckedCreateNestedManyWithoutPlayerInput
-    taskTemplates?: TaskTemplateUncheckedCreateNestedManyWithoutCoachInput
-    taskLogs?: TaskLogUncheckedCreateNestedManyWithoutPlayerInput
-  }
-
-  export type UserCreateOrConnectWithoutCalendarEventsInput = {
-    where: UserWhereUniqueInput
-    create: XOR<UserCreateWithoutCalendarEventsInput, UserUncheckedCreateWithoutCalendarEventsInput>
-  }
-
-  export type TaskLogCreateWithoutCalendarEventInput = {
-    id?: string
-    value?: string | null
-    loggedAt?: Date | string
-    player: UserCreateNestedOneWithoutTaskLogsInput
-  }
-
-  export type TaskLogUncheckedCreateWithoutCalendarEventInput = {
-    id?: string
-    playerId: string
-    value?: string | null
-    loggedAt?: Date | string
-  }
-
-  export type TaskLogCreateOrConnectWithoutCalendarEventInput = {
-    where: TaskLogWhereUniqueInput
-    create: XOR<TaskLogCreateWithoutCalendarEventInput, TaskLogUncheckedCreateWithoutCalendarEventInput>
-  }
-
-  export type TaskLogCreateManyCalendarEventInputEnvelope = {
-    data: TaskLogCreateManyCalendarEventInput | TaskLogCreateManyCalendarEventInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type TaskTemplateUpsertWithoutCalendarEventsInput = {
-    update: XOR<TaskTemplateUpdateWithoutCalendarEventsInput, TaskTemplateUncheckedUpdateWithoutCalendarEventsInput>
-    create: XOR<TaskTemplateCreateWithoutCalendarEventsInput, TaskTemplateUncheckedCreateWithoutCalendarEventsInput>
-    where?: TaskTemplateWhereInput
-  }
-
-  export type TaskTemplateUpdateToOneWithWhereWithoutCalendarEventsInput = {
-    where?: TaskTemplateWhereInput
-    data: XOR<TaskTemplateUpdateWithoutCalendarEventsInput, TaskTemplateUncheckedUpdateWithoutCalendarEventsInput>
-  }
-
-  export type TaskTemplateUpdateWithoutCalendarEventsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    isActive?: BoolFieldUpdateOperationsInput | boolean
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    coach?: UserUpdateOneRequiredWithoutTaskTemplatesNestedInput
-  }
-
-  export type TaskTemplateUncheckedUpdateWithoutCalendarEventsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    coachId?: StringFieldUpdateOperationsInput | string
-    isActive?: BoolFieldUpdateOperationsInput | boolean
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type UserUpsertWithoutCalendarEventsInput = {
-    update: XOR<UserUpdateWithoutCalendarEventsInput, UserUncheckedUpdateWithoutCalendarEventsInput>
-    create: XOR<UserCreateWithoutCalendarEventsInput, UserUncheckedCreateWithoutCalendarEventsInput>
-    where?: UserWhereInput
-  }
-
-  export type UserUpdateToOneWithWhereWithoutCalendarEventsInput = {
-    where?: UserWhereInput
-    data: XOR<UserUpdateWithoutCalendarEventsInput, UserUncheckedUpdateWithoutCalendarEventsInput>
-  }
-
-  export type UserUpdateWithoutCalendarEventsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
-    lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    playerProfile?: PlayerProfileUpdateOneWithoutUserNestedInput
-    coachedPlayers?: PlayerProfileUpdateManyWithoutCoachNestedInput
-    coachLinks?: CoachPlayerLinkUpdateManyWithoutCoachNestedInput
-    playerLinks?: CoachPlayerLinkUpdateManyWithoutPlayerNestedInput
-    taskTemplates?: TaskTemplateUpdateManyWithoutCoachNestedInput
-    taskLogs?: TaskLogUpdateManyWithoutPlayerNestedInput
-  }
-
-  export type UserUncheckedUpdateWithoutCalendarEventsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
-    lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    playerProfile?: PlayerProfileUncheckedUpdateOneWithoutUserNestedInput
-    coachedPlayers?: PlayerProfileUncheckedUpdateManyWithoutCoachNestedInput
-    coachLinks?: CoachPlayerLinkUncheckedUpdateManyWithoutCoachNestedInput
-    playerLinks?: CoachPlayerLinkUncheckedUpdateManyWithoutPlayerNestedInput
-    taskTemplates?: TaskTemplateUncheckedUpdateManyWithoutCoachNestedInput
-    taskLogs?: TaskLogUncheckedUpdateManyWithoutPlayerNestedInput
-  }
-
-  export type TaskLogUpsertWithWhereUniqueWithoutCalendarEventInput = {
-    where: TaskLogWhereUniqueInput
-    update: XOR<TaskLogUpdateWithoutCalendarEventInput, TaskLogUncheckedUpdateWithoutCalendarEventInput>
-    create: XOR<TaskLogCreateWithoutCalendarEventInput, TaskLogUncheckedCreateWithoutCalendarEventInput>
-  }
-
-  export type TaskLogUpdateWithWhereUniqueWithoutCalendarEventInput = {
-    where: TaskLogWhereUniqueInput
-    data: XOR<TaskLogUpdateWithoutCalendarEventInput, TaskLogUncheckedUpdateWithoutCalendarEventInput>
-  }
-
-  export type TaskLogUpdateManyWithWhereWithoutCalendarEventInput = {
-    where: TaskLogScalarWhereInput
-    data: XOR<TaskLogUpdateManyMutationInput, TaskLogUncheckedUpdateManyWithoutCalendarEventInput>
-  }
-
-  export type CalendarEventCreateWithoutTaskLogsInput = {
-    id?: string
-    startDate: Date | string
-    endDate: Date | string
-    status?: $Enums.EventStatus
-    taskTemplate: TaskTemplateCreateNestedOneWithoutCalendarEventsInput
-    player: UserCreateNestedOneWithoutCalendarEventsInput
-  }
-
-  export type CalendarEventUncheckedCreateWithoutTaskLogsInput = {
-    id?: string
-    taskTemplateId: string
-    playerId: string
-    startDate: Date | string
-    endDate: Date | string
-    status?: $Enums.EventStatus
-  }
-
-  export type CalendarEventCreateOrConnectWithoutTaskLogsInput = {
-    where: CalendarEventWhereUniqueInput
-    create: XOR<CalendarEventCreateWithoutTaskLogsInput, CalendarEventUncheckedCreateWithoutTaskLogsInput>
-  }
-
-  export type UserCreateWithoutTaskLogsInput = {
-    id?: string
-    email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
-    role?: $Enums.Role
-    lastLogin?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    playerProfile?: PlayerProfileCreateNestedOneWithoutUserInput
-    coachedPlayers?: PlayerProfileCreateNestedManyWithoutCoachInput
-    coachLinks?: CoachPlayerLinkCreateNestedManyWithoutCoachInput
-    playerLinks?: CoachPlayerLinkCreateNestedManyWithoutPlayerInput
-    taskTemplates?: TaskTemplateCreateNestedManyWithoutCoachInput
-    calendarEvents?: CalendarEventCreateNestedManyWithoutPlayerInput
-  }
-
-  export type UserUncheckedCreateWithoutTaskLogsInput = {
-    id?: string
-    email: string
-    passwordHash: string
-    firstName?: string | null
-    lastName?: string | null
-    profileImage?: string | null
-    clubId?: string | null
-    role?: $Enums.Role
-    lastLogin?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    playerProfile?: PlayerProfileUncheckedCreateNestedOneWithoutUserInput
-    coachedPlayers?: PlayerProfileUncheckedCreateNestedManyWithoutCoachInput
-    coachLinks?: CoachPlayerLinkUncheckedCreateNestedManyWithoutCoachInput
-    playerLinks?: CoachPlayerLinkUncheckedCreateNestedManyWithoutPlayerInput
-    taskTemplates?: TaskTemplateUncheckedCreateNestedManyWithoutCoachInput
-    calendarEvents?: CalendarEventUncheckedCreateNestedManyWithoutPlayerInput
-  }
-
-  export type UserCreateOrConnectWithoutTaskLogsInput = {
-    where: UserWhereUniqueInput
-    create: XOR<UserCreateWithoutTaskLogsInput, UserUncheckedCreateWithoutTaskLogsInput>
-  }
-
-  export type CalendarEventUpsertWithoutTaskLogsInput = {
-    update: XOR<CalendarEventUpdateWithoutTaskLogsInput, CalendarEventUncheckedUpdateWithoutTaskLogsInput>
-    create: XOR<CalendarEventCreateWithoutTaskLogsInput, CalendarEventUncheckedCreateWithoutTaskLogsInput>
-    where?: CalendarEventWhereInput
-  }
-
-  export type CalendarEventUpdateToOneWithWhereWithoutTaskLogsInput = {
-    where?: CalendarEventWhereInput
-    data: XOR<CalendarEventUpdateWithoutTaskLogsInput, CalendarEventUncheckedUpdateWithoutTaskLogsInput>
-  }
-
-  export type CalendarEventUpdateWithoutTaskLogsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
-    taskTemplate?: TaskTemplateUpdateOneRequiredWithoutCalendarEventsNestedInput
-    player?: UserUpdateOneRequiredWithoutCalendarEventsNestedInput
-  }
-
-  export type CalendarEventUncheckedUpdateWithoutTaskLogsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    taskTemplateId?: StringFieldUpdateOperationsInput | string
-    playerId?: StringFieldUpdateOperationsInput | string
-    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
-  }
-
-  export type UserUpsertWithoutTaskLogsInput = {
-    update: XOR<UserUpdateWithoutTaskLogsInput, UserUncheckedUpdateWithoutTaskLogsInput>
-    create: XOR<UserCreateWithoutTaskLogsInput, UserUncheckedCreateWithoutTaskLogsInput>
-    where?: UserWhereInput
-  }
-
-  export type UserUpdateToOneWithWhereWithoutTaskLogsInput = {
-    where?: UserWhereInput
-    data: XOR<UserUpdateWithoutTaskLogsInput, UserUncheckedUpdateWithoutTaskLogsInput>
-  }
-
-  export type UserUpdateWithoutTaskLogsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
-    lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    playerProfile?: PlayerProfileUpdateOneWithoutUserNestedInput
-    coachedPlayers?: PlayerProfileUpdateManyWithoutCoachNestedInput
-    coachLinks?: CoachPlayerLinkUpdateManyWithoutCoachNestedInput
-    playerLinks?: CoachPlayerLinkUpdateManyWithoutPlayerNestedInput
-    taskTemplates?: TaskTemplateUpdateManyWithoutCoachNestedInput
-    calendarEvents?: CalendarEventUpdateManyWithoutPlayerNestedInput
-  }
-
-  export type UserUncheckedUpdateWithoutTaskLogsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    passwordHash?: StringFieldUpdateOperationsInput | string
-    firstName?: NullableStringFieldUpdateOperationsInput | string | null
-    lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    profileImage?: NullableStringFieldUpdateOperationsInput | string | null
-    clubId?: NullableStringFieldUpdateOperationsInput | string | null
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
-    lastLogin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    playerProfile?: PlayerProfileUncheckedUpdateOneWithoutUserNestedInput
-    coachedPlayers?: PlayerProfileUncheckedUpdateManyWithoutCoachNestedInput
-    coachLinks?: CoachPlayerLinkUncheckedUpdateManyWithoutCoachNestedInput
-    playerLinks?: CoachPlayerLinkUncheckedUpdateManyWithoutPlayerNestedInput
-    taskTemplates?: TaskTemplateUncheckedUpdateManyWithoutCoachNestedInput
-    calendarEvents?: CalendarEventUncheckedUpdateManyWithoutPlayerNestedInput
-  }
-
-  export type PlayerProfileCreateManyCoachInput = {
-    id?: string
-    userId: string
-    golfHandicap?: number | null
   }
 
   export type CoachPlayerLinkCreateManyCoachInput = {
     id?: string
     playerId: string
-  }
-
-  export type CoachPlayerLinkCreateManyPlayerInput = {
-    id?: string
-    coachId: string
-  }
-
-  export type TaskTemplateCreateManyCoachInput = {
-    id?: string
-    name: string
-    description?: string | null
-    isActive?: boolean
     createdAt?: Date | string
-  }
-
-  export type CalendarEventCreateManyPlayerInput = {
-    id?: string
-    taskTemplateId: string
-    startDate: Date | string
-    endDate: Date | string
-    status?: $Enums.EventStatus
-  }
-
-  export type TaskLogCreateManyPlayerInput = {
-    id?: string
-    calendarEventId: string
-    value?: string | null
-    loggedAt?: Date | string
-  }
-
-  export type PlayerProfileUpdateWithoutCoachInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    golfHandicap?: NullableFloatFieldUpdateOperationsInput | number | null
-    user?: UserUpdateOneRequiredWithoutPlayerProfileNestedInput
-  }
-
-  export type PlayerProfileUncheckedUpdateWithoutCoachInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    golfHandicap?: NullableFloatFieldUpdateOperationsInput | number | null
-  }
-
-  export type PlayerProfileUncheckedUpdateManyWithoutCoachInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    golfHandicap?: NullableFloatFieldUpdateOperationsInput | number | null
+    updatedAt?: Date | string
   }
 
   export type CoachPlayerLinkUpdateWithoutCoachInput = {
     id?: StringFieldUpdateOperationsInput | string
-    player?: UserUpdateOneRequiredWithoutPlayerLinksNestedInput
+    playerId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CoachPlayerLinkUncheckedUpdateWithoutCoachInput = {
     id?: StringFieldUpdateOperationsInput | string
     playerId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CoachPlayerLinkUncheckedUpdateManyWithoutCoachInput = {
     id?: StringFieldUpdateOperationsInput | string
     playerId?: StringFieldUpdateOperationsInput | string
-  }
-
-  export type CoachPlayerLinkUpdateWithoutPlayerInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    coach?: UserUpdateOneRequiredWithoutCoachLinksNestedInput
-  }
-
-  export type CoachPlayerLinkUncheckedUpdateWithoutPlayerInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    coachId?: StringFieldUpdateOperationsInput | string
-  }
-
-  export type CoachPlayerLinkUncheckedUpdateManyWithoutPlayerInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    coachId?: StringFieldUpdateOperationsInput | string
-  }
-
-  export type TaskTemplateUpdateWithoutCoachInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    calendarEvents?: CalendarEventUpdateManyWithoutTaskTemplateNestedInput
-  }
-
-  export type TaskTemplateUncheckedUpdateWithoutCoachInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    isActive?: BoolFieldUpdateOperationsInput | boolean
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    calendarEvents?: CalendarEventUncheckedUpdateManyWithoutTaskTemplateNestedInput
-  }
-
-  export type TaskTemplateUncheckedUpdateManyWithoutCoachInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    isActive?: BoolFieldUpdateOperationsInput | boolean
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type CalendarEventUpdateWithoutPlayerInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
-    taskTemplate?: TaskTemplateUpdateOneRequiredWithoutCalendarEventsNestedInput
-    taskLogs?: TaskLogUpdateManyWithoutCalendarEventNestedInput
-  }
-
-  export type CalendarEventUncheckedUpdateWithoutPlayerInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    taskTemplateId?: StringFieldUpdateOperationsInput | string
-    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
-    taskLogs?: TaskLogUncheckedUpdateManyWithoutCalendarEventNestedInput
-  }
-
-  export type CalendarEventUncheckedUpdateManyWithoutPlayerInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    taskTemplateId?: StringFieldUpdateOperationsInput | string
-    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
-  }
-
-  export type TaskLogUpdateWithoutPlayerInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    value?: NullableStringFieldUpdateOperationsInput | string | null
-    loggedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    calendarEvent?: CalendarEventUpdateOneRequiredWithoutTaskLogsNestedInput
-  }
-
-  export type TaskLogUncheckedUpdateWithoutPlayerInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    calendarEventId?: StringFieldUpdateOperationsInput | string
-    value?: NullableStringFieldUpdateOperationsInput | string | null
-    loggedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type TaskLogUncheckedUpdateManyWithoutPlayerInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    calendarEventId?: StringFieldUpdateOperationsInput | string
-    value?: NullableStringFieldUpdateOperationsInput | string | null
-    loggedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type CalendarEventCreateManyTaskTemplateInput = {
-    id?: string
-    playerId: string
-    startDate: Date | string
-    endDate: Date | string
-    status?: $Enums.EventStatus
-  }
-
-  export type CalendarEventUpdateWithoutTaskTemplateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
-    player?: UserUpdateOneRequiredWithoutCalendarEventsNestedInput
-    taskLogs?: TaskLogUpdateManyWithoutCalendarEventNestedInput
-  }
-
-  export type CalendarEventUncheckedUpdateWithoutTaskTemplateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    playerId?: StringFieldUpdateOperationsInput | string
-    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
-    taskLogs?: TaskLogUncheckedUpdateManyWithoutCalendarEventNestedInput
-  }
-
-  export type CalendarEventUncheckedUpdateManyWithoutTaskTemplateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    playerId?: StringFieldUpdateOperationsInput | string
-    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    status?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
-  }
-
-  export type TaskLogCreateManyCalendarEventInput = {
-    id?: string
-    playerId: string
-    value?: string | null
-    loggedAt?: Date | string
-  }
-
-  export type TaskLogUpdateWithoutCalendarEventInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    value?: NullableStringFieldUpdateOperationsInput | string | null
-    loggedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    player?: UserUpdateOneRequiredWithoutTaskLogsNestedInput
-  }
-
-  export type TaskLogUncheckedUpdateWithoutCalendarEventInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    playerId?: StringFieldUpdateOperationsInput | string
-    value?: NullableStringFieldUpdateOperationsInput | string | null
-    loggedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type TaskLogUncheckedUpdateManyWithoutCalendarEventInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    playerId?: StringFieldUpdateOperationsInput | string
-    value?: NullableStringFieldUpdateOperationsInput | string | null
-    loggedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
 

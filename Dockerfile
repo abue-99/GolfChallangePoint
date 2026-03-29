@@ -40,7 +40,7 @@ COPY --from=build /repo/apps/web/.next/static /app/apps/web/.next/static
 # ✅ Public folder (needed for static resources)
 COPY --from=build /repo/apps/web/public /app/apps/web/public
 
-# ✅ For localhost development: also copy the full .next directory
+# ✅ Optional: copy full .next in dev mode for hot-reload
 RUN if [ "${DEPLOYMENT_MODE}" = "dev" ]; then \
     cp -r /app/apps/web/.next /app/.next; \
     fi

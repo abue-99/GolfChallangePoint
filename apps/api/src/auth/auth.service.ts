@@ -1,11 +1,13 @@
 import {
   Injectable,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
+import { SignupDto } from './dto/signup.dto';
 import { AuthenticatedUser } from './jwt.strategy';
 import { InvalidCredentialsException, InvalidTokenException } from '../common/exceptions/auth.exception';
 
@@ -20,6 +22,40 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  async signup(dto: SignupDto): Promise<{ accessToken: string; user: AuthenticatedUser }> {
+    // Check if user already exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: dto.email.toLowerCase() },
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('Email already in use');
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    // Create user
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email.toLowerCase(),
+        password: dto.password,
+        passwordHash,
+        firstName: dto.firstName || 'User',
+        lastName: dto.lastName || '',
+        role: 'PLAYER', // Default role
+      },
+    });
+
+    // Generate tokens
+    const accessToken = this.generateAccessToken(user.id, user.email, user.role);
+
+    return {
+      accessToken,
+      user: { id: user.id, email: user.email, role: user.role },
+    };
+  }
+
   async login(dto: LoginDto): Promise<{ accessToken: string; user: AuthenticatedUser }> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email.toLowerCase() },
@@ -29,7 +65,7 @@ export class AuthService {
       throw new InvalidCredentialsException();
     }
 
-    const passwordMatch = await bcrypt.compare(dto.password, user.passwordHash);
+    const passwordMatch = await bcrypt.compare(dto.password, user.passwordHash || '');
     if (!passwordMatch) {
       throw new InvalidCredentialsException();
     }

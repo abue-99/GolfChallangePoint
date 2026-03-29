@@ -1,63 +1,60 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  web:
-    build:
-      context: .
-    container_name: golfchallangepoint-web
+  postgres:
+    image: postgres:16-alpine
+    container_name: golf_postgres
     environment:
-      PORT: 3000
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/challengepoint
-      NEXT_PUBLIC_API_URL: http://api:4000
-      NODE_OPTIONS: --max-old-space-size=2048
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: challengepoint
     ports:
-      - "80:3000"
-      - "3000:3000"
-      - "3839:3000"
-    depends_on:
-      db:
-        condition: service_healthy
-      api:
-        condition: service_started
-    mem_limit: 2g
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: golfchallangepoint-api
-    environment:
-      PORT: 4000
-      NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/challengepoint
-      ACCESS_SECRET: ${ACCESS_SECRET:-your-access-secret-key}
-      REFRESH_SECRET: ${REFRESH_SECRET:-your-refresh-secret-key}
-      ACCESS_TOKEN_EXPIRY: 15m
-      REFRESH_TOKEN_EXPIRY: 7d
+    container_name: golf_api
     ports:
       - "4000:4000"
-    depends_on:
-      db:
-        condition: service_healthy
-
-  db:
-    image: postgres:16
-    container_name: golfchallangepoint-db-1
     environment:
-      POSTGRES_DB: challengepoint
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_USER: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/challengepoint"
+      ACCESS_SECRET: ${ACCESS_SECRET:-your-access-secret-key-min-32-chars}
+      REFRESH_SECRET: ${REFRESH_SECRET:-your-refresh-secret-key-min-32-chars}
+      ACCESS_TOKEN_EXPIRY: 15m
+      REFRESH_TOKEN_EXPIRY: 7d
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d challengepoint -h 127.0.0.1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: golf_web
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://api:4000
+    depends_on:
+      - api
+    restart: unless-stopped
 
 volumes:
-  db_data:
-    name: golfchallangepoint_db_data
+  postgres_data:
+
+networks:
+  default:
+    name: golf_network

@@ -208,8 +208,7 @@ export default function LessonLibrarySidebar({
 
       {/* Drag hint */}
       <p className="px-3 py-1.5 text-[11px] text-muted-foreground border-b">
-        Drag a lesson onto a player or team. Short tap opens quick assign on
-        touch devices.
+        Drag a lesson onto a player/team or tap on it to assign it.
       </p>
 
       {/* Lesson list */}

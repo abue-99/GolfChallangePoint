@@ -46,19 +46,19 @@ const FOCUS_AREA_EMOJI: Record<string, string> = {
 // ─── Status styles ────────────────────────────────────────────────────────────
 
 const STATUS_BADGE: Record<string, string> = {
-  NEW: "bg-slate-100 text-slate-600",
-  OPEN: "bg-slate-100 text-slate-600",
-  IN_PROGRESS: "bg-blue-100 text-blue-700",
-  COMPLETED: "bg-green-100 text-green-700",
-  ARCHIVED: "bg-amber-100 text-amber-700",
+  NEW: "bg-[#FEE2E2] text-[#B91C1C]",
+  OPEN: "bg-[#FEF9C3] text-[#A16207]",
+  IN_PROGRESS: "bg-[#ECFCCB] text-[#3F6212]",
+  COMPLETED: "bg-[#DCFCE7] text-[#166534]",
+  ARCHIVED: "bg-[#DCFCE7] text-[#166534]",
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  NEW: "New",
-  OPEN: "Open",
+  NEW: "Pending",
+  OPEN: "Accepted",
   IN_PROGRESS: "In Progress",
   COMPLETED: "Completed",
-  ARCHIVED: "Archived",
+  ARCHIVED: "Completed",
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────

@@ -44,23 +44,23 @@ const STATUS_STYLE: Record<
 > = {
   NEW: {
     label: "Pending",
-    badge: "bg-slate-100 text-slate-600",
-    dot: "bg-slate-300",
+    badge: "bg-[#FEE2E2] text-[#B91C1C]",
+    dot: "bg-[#F87171]",
   },
   OPEN: {
     label: "Accepted",
-    badge: "bg-yellow-100 text-yellow-700",
-    dot: "bg-yellow-400",
+    badge: "bg-[#FEF9C3] text-[#A16207]",
+    dot: "bg-[#FACC15]",
   },
   IN_PROGRESS: {
     label: "Active",
-    badge: "bg-blue-100 text-blue-700",
-    dot: "bg-blue-500",
+    badge: "bg-[#ECFCCB] text-[#3F6212]",
+    dot: "bg-[#4ADE00]",
   },
   COMPLETED: {
     label: "Completed",
-    badge: "bg-green-100 text-green-700",
-    dot: "bg-green-500",
+    badge: "bg-[#DCFCE7] text-[#166534]",
+    dot: "bg-[#16A34A]",
   },
   LOCKED: {
     label: "Locked",
@@ -194,10 +194,10 @@ function LessonCard({
     <div
       className={cn(
         "flex items-center gap-3 rounded-xl border-2 p-3 transition-all duration-200",
-        statusKey === "IN_PROGRESS" && "border-blue-200 bg-blue-50/60",
-        statusKey === "COMPLETED" && "border-green-200 bg-green-50/60",
+        statusKey === "IN_PROGRESS" && "border-[#4ADE00]/45 bg-[#ECFCCB]/70",
+        statusKey === "COMPLETED" && "border-[#16A34A]/45 bg-[#DCFCE7]/70",
         (statusKey === "NEW" || statusKey === "OPEN") &&
-          "border-gray-200 bg-white",
+          "border-[#FACC15]/35 bg-white",
         statusKey === "LOCKED" && "border-slate-100 bg-slate-50/60 opacity-60",
         !isLocked && "cursor-pointer hover:shadow-sm active:scale-[0.99]",
       )}
@@ -207,10 +207,10 @@ function LessonCard({
       <div
         className={cn(
           "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-base border-2",
-          statusKey === "IN_PROGRESS" && "border-blue-300 bg-blue-100",
-          statusKey === "COMPLETED" && "border-green-300 bg-green-100",
+          statusKey === "IN_PROGRESS" && "border-[#4ADE00]/50 bg-[#ECFCCB]",
+          statusKey === "COMPLETED" && "border-[#16A34A]/50 bg-[#DCFCE7]",
           (statusKey === "NEW" || statusKey === "OPEN") &&
-            "border-slate-200 bg-slate-100",
+            "border-[#FACC15]/45 bg-[#FEF9C3]",
           statusKey === "LOCKED" && "border-slate-100 bg-slate-50",
         )}
       >
@@ -795,7 +795,11 @@ function LessonDetailModal({
                     className={cn(
                       "rounded-2xl border-2 py-3 text-xs font-semibold transition-all",
                       status === s.value
-                        ? "border-blue-500 bg-blue-500 text-white"
+                        ? s.value === "OPEN"
+                          ? "border-[#FACC15] bg-[#FACC15] text-white"
+                          : s.value === "IN_PROGRESS"
+                            ? "border-[#4ADE00] bg-[#4ADE00] text-white"
+                            : "border-[#16A34A] bg-[#16A34A] text-white"
                         : "border-gray-200 text-slate-500 hover:border-slate-300",
                     )}
                   >

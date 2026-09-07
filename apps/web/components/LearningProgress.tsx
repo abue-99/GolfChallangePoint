@@ -1,6 +1,5 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import {
   createLifecycleCounts,
   LIFECYCLE_META,
@@ -92,21 +91,6 @@ function CompactLearningSummaryRow({
   const visibleSegments = getVisibleSegments(counts);
   if (visibleSegments.length === 0) return null;
 
-  const badgeStyles: Record<(typeof visibleSegments)[number], CSSProperties> = {
-    PENDING: {
-      backgroundColor: "#F87171",
-    },
-    ACCEPTED: {
-      backgroundColor: "#FACC15",
-    },
-    ACTIVE: {
-      backgroundColor: "#4ADE00",
-    },
-    COMPLETED: {
-      backgroundColor: "#16A34A",
-    },
-  };
-
   return (
     <div
       className={cn("flex items-center gap-2 text-xs text-slate-700", className)}
@@ -120,9 +104,7 @@ function CompactLearningSummaryRow({
           <span
             key={status}
             className="inline-flex h-[22px] min-w-10 shrink-0 items-center justify-center rounded-[6px] px-2 text-xs font-bold text-white"
-            style={{
-              ...badgeStyles[status],
-            }}
+            style={{ backgroundColor: LIFECYCLE_META[status].color }}
             title={`${LIFECYCLE_META[status].label}: ${counts[status]}`}
           >
             <span className="sr-only">

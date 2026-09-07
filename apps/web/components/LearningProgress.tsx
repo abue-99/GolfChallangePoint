@@ -1,6 +1,5 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import {
   createLifecycleCounts,
   LIFECYCLE_META,
@@ -81,64 +80,35 @@ export function hasVisibleLearningProgress(
 }
 
 function CompactLearningSummaryRow({
-  prefix,
+  label,
   counts,
   className,
 }: {
-  prefix: "J" | "L";
+  label: "Journeys" | "Lessons";
   counts: LifecycleCounts;
   className?: string;
 }) {
   const visibleSegments = getVisibleSegments(counts);
-  const rowLabel = prefix === "J" ? "Journeys" : "Lessons";
   if (visibleSegments.length === 0) return null;
-
-  const badgeStyles: Record<(typeof visibleSegments)[number], CSSProperties> = {
-    PENDING: {
-      backgroundColor: "#C2410C",
-      boxShadow: "inset 0 0 0 1px #F97316",
-    },
-    ACCEPTED: {
-      backgroundColor: "#A16207",
-      boxShadow: "inset 0 0 0 1px #CA8A04",
-    },
-    ACTIVE: {
-      backgroundColor: "#4D7C0F",
-      boxShadow: "inset 0 0 0 1px #84CC16",
-    },
-    COMPLETED: {
-      backgroundColor: "#15803D",
-      boxShadow: "inset 0 0 0 1px #16A34A",
-    },
-  };
-  const badgeIcons: Record<(typeof visibleSegments)[number], string> = {
-    PENDING: "P",
-    ACCEPTED: "A",
-    ACTIVE: "▶",
-    COMPLETED: "✓",
-  };
 
   return (
     <div
       className={cn("flex items-center gap-2 text-xs text-slate-700", className)}
-      aria-label={`${rowLabel} summary`}
+      aria-label={`${label} summary`}
     >
-      <span className="w-3 shrink-0 text-[11px] font-semibold text-slate-500">{prefix}</span>
+      <span className="w-14 shrink-0 text-left text-[11px] font-semibold text-slate-500">
+        {label}
+      </span>
       <div className="flex flex-wrap items-center gap-1.5">
         {visibleSegments.map((status) => (
           <span
             key={status}
-            className="inline-flex h-[18px] w-9 shrink-0 items-center justify-center rounded-md px-2 text-[11px] font-bold text-white"
-            style={{
-              ...badgeStyles[status],
-            }}
+            className="inline-flex h-[22px] min-w-10 shrink-0 items-center justify-center rounded-[6px] px-2 text-xs font-bold text-white"
+            style={{ backgroundColor: LIFECYCLE_META[status].color }}
             title={`${LIFECYCLE_META[status].label}: ${counts[status]}`}
           >
             <span className="sr-only">
-              {`${rowLabel} ${LIFECYCLE_META[status].label}: ${counts[status]}`}
-            </span>
-            <span aria-hidden="true" className="mr-0.5 text-[10px] leading-none">
-              {badgeIcons[status]}
+              {`${label} ${LIFECYCLE_META[status].label}: ${counts[status]}`}
             </span>
             <span aria-hidden="true" className="tabular-nums">
               {counts[status]}
@@ -168,8 +138,8 @@ export function CompactLearningSummary({
 
   return (
     <div className={cn("w-full space-y-1", className)}>
-      <CompactLearningSummaryRow prefix="J" counts={journeyCounts} />
-      <CompactLearningSummaryRow prefix="L" counts={lessonCounts} />
+      <CompactLearningSummaryRow label="Journeys" counts={journeyCounts} />
+      <CompactLearningSummaryRow label="Lessons" counts={lessonCounts} />
     </div>
   );
 }

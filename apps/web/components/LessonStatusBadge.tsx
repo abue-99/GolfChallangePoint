@@ -6,15 +6,15 @@ import type { LessonStatus } from "@/lib/lesson-types";
 const STATUS_MAP: Record<LessonStatus, { label: string; classes: string }> = {
   PLANNED: {
     label: "Planned",
-    classes: "bg-slate-100 text-slate-700 ring-slate-200",
+    classes: "bg-[#FEE2E2] text-[#B91C1C] ring-[#FCA5A5]",
   },
   IN_PROGRESS: {
     label: "In Progress",
-    classes: "bg-blue-50 text-blue-700 ring-blue-200",
+    classes: "bg-[#ECFCCB] text-[#3F6212] ring-[#84CC16]",
   },
   COMPLETED: {
     label: "Completed",
-    classes: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    classes: "bg-[#DCFCE7] text-[#166534] ring-[#16A34A]",
   },
 };
 

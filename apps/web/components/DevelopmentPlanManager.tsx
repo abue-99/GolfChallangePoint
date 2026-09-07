@@ -173,7 +173,7 @@ export function DevelopmentPlanManager({ playerId, teamId }: Props) {
                 : allStatuses.some((status) => status === "OPEN")
                   ? "OPEN"
                   : "NEW";
-      const origin = plan.ownerType === "TEAM"
+      const origin: "TEAM" | "TEMPLATE" | "INDIVIDUAL" = plan.ownerType === "TEAM"
         ? "TEAM"
         : linkedJourney?.team?.id
           ? "TEAM"

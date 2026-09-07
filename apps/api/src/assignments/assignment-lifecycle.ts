@@ -1,4 +1,8 @@
-import { AssignmentStatus } from '@challengepoint/db';
+import {
+  AssignmentStatus,
+  AssignmentTargetType,
+  OwnerType,
+} from '@challengepoint/db';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type LifecycleStatus = 'PENDING' | 'ACCEPTED' | 'ACTIVE' | 'COMPLETED';
@@ -242,9 +246,9 @@ export async function loadPlayerLearningSummaries(
     prisma.playerDevelopmentPlan.findMany({
       where: {
         OR: [
-          { ownerType: 'PLAYER', playerId: { in: uniquePlayerIds } },
+          { ownerType: OwnerType.PLAYER, playerId: { in: uniquePlayerIds } },
           ...(allTeamIds.length > 0
-            ? [{ ownerType: 'TEAM', teamId: { in: allTeamIds } }]
+            ? [{ ownerType: OwnerType.TEAM, teamId: { in: allTeamIds } }]
             : []),
         ],
       },
@@ -262,7 +266,7 @@ export async function loadPlayerLearningSummaries(
           ...(allTeamIds.length > 0
             ? [
                 {
-                  targetType: 'TEAM',
+                  targetType: AssignmentTargetType.TEAM,
                   teamId: { in: allTeamIds },
                 },
               ]
@@ -317,10 +321,10 @@ export async function loadPlayerLearningSummaries(
   const lessonAssignmentsByPlanId = new Map<
     string,
     Array<{
-      targetType: string;
+      targetType: AssignmentTargetType;
       playerId: string | null;
       teamId: string | null;
-      status: string;
+      status: AssignmentStatus;
       completedAt: Date | null;
     }>
   >();
@@ -354,7 +358,7 @@ export async function loadPlayerLearningSummaries(
   for (const plan of plans) {
     const planAssignments = lessonAssignmentsByPlanId.get(plan.id) ?? [];
     const relatedPlayerIds =
-      plan.ownerType === 'PLAYER'
+      plan.ownerType === OwnerType.PLAYER
         ? plan.playerId
           ? [plan.playerId]
           : []
@@ -366,10 +370,10 @@ export async function loadPlayerLearningSummaries(
       if (!summaries[playerId]) continue;
       const teamIdsForPlayer = teamIdsByPlayerId.get(playerId) ?? new Set();
       const relevantAssignments = planAssignments.filter((assignment) => {
-        if (assignment.targetType === 'PLAYER') {
+        if (assignment.targetType === AssignmentTargetType.PLAYER) {
           return assignment.playerId === playerId;
         }
-        if (assignment.targetType === 'TEAM') {
+        if (assignment.targetType === AssignmentTargetType.TEAM) {
           return (
             Boolean(assignment.teamId) &&
             teamIdsForPlayer.has(assignment.teamId as string)
@@ -445,8 +449,9 @@ export async function loadPlayerLearningSummaries(
     for (const playerId of uniquePlayerIds) {
       const playerTeamIds = teamIdsByPlayerId.get(playerId) ?? new Set();
       const visibleToPlayer =
-        (assignment.targetType === 'PLAYER' && assignment.playerId === playerId) ||
-        (assignment.targetType === 'TEAM' &&
+        (assignment.targetType === AssignmentTargetType.PLAYER &&
+          assignment.playerId === playerId) ||
+        (assignment.targetType === AssignmentTargetType.TEAM &&
           assignment.teamId &&
           playerTeamIds.has(assignment.teamId));
       if (!visibleToPlayer) continue;

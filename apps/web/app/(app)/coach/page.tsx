@@ -84,7 +84,7 @@ export default function CoachHome() {
   const [playerCounts, setPlayerCounts] = useState<Record<string, ItemCount>>({});
   const [teamCounts, setTeamCounts] = useState<Record<string, ItemCount>>({});
   const [nextUp, setNextUp] = useState<CalendarActivity | null>(null);
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
@@ -167,22 +167,19 @@ export default function CoachHome() {
   }, []);
 
   useEffect(() => {
-    void loadDashboardData();
+    let ignore = false;
+    void (async () => {
+      if (ignore) return;
+      await loadDashboardData();
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [loadDashboardData]);
 
   useEffect(() => subscribeLearningProgressChanges(() => {
     void loadDashboardData();
   }), [loadDashboardData]);
-
-  useEffect(() => {
-    if (!selectedPlayer) return;
-    const nextSelectedPlayer = players.find((player) => player.id === selectedPlayer.id);
-    if (nextSelectedPlayer) {
-      setSelectedPlayer(nextSelectedPlayer);
-      return;
-    }
-    setSelectedPlayer(null);
-  }, [players, selectedPlayer]);
 
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -204,6 +201,13 @@ export default function CoachHome() {
         return nameOfPlayer(player).toLowerCase().includes(normalizedQuery);
       }),
     [normalizedQuery, players],
+  );
+  const selectedPlayer = useMemo(
+    () =>
+      selectedPlayerId
+        ? players.find((player) => player.id === selectedPlayerId) ?? null
+        : null,
+    [players, selectedPlayerId],
   );
 
   const visibleTeams = useMemo(
@@ -299,7 +303,7 @@ export default function CoachHome() {
                 <button
                   key={player.id}
                   type="button"
-                  onClick={() => setSelectedPlayer(player)}
+                  onClick={() => setSelectedPlayerId(player.id)}
                   className="min-w-[220px] text-left"
                 >
                   <Card className="h-full border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
@@ -395,7 +399,7 @@ export default function CoachHome() {
       {selectedPlayer ? (
         <PlayerOverviewDialog
           player={selectedPlayer}
-          onClose={() => setSelectedPlayer(null)}
+          onClose={() => setSelectedPlayerId(null)}
         />
       ) : null}
     </div>

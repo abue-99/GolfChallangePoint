@@ -99,7 +99,7 @@ export default function Dashboard() {
   const [coachNowIso, setCoachNowIso] = useState<string>(() =>
     new Date().toISOString(),
   );
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -127,7 +127,14 @@ export default function Dashboard() {
   }, [role]);
 
   useEffect(() => {
-    void loadCoachSummary();
+    let ignore = false;
+    void (async () => {
+      if (ignore) return;
+      await loadCoachSummary();
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [loadCoachSummary]);
 
   useEffect(() => {
@@ -153,16 +160,6 @@ export default function Dashboard() {
     });
   }, [loadCoachSummary, role]);
 
-  useEffect(() => {
-    if (!selectedPlayer) return;
-    const nextSelectedPlayer = coachPlayers.find((player) => player.id === selectedPlayer.id);
-    if (nextSelectedPlayer) {
-      setSelectedPlayer(nextSelectedPlayer);
-      return;
-    }
-    setSelectedPlayer(null);
-  }, [coachPlayers, selectedPlayer]);
-
   const isCoachOrAdmin = role === "COACH" || role === "ADMIN";
   const coachNowMs = new Date(coachNowIso).getTime();
   const upcomingCoachItems = coachCalendarActivities
@@ -172,6 +169,13 @@ export default function Dashboard() {
   const activePlayers = useMemo(
     () => coachPlayers.filter((player) => hasVisibleLearningProgress(player.learningProgress)),
     [coachPlayers],
+  );
+  const selectedPlayer = useMemo(
+    () =>
+      selectedPlayerId
+        ? coachPlayers.find((player) => player.id === selectedPlayerId) ?? null
+        : null,
+    [coachPlayers, selectedPlayerId],
   );
 
   return (
@@ -238,7 +242,7 @@ export default function Dashboard() {
                 <button
                   key={player.id}
                   type="button"
-                  onClick={() => setSelectedPlayer(player)}
+                  onClick={() => setSelectedPlayerId(player.id)}
                   className="text-left"
                 >
                   <Card className="h-full border border-slate-200 shadow-sm transition-shadow hover:shadow-md">
@@ -321,7 +325,7 @@ export default function Dashboard() {
       {selectedPlayer ? (
         <PlayerOverviewDialog
           player={selectedPlayer}
-          onClose={() => setSelectedPlayer(null)}
+          onClose={() => setSelectedPlayerId(null)}
         />
       ) : null}
     </div>

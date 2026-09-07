@@ -2329,18 +2329,11 @@ function PlayersSection({
   onPlayerRemoved: (playerId: string) => void;
 }) {
   const [search, setSearch] = useState("");
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
-
-  useEffect(() => {
-    if (!selectedPlayer) return;
-    const nextSelectedPlayer = players.find((player) => player.id === selectedPlayer.id);
-    if (nextSelectedPlayer) {
-      setSelectedPlayer(nextSelectedPlayer);
-      return;
-    }
-    setSelectedPlayer(null);
-  }, [players, selectedPlayer]);
+  const selectedPlayer = selectedPlayerId
+    ? players.find((player) => player.id === selectedPlayerId) ?? null
+    : null;
 
   const filtered = players.filter((p) => {
     const q = search.toLowerCase();
@@ -2397,7 +2390,7 @@ function PlayersSection({
               <React.Fragment key={p.id}>
                 <DroppablePlayerCard
                   player={p}
-                  onOpen={() => setSelectedPlayer(p)}
+                  onOpen={() => setSelectedPlayerId(p.id)}
                   onRemove={() =>
                     handleRemovePlayer(p.id, playerDisplayName(p))
                   }
@@ -2411,10 +2404,10 @@ function PlayersSection({
       {selectedPlayer && (
         <PlayerDetailDialog
           player={selectedPlayer}
-          onClose={() => setSelectedPlayer(null)}
+          onClose={() => setSelectedPlayerId(null)}
           onRemove={(playerId) => {
             onPlayerRemoved(playerId);
-            setSelectedPlayer(null);
+            setSelectedPlayerId(null);
           }}
         />
       )}

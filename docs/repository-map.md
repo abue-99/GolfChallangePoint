@@ -19,6 +19,7 @@
 ├── .github/workflows/        # GitHub Actions CI pipelines
 ├── docker-compose.yml        # Production multi-service compose
 ├── Caddyfile                 # Caddy reverse-proxy config
+├── Dockerfile                # Root web image build with the same cache strategy as apps/web/Dockerfile
 ├── turbo.json                # Turborepo task graph
 ├── pnpm-workspace.yaml       # pnpm workspace definition
 ├── TECHNICAL_DESCRIPTION.md  # Verbose project description (existing doc)
@@ -299,6 +300,12 @@ Current status: journey CRUD routes, journey assignment routes, and coach lesson
 - **Recent completion visibility**: compact coach cards use `recentCompletions` to show `COMPLETED` only for the last 90 days, while `PlayerOverviewDialog.tsx` keeps the full historical lifecycle counts.
 - **Player acceptance flow**: `NewAssignmentsSection.tsx`, `PlayerJourney.tsx`, and `player/queue/page.tsx` implement the `Assign → Accept → Train → Complete` flow while keeping journeys out of the queue.
 - **Backend lifecycle sync**: `apps/api/src/assignments/assignment-lifecycle.ts` centralises lifecycle normalization, journey-status syncing, and coach/player learning-summary aggregation.
+
+### Container build touchpoints
+
+- `apps/web/Dockerfile`: filtered `golf-challenge-point-web...` install, cached Prisma generate layer, cached Next `.next/cache`
+- `apps/api/Dockerfile`: filtered `api...` install, cached Prisma generate layer, shared pnpm store cache
+- `.dockerignore`: excludes local build artifacts so context churn does not trigger unnecessary image rebuilds
 | `jwt.ts`                 | JWT sign/verify helpers                          |
 | `prisma.ts`              | Prisma client singleton for SSR                  |
 | `utils.ts`               | General utilities (cn, etc.)                     |

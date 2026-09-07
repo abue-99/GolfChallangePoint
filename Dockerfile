@@ -1,51 +1,53 @@
-# ---- Build Stage ----
-FROM node:22-bookworm-slim AS build
+# syntax=docker/dockerfile:1.7
+
+FROM node:22-bookworm-slim AS base
 WORKDIR /repo
-
-RUN corepack enable
-
-# Install OS dependencies for prisma/bcrypt/etc.
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl python3 make g++ && rm -rf /var/lib/apt/lists/*
+ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
+ADD https://registry.npmjs.org/pnpm/-/pnpm-11.25.0.tgz /tmp/pnpm.tgz
+RUN mkdir -p /usr/local/lib/node_modules/pnpm \
+ && tar -xzf /tmp/pnpm.tgz --strip-components=1 -C /usr/local/lib/node_modules/pnpm \
+ && printf '#!/bin/sh\nexec node /usr/local/lib/node_modules/pnpm/bin/pnpm.cjs "$@"\n' > /usr/local/bin/pnpm \
+ && chmod +x /usr/local/bin/pnpm \
+ && printf '#!/bin/sh\nexec node /usr/local/lib/node_modules/pnpm/bin/pnpx.cjs "$@"\n' > /usr/local/bin/pnpx \
+ && chmod +x /usr/local/bin/pnpx
 
-COPY . .
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
+COPY apps/web/package.json ./apps/web/package.json
+COPY packages/db/package.json ./packages/db/package.json
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm config set store-dir /pnpm/store && \
+    pnpm install --filter golf-challenge-point-web... --frozen-lockfile
 
-RUN pnpm install --frozen-lockfile
+FROM deps AS prisma
+COPY packages/db/prisma ./packages/db/prisma
+COPY packages/db/prisma.config.ts ./packages/db/prisma.config.ts
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm --filter @challengepoint/db run generate
 
-# Generate Prisma client (dummy URL is sufficient; no DB connection needed for generate)
-ARG DATABASE_URL="postgresql://user:password@localhost:5432/golf"
-RUN DATABASE_URL=${DATABASE_URL} pnpm --filter @golf/db run generate
-
-# NEXT_PUBLIC_* vars must be present at build time to be bundled into client JS
+FROM prisma AS build
+COPY apps/web ./apps/web
+COPY packages/db ./packages/db
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-
-# Run TypeScript check before the expensive next build (fail fast in seconds)
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm --filter @challengepoint/db run build
 RUN pnpm --filter golf-challenge-point-web run typecheck
+RUN --mount=type=cache,id=next-cache,target=/repo/apps/web/.next/cache \
+    pnpm --filter golf-challenge-point-web run build
 
-# Build Next.js app with standalone output
-RUN pnpm --filter golf-challenge-point-web run build
-
-
-# ---- Runtime Stage ----
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl && rm -rf /var/lib/apt/lists/*
-
-# Standalone server (includes traced node_modules)
+ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 COPY --from=build /repo/apps/web/.next/standalone /app
-
-# Static assets (not included in standalone output)
 COPY --from=build /repo/apps/web/.next/static /app/apps/web/.next/static
-
-# Public folder (not included in standalone output)
 COPY --from=build /repo/apps/web/public /app/apps/web/public
-
 EXPOSE 3000
 ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-# server.js is at apps/web/server.js inside the standalone output
-# because outputFileTracingRoot is set to the monorepo root in next.config.ts
+ENV HOSTNAME=0.0.0.0
 CMD ["node", "apps/web/server.js"]

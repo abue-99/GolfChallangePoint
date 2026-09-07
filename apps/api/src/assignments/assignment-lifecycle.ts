@@ -306,7 +306,8 @@ export async function loadPlayerLearningSummaries(
     if (
       lifecycleStatus === 'COMPLETED' &&
       (assignment.updatedAt >= recentCompletionThreshold ||
-        journeyStatusesByPlanId.get(assignment.playerPlanId) !== assignment.status)
+        journeyStatusesByPlanId.get(assignment.playerPlanId) !==
+          assignment.status)
     ) {
       summaries[assignment.playerId].recentCompletions.journeys += 1;
     }

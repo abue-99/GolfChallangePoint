@@ -228,7 +228,7 @@ export default function PlayersPage() {
   const [myClubs, setMyClubs] = useState<Club[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [showInvite, setShowInvite] = useState(false);
 
   // Assign lesson modal state
@@ -259,7 +259,14 @@ export default function PlayersPage() {
   }, [role]);
 
   useEffect(() => {
-    void loadPlayers();
+    let ignore = false;
+    void (async () => {
+      if (ignore) return;
+      await loadPlayers();
+    })();
+    return () => {
+      ignore = true;
+    };
   }, [loadPlayers]);
 
   useEffect(() => {
@@ -269,17 +276,10 @@ export default function PlayersPage() {
     });
   }, [loadPlayers, role]);
 
-  useEffect(() => {
-    if (!selectedPlayer) return;
-    const nextSelectedPlayer = players.find((player) => player.id === selectedPlayer.id);
-    if (nextSelectedPlayer) {
-      setSelectedPlayer(nextSelectedPlayer);
-      return;
-    }
-    setSelectedPlayer(null);
-  }, [players, selectedPlayer]);
-
   const isCoachOrAdmin = role === "COACH" || role === "ADMIN";
+  const selectedPlayer = selectedPlayerId
+    ? players.find((player) => player.id === selectedPlayerId) ?? null
+    : null;
 
   if (loading) return <div className="p-4">Loading…</div>;
 
@@ -334,7 +334,7 @@ export default function PlayersPage() {
                 >
                   <div
                     className="flex flex-col items-center gap-2 rounded-xl border border-[var(--golf-muted)] bg-white p-4 shadow-sm hover:shadow-md transition-all cursor-pointer select-none"
-                    onClick={() => setSelectedPlayer(player)}
+                    onClick={() => setSelectedPlayerId(player.id)}
                     title="Click to view details"
                   >
                     <div className="relative">
@@ -387,10 +387,10 @@ export default function PlayersPage() {
         {selectedPlayer && (
           <PlayerDetailDialog
             player={selectedPlayer}
-            onClose={() => setSelectedPlayer(null)}
+            onClose={() => setSelectedPlayerId(null)}
             onRemove={(playerId) => {
               setPlayers((prev) => prev.filter((p) => p.id !== playerId));
-              setSelectedPlayer(null);
+              setSelectedPlayerId(null);
             }}
           />
         )}

@@ -107,6 +107,12 @@ function CompactLearningSummaryRow({
       background: "linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.12)), #16A34A",
     },
   };
+  const badgeIcons: Record<(typeof visibleSegments)[number], string> = {
+    PENDING: "P",
+    ACCEPTED: "A",
+    ACTIVE: "▶",
+    COMPLETED: "✓",
+  };
 
   return (
     <div
@@ -128,7 +134,12 @@ function CompactLearningSummaryRow({
             <span className="sr-only">
               {`${rowLabel} ${LIFECYCLE_META[status].label}: ${counts[status]}`}
             </span>
-            <span aria-hidden="true">{counts[status]}</span>
+            <span aria-hidden="true" className="mr-0.5 text-[10px] leading-none">
+              {badgeIcons[status]}
+            </span>
+            <span aria-hidden="true" className="tabular-nums">
+              {counts[status]}
+            </span>
           </span>
         ))}
       </div>

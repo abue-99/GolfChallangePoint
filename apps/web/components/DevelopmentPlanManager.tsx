@@ -50,7 +50,7 @@ const STATUS_BADGE: Record<string, string> = {
   OPEN: "bg-[#FEF9C3] text-[#A16207]",
   IN_PROGRESS: "bg-[#ECFCCB] text-[#3F6212]",
   COMPLETED: "bg-[#DCFCE7] text-[#166534]",
-  ARCHIVED: "bg-[#DCFCE7] text-[#166534]",
+  ARCHIVED: "bg-amber-100 text-amber-700",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -58,7 +58,7 @@ const STATUS_LABEL: Record<string, string> = {
   OPEN: "Accepted",
   IN_PROGRESS: "In Progress",
   COMPLETED: "Completed",
-  ARCHIVED: "Completed",
+  ARCHIVED: "Archived",
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────

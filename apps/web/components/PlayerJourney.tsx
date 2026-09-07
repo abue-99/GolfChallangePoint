@@ -194,10 +194,10 @@ function LessonCard({
     <div
       className={cn(
         "flex items-center gap-3 rounded-xl border-2 p-3 transition-all duration-200",
+        statusKey === "NEW" && "border-[#F87171]/45 bg-[#FEE2E2]/70",
+        statusKey === "OPEN" && "border-[#FACC15]/45 bg-[#FEF9C3]/70",
         statusKey === "IN_PROGRESS" && "border-[#4ADE00]/45 bg-[#ECFCCB]/70",
         statusKey === "COMPLETED" && "border-[#16A34A]/45 bg-[#DCFCE7]/70",
-        (statusKey === "NEW" || statusKey === "OPEN") &&
-          "border-[#FACC15]/35 bg-white",
         statusKey === "LOCKED" && "border-slate-100 bg-slate-50/60 opacity-60",
         !isLocked && "cursor-pointer hover:shadow-sm active:scale-[0.99]",
       )}
@@ -207,10 +207,10 @@ function LessonCard({
       <div
         className={cn(
           "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-base border-2",
+          statusKey === "NEW" && "border-[#F87171]/50 bg-[#FEE2E2]",
+          statusKey === "OPEN" && "border-[#FACC15]/45 bg-[#FEF9C3]",
           statusKey === "IN_PROGRESS" && "border-[#4ADE00]/50 bg-[#ECFCCB]",
           statusKey === "COMPLETED" && "border-[#16A34A]/50 bg-[#DCFCE7]",
-          (statusKey === "NEW" || statusKey === "OPEN") &&
-            "border-[#FACC15]/45 bg-[#FEF9C3]",
           statusKey === "LOCKED" && "border-slate-100 bg-slate-50",
         )}
       >

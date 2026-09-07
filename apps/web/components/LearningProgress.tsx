@@ -95,16 +95,20 @@ function CompactLearningSummaryRow({
 
   const badgeStyles: Record<(typeof visibleSegments)[number], CSSProperties> = {
     PENDING: {
-      background: "linear-gradient(rgba(0, 0, 0, 0.14), rgba(0, 0, 0, 0.14)), #F97316",
+      backgroundColor: "#C2410C",
+      boxShadow: "inset 0 0 0 1px #F97316",
     },
     ACCEPTED: {
-      background: "linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.12)), #CA8A04",
+      backgroundColor: "#A16207",
+      boxShadow: "inset 0 0 0 1px #CA8A04",
     },
     ACTIVE: {
-      background: "linear-gradient(rgba(0, 0, 0, 0.52), rgba(0, 0, 0, 0.52)), #84CC16",
+      backgroundColor: "#4D7C0F",
+      boxShadow: "inset 0 0 0 1px #84CC16",
     },
     COMPLETED: {
-      background: "linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.12)), #16A34A",
+      backgroundColor: "#15803D",
+      boxShadow: "inset 0 0 0 1px #16A34A",
     },
   };
   const badgeIcons: Record<(typeof visibleSegments)[number], string> = {
@@ -127,7 +131,6 @@ function CompactLearningSummaryRow({
             className="inline-flex h-[18px] w-9 shrink-0 items-center justify-center rounded-md px-2 text-[11px] font-bold text-white"
             style={{
               ...badgeStyles[status],
-              textShadow: "0 1px 1px rgba(0, 0, 0, 0.18)",
             }}
             title={`${LIFECYCLE_META[status].label}: ${counts[status]}`}
           >

@@ -331,7 +331,18 @@ export default function PlayersPage() {
                   className="rounded-xl"
                   activeClassName="ring-2 ring-primary ring-offset-1 bg-primary/5"
                 >
-                  <div onClick={() => setSelectedPlayerId(player.id)} title="Click to view details">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedPlayerId(player.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedPlayerId(player.id);
+                      }
+                    }}
+                    title="Click to view details"
+                  >
                     <CompactCoachPlayerCard
                       name={playerName(player)}
                       initials={playerInitials(player)}

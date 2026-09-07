@@ -653,6 +653,28 @@ export default function TeamsPage() {
     });
   }, [refreshLearningProgressData, role]);
 
+  useEffect(() => {
+    if (!selectedMemberPlayer) return;
+    const playerId = selectedMemberPlayer.id;
+    let teamMemberMatch: Player | undefined;
+    for (const team of teams) {
+      const member = team.members.find((entry) => entry.user?.id === playerId);
+      if (member?.user) {
+        teamMemberMatch = member.user;
+        break;
+      }
+    }
+
+    const latestPlayer =
+      myPlayers.find((player) => player.id === playerId) ??
+      allPlayers.find((player) => player.id === playerId) ??
+      teamMemberMatch;
+
+    if (latestPlayer && latestPlayer !== selectedMemberPlayer) {
+      setSelectedMemberPlayer(latestPlayer);
+    }
+  }, [allPlayers, myPlayers, selectedMemberPlayer, teams]);
+
   function applyOptimisticAssignment(
     target: AssignmentTarget,
     result?: AssignmentResult,
@@ -697,6 +719,7 @@ export default function TeamsPage() {
     result?: AssignmentResult,
   ) {
     applyOptimisticAssignment(target, result);
+    void refreshLearningProgressData();
     const lessonName = assignmentLessonName(result);
 
     if (target.kind === "player") {
@@ -716,6 +739,7 @@ export default function TeamsPage() {
     result?: AssignmentResult,
   ) {
     applyOptimisticAssignment(target, result);
+    void refreshLearningProgressData();
     const journeyName = assignmentJourneyName(result);
 
     if (target.kind === "player") {

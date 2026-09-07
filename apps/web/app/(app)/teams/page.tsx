@@ -1925,6 +1925,8 @@ function PlayerDetailDialog({
     <PlayerOverviewDialog
       player={player}
       onClose={onClose}
+      removeDisabled={removing}
+      removeLabel={removing ? "Removing…" : "Remove from My Players"}
       onRemove={onRemove ? async () => {
         if (removing) return;
         await handleRemove();

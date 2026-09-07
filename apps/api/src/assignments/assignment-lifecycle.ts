@@ -64,6 +64,7 @@ export function deriveJourneyAssignmentStatus(
   lessonStatuses: Array<string | null | undefined>,
   currentStatus?: string | null,
 ): AssignmentStatus {
+  const currentLifecycle = toLifecycleStatus(currentStatus);
   if (lessonStatuses.length === 0) {
     return toStoredAssignmentStatus(currentStatus);
   }
@@ -84,7 +85,11 @@ export function deriveJourneyAssignmentStatus(
     return AssignmentStatus.IN_PROGRESS;
   }
 
-  if (toLifecycleStatus(currentStatus) === 'PENDING') {
+  if (currentLifecycle === 'ACCEPTED') {
+    return AssignmentStatus.OPEN;
+  }
+
+  if (currentLifecycle === 'PENDING') {
     return AssignmentStatus.NEW;
   }
 

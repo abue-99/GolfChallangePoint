@@ -61,10 +61,14 @@ export default function PlayerOverviewDialog({
   player,
   onClose,
   onRemove,
+  removeDisabled = false,
+  removeLabel = "Remove from My Players",
 }: {
   player: PlayerOverviewDialogPlayer;
   onClose: () => void;
   onRemove?: (playerId: string) => void | Promise<void>;
+  removeDisabled?: boolean;
+  removeLabel?: string;
 }) {
   const isInactive = !player.lastLogin;
   const name = playerName(player);
@@ -175,9 +179,10 @@ export default function PlayerOverviewDialog({
                   variant="destructive"
                   className="w-full gap-2"
                   onClick={handleRemove}
+                  disabled={removeDisabled}
                 >
                   <Trash2 size={16} />
-                  Remove from My Players
+                  {removeLabel}
                 </Button>
               ) : null}
             </div>

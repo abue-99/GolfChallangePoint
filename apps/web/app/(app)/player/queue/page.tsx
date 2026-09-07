@@ -24,7 +24,11 @@ function QueueItem({
   onStatusChange,
 }: {
   assignment: StandaloneAssignment;
-  onStatusChange: (id: string, status: string) => Promise<void>;
+  onStatusChange: (
+    id: string,
+    status: string,
+    options?: { ensureInQueue?: boolean },
+  ) => Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
   const isTeam =
@@ -35,10 +39,10 @@ function QueueItem({
   const contextLabel = assignment.journeyTemplate ? "PART OF JOURNEY" : "SINGLE LESSON";
   const scheduleLabel = assignment.calendarTask?.scheduledDate || assignment.dueDate;
 
-  async function act(status: string) {
+  async function act(status: string, options?: { ensureInQueue?: boolean }) {
     setBusy(true);
     try {
-      await onStatusChange(assignment.id, status);
+      await onStatusChange(assignment.id, status, options);
     } finally {
       setBusy(false);
     }
@@ -150,7 +154,7 @@ function QueueItem({
             size="sm"
             className="h-7 text-xs"
             disabled={busy}
-            onClick={() => act("OPEN")}
+            onClick={() => act("OPEN", { ensureInQueue: true })}
           >
             Reopen
           </Button>
@@ -182,9 +186,16 @@ export default function TrainingQueuePage() {
   }, [load]);
 
   const handleStatusChange = useCallback(
-    async (id: string, status: string) => {
+    async (
+      id: string,
+      status: string,
+      options?: { ensureInQueue?: boolean },
+    ) => {
       try {
-        await api.updateStandaloneAssignment(id, { status });
+        await api.updateStandaloneAssignment(id, {
+          status,
+          ...(options?.ensureInQueue ? { isInTrainingQueue: true } : {}),
+        });
         toast.success(
           status === "IN_PROGRESS"
             ? "Lesson started."

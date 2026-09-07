@@ -434,6 +434,7 @@ model LessonAssignment {
   calendarTask   CalendarTask?    @relation("AssignmentCalendarTask")
   priority       LessonPriority   @default(MEDIUM)
   status         AssignmentStatus @default(NEW)
+  completedAt    DateTime?
   sortOrder      Int              @default(0)
   playerNotes    String?
   selfAssessment Int?
@@ -494,6 +495,7 @@ model JourneyTemplateAssignment {
   coach            User             @relation("JourneyTemplateCoachAssignments", fields: [coachId], references: [id], onDelete: Cascade)
   playerPlanId     String
   status           AssignmentStatus @default(NEW)
+  completedAt      DateTime?
   isInTrainingQueue Boolean         @default(true)
   source           String           @default("assignedByCoach")
   createdAt        DateTime         @default(now())

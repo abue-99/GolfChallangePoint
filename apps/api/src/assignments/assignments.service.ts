@@ -754,6 +754,8 @@ export class AssignmentsService {
         playerId: true,
         teamId: true,
         targetType: true,
+        status: true,
+        completedAt: true,
       },
     });
     if (!assignment) throw new NotFoundException('Assignment not found');
@@ -777,12 +779,22 @@ export class AssignmentsService {
       }
     }
 
+    const nextStatus =
+      data.status !== undefined
+        ? toStoredAssignmentStatus(data.status)
+        : assignment.status;
+
     return this.prisma.lessonAssignment
       .update({
         where: { id: assignmentId },
         data: {
+          ...(data.status !== undefined ? { status: nextStatus } : {}),
           ...(data.status !== undefined
-            ? { status: toStoredAssignmentStatus(data.status) }
+            ? nextStatus === AssignmentStatus.COMPLETED
+              ? { completedAt: assignment.completedAt ?? new Date() }
+              : assignment.status === AssignmentStatus.COMPLETED
+                ? { completedAt: null }
+                : {}
             : {}),
           ...(data.playerNotes !== undefined
             ? { playerNotes: data.playerNotes }
@@ -824,6 +836,7 @@ export class AssignmentsService {
         playerId: true,
         teamId: true,
         targetType: true,
+        status: true,
       },
     });
     if (!assignment) throw new NotFoundException('Assignment not found');
@@ -847,6 +860,9 @@ export class AssignmentsService {
             assignment.targetType === AssignmentTargetType.PLAYER
               ? AssignmentStatus.OPEN
               : undefined,
+          ...(assignment.status === AssignmentStatus.COMPLETED
+            ? { completedAt: null }
+            : {}),
         },
         include: this.assignmentInclude(),
       })

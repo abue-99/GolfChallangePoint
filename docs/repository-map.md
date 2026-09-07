@@ -297,7 +297,7 @@ Current status: journey CRUD routes, journey assignment routes, and coach lesson
 ### Learning lifecycle touchpoints
 
 - **Coach player summaries**: `/teams`, `/coach/players`, `/coach`, and the coach `/dashboard` view consume `learningProgress` from coach-facing player payloads to render the mobile-first journey/lesson lifecycle overview.
-- **Recent completion visibility**: compact coach cards use `recentCompletions` to show `COMPLETED` only for the last 90 days, while `PlayerOverviewDialog.tsx` keeps the full historical lifecycle counts.
+- **Recent completion visibility**: compact coach cards use `recentCompletions` to show `COMPLETED` only for the last 90 days, while `PlayerOverviewDialog.tsx` keeps the full historical lifecycle counts; backend summaries depend on persisted assignment `completedAt` timestamps.
 - **Player acceptance flow**: `NewAssignmentsSection.tsx`, `PlayerJourney.tsx`, and `player/queue/page.tsx` implement the `Assign → Accept → Train → Complete` flow while keeping journeys out of the queue.
 - **Backend lifecycle sync**: `apps/api/src/assignments/assignment-lifecycle.ts` centralises lifecycle normalization, journey-status syncing, and coach/player learning-summary aggregation.
 

@@ -534,8 +534,15 @@ export class DevelopmentPlansService {
     }
 
     const updateData: Prisma.LessonAssignmentUpdateInput = {};
-    if (data.status !== undefined)
-      updateData.status = toStoredAssignmentStatus(data.status);
+    if (data.status !== undefined) {
+      const nextStatus = toStoredAssignmentStatus(data.status);
+      updateData.status = nextStatus;
+      if (nextStatus === AssignmentStatus.COMPLETED) {
+        updateData.completedAt = assignment.completedAt ?? new Date();
+      } else if (assignment.status === AssignmentStatus.COMPLETED) {
+        updateData.completedAt = null;
+      }
+    }
     if (data.playerNotes !== undefined)
       updateData.playerNotes = data.playerNotes;
     if (data.selfAssessment !== undefined)

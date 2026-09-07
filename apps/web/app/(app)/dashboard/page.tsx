@@ -220,7 +220,7 @@ export default function Dashboard() {
         </Link>
       ) : null}
 
-      {role === "COACH" ? (
+      {isCoachOrAdmin ? (
         <section className="space-y-3">
           <div>
             <h2 className="text-lg font-semibold text-[var(--golf-heading)]">

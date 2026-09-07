@@ -395,7 +395,7 @@ Queue-backed assignment created when a coach assigns a journey to a player or te
 
 - Direct assignment to a single player creates one `JourneyTemplateAssignment` and a generated player plan.
 - Direct assignment to a team resolves all active members and creates one separate `JourneyTemplateAssignment` per member.
-- Coach-facing journey save and assignment flows rely on the web proxy layer to refresh expired access tokens before retrying the backend request.
+- Coach-facing journey save and assignment flows rely on the web proxy layer to refresh expired access tokens before retrying the backend request, so journey API paths must be routed through Next.js proxy handlers.
 
 ---
 

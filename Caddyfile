@@ -39,6 +39,14 @@ golf-challengepoint.com, www.golf-challengepoint.com {
                 reverse_proxy web:3000
         }
 
+        handle /api/journeys* {
+                reverse_proxy web:3000
+        }
+
+        handle /api/coach/journeys* {
+                reverse_proxy web:3000
+        }
+
         # Remaining API routes go directly to the NestJS backend.
         handle /api/* {
                 uri strip_prefix /api
@@ -50,5 +58,4 @@ golf-challengepoint.com, www.golf-challengepoint.com {
                 reverse_proxy web:3000
         }
 }
-
 

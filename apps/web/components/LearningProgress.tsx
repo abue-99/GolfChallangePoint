@@ -101,7 +101,7 @@ function CompactLearningSummaryRow({
       background: "linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.12)), #CA8A04",
     },
     ACTIVE: {
-      background: "linear-gradient(rgba(0, 0, 0, 0.36), rgba(0, 0, 0, 0.36)), #84CC16",
+      background: "linear-gradient(rgba(0, 0, 0, 0.52), rgba(0, 0, 0, 0.52)), #84CC16",
     },
     COMPLETED: {
       background: "linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.12)), #16A34A",

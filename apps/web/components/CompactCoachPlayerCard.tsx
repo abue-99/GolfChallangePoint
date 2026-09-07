@@ -47,6 +47,8 @@ export default function CompactCoachPlayerCard({
           {inactive ? (
             <span
               className="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-white bg-amber-400"
+              aria-label="Inactive player"
+              role="img"
               title="Inactive"
             />
           ) : null}

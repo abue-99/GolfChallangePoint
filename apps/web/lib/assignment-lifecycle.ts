@@ -92,7 +92,7 @@ export function normalizeLifecycleStatus(
     case "REVIEWED":
       return "COMPLETED";
     default:
-      return "ACCEPTED";
+      return "PENDING";
   }
 }
 

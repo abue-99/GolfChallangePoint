@@ -180,6 +180,11 @@ export async function loadPlayerLearningSummaries(
       select: {
         playerId: true,
         status: true,
+        block: {
+          select: {
+            planId: true,
+          },
+        },
       },
     }),
     prisma.journeyTemplateAssignment.findMany({
@@ -193,13 +198,6 @@ export async function loadPlayerLearningSummaries(
       },
     }),
   ]);
-
-  for (const assignment of lessonAssignments) {
-    if (!assignment.playerId) continue;
-    summaries[assignment.playerId].lessons[
-      toLifecycleStatus(assignment.status)
-    ] += 1;
-  }
 
   const uniquePlanIds = [
     ...new Set(
@@ -286,6 +284,31 @@ export async function loadPlayerLearningSummaries(
         journeyStatusesByPlanId.get(assignment.playerPlanId) ??
           assignment.status,
       )
+    ] += 1;
+  }
+
+  const pendingJourneyPlanIds = new Set(
+    journeyAssignments
+      .filter(
+        (assignment) =>
+          toLifecycleStatus(
+            journeyStatusesByPlanId.get(assignment.playerPlanId) ??
+              assignment.status,
+          ) === 'PENDING',
+      )
+      .map((assignment) => assignment.playerPlanId),
+  );
+
+  for (const assignment of lessonAssignments) {
+    if (
+      !assignment.playerId ||
+      (assignment.block?.planId &&
+        pendingJourneyPlanIds.has(assignment.block.planId))
+    ) {
+      continue;
+    }
+    summaries[assignment.playerId].lessons[
+      toLifecycleStatus(assignment.status)
     ] += 1;
   }
 

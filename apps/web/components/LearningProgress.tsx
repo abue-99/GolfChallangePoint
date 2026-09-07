@@ -79,44 +79,64 @@ export function hasVisibleLearningProgress(
   );
 }
 
-export function CompactLifecycleBar({
-  label,
+function CompactLearningSummaryRow({
+  prefix,
   counts,
-  recentCompletedCount,
   className,
 }: {
-  label: string;
-  counts?: Partial<LifecycleCounts> | null;
-  recentCompletedCount?: number | null;
+  prefix: "J" | "L";
+  counts: LifecycleCounts;
   className?: string;
 }) {
-  const normalized = getCompactCounts(counts, recentCompletedCount);
-  const visibleSegments = getVisibleSegments(normalized);
-
+  const visibleSegments = getVisibleSegments(counts);
+  const rowLabel = prefix === "J" ? "Journeys" : "Lessons";
   if (visibleSegments.length === 0) return null;
 
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <p className="text-[11px] font-medium text-slate-500">{label}</p>
-      <div
-        className="grid gap-px overflow-hidden rounded-md border border-slate-200 bg-slate-200"
-        style={{
-          gridTemplateColumns: `repeat(${visibleSegments.length}, minmax(0, 1fr))`,
-        }}
-      >
+    <div
+      className={cn("flex items-center gap-2 text-xs text-slate-700", className)}
+      aria-label={`${rowLabel} summary`}
+    >
+      <span className="font-semibold text-slate-500">{prefix}</span>
+      <div className="flex flex-wrap items-center gap-2">
         {visibleSegments.map((status) => (
-          <div
+          <span
             key={status}
-            className={cn(
-              "flex min-w-0 items-center justify-center px-2 py-1 text-xs font-semibold text-white",
-              LIFECYCLE_META[status].bgClass,
-            )}
-            title={`${LIFECYCLE_META[status].label}: ${normalized[status]}`}
+            className="font-semibold"
+            title={`${LIFECYCLE_META[status].label}: ${counts[status]}`}
           >
-            {normalized[status]}
-          </div>
+            <span aria-hidden="true">{LIFECYCLE_META[status].emoji}</span>
+            <span className="sr-only">
+              {`${rowLabel} ${LIFECYCLE_META[status].label}: ${counts[status]}`}
+            </span>
+            <span aria-hidden="true">{counts[status]}</span>
+          </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+export function CompactLearningSummary({
+  progress,
+  className,
+}: {
+  progress?: LearningProgressSummary | null;
+  className?: string;
+}) {
+  const journeyCounts = getCompactCounts(
+    progress?.journeys,
+    progress?.recentCompletions?.journeys,
+  );
+  const lessonCounts = getCompactCounts(
+    progress?.lessons,
+    progress?.recentCompletions?.lessons,
+  );
+
+  return (
+    <div className={cn("w-full space-y-1.5", className)}>
+      <CompactLearningSummaryRow prefix="J" counts={journeyCounts} />
+      <CompactLearningSummaryRow prefix="L" counts={lessonCounts} />
     </div>
   );
 }
@@ -170,20 +190,7 @@ export function LearningProgressSection({
   compact?: boolean;
 }) {
   if (compact) {
-    return (
-      <div className="w-full space-y-2">
-        <CompactLifecycleBar
-          label="Journeys"
-          counts={progress?.journeys}
-          recentCompletedCount={progress?.recentCompletions?.journeys}
-        />
-        <CompactLifecycleBar
-          label="Lessons"
-          counts={progress?.lessons}
-          recentCompletedCount={progress?.recentCompletions?.lessons}
-        />
-      </div>
-    );
+    return <CompactLearningSummary progress={progress} />;
   }
 
   return (

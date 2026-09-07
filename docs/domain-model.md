@@ -135,6 +135,8 @@ A group of players managed by one coach, optionally inside a `Club`.
 
 **Relations**: `members` (TeamMember) · `practiceSlots` · `developmentPlans` · `events` (TeamEvent)
 
+**Coach UI projection**: compact team cards in the coach teams workspace prioritize `icon`, `shortName`, `description`, and member avatars; `category` and `clubId` remain metadata for edit/detail flows rather than the primary overview card.
+
 ---
 
 ### `TeamMember` (table: `team_members`)

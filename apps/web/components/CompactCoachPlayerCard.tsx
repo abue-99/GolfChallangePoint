@@ -15,6 +15,8 @@ type CompactCoachPlayerCardProps = {
   statusContent?: ReactNode;
   footer?: ReactNode;
   className?: string;
+  contentClassName?: string;
+  nameClassName?: string;
   avatarFallbackClassName?: string;
 };
 
@@ -27,6 +29,8 @@ export default function CompactCoachPlayerCard({
   statusContent,
   footer,
   className,
+  contentClassName,
+  nameClassName,
   avatarFallbackClassName,
 }: CompactCoachPlayerCardProps) {
   return (
@@ -36,7 +40,12 @@ export default function CompactCoachPlayerCard({
         className,
       )}
     >
-      <CardContent className="flex flex-col items-center gap-2.5 p-4 text-center">
+      <CardContent
+        className={cn(
+          "flex flex-col items-center gap-2.5 p-4 text-center",
+          contentClassName,
+        )}
+      >
         <div className="relative">
           <Avatar className="h-16 w-16">
             {profileImage ? <AvatarImage src={profileImage} alt={name} /> : null}
@@ -53,7 +62,12 @@ export default function CompactCoachPlayerCard({
             />
           ) : null}
         </div>
-        <span className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-[var(--golf-heading)]">
+        <span
+          className={cn(
+            "line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-[var(--golf-heading)]",
+            nameClassName,
+          )}
+        >
           {name}
         </span>
         {statusContent ?? <CompactLearningSummary progress={progress} className="w-full" />}

@@ -215,11 +215,11 @@ All require JWT + COACH or ADMIN.
 | `/coach/journeys`                    | `coach/journeys/page.tsx`           | Journey library and quick assignment                                                   |
 | `/coach/journeys/new`                | `coach/journeys/new/page.tsx`       | Create journey template                                                                |
 | `/coach/journeys/[id]`               | `coach/journeys/[id]/page.tsx`      | Edit journey template                                                                  |
-| `/coach/teams`                       | `coach/teams/page.tsx`              | Alias to the integrated teams + players coaching view                                  |
+| `/coach/teams`                       | `coach/teams/page.tsx`              | Alias to the integrated collapsible teams + players card workspace                     |
 | `/coach`                             | `coach/page.tsx`                    | Coach home                                                                             |
 | `/player`                            | `player/page.tsx`                   | Player home                                                                            |
 | `/calendar`                          | `calendar/page.tsx`                 | FullCalendar view                                                                      |
-| `/teams`                             | `teams/page.tsx`                    | Primary coach teams/players view with integrated lesson library + assignment drag/drop |
+| `/teams`                             | `teams/page.tsx`                    | Primary coach workspace with collapsible team/player card rails plus stacked or sidebar libraries |
 | `/planning`                          | `planning/page.tsx`                 | Planning hub                                                                           |
 | `/training-windows`                  | `training-windows/page.tsx`         | Training window scheduling                                                             |
 | `/club`                              | `club/page.tsx`                     | Club view                                                                              |
@@ -265,7 +265,7 @@ Current status: journey CRUD routes, journey assignment routes, and coach lesson
 | `PlayerJourney.tsx`              | Visual plan progress for player                                 |
 | `PlayerOverviewDialog.tsx`       | Shared coach-side player popup used by teams and dashboard      |
 | `LearningProgress.tsx`           | Shared `CompactLearningSummary` (Journeys/Lessons compact lifecycle color bars) + icon-free fixed-segment lifecycle bars |
-| `CompactCoachPlayerCard.tsx`     | Shared compact coach player card used by dashboard and teams/player grids |
+| `CompactCoachPlayerCard.tsx`         | Shared compact coach player card used by dashboard and the horizontal teams/player rails |
 | `PracticeSlotDialog.tsx`         | Create/edit `PracticeSlot`                                      |
 | `AssignTaskDialog.tsx`           | Assign `CalendarTask` to a slot                                 |
 | `TrainingWindowDialog.tsx`       | Create/edit training window                                     |

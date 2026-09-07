@@ -6,12 +6,14 @@ import {
   Trash2,
   SquarePen,
   Plus,
+  Minus,
   UserPlus,
   X,
   Search,
   Route as RouteIcon,
   CalendarDays,
   BookOpen,
+  MoreHorizontal,
 } from "lucide-react";
 import { DndLessonProvider } from "@/components/DndLessonProvider";
 import { Button } from "@/components/ui/button";
@@ -45,6 +47,12 @@ import { toast } from "sonner";
 import CompactCoachPlayerCard from "@/components/CompactCoachPlayerCard";
 import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
 import { subscribeLearningProgressChanges } from "@/lib/learning-progress-events";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Common icons represented as emoji for team assignment
 const TEAM_ICONS = [
@@ -206,6 +214,19 @@ const EMPTY_FORM: FormState = {
   clubId: "",
 };
 
+const TEAMS_COLLAPSED_STORAGE_KEY = "teamsCollapsed";
+const PLAYERS_COLLAPSED_STORAGE_KEY = "playersCollapsed";
+
+function loadCollapsedPreference(key: string) {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(key) === "true";
+}
+
+function saveCollapsedPreference(key: string, value: boolean) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(key, String(value));
+}
+
 function initials(p: Player) {
   return (
     `${p.firstName?.[0] ?? ""}${p.lastName?.[0] ?? ""}`.toUpperCase() || "?"
@@ -238,149 +259,79 @@ function playerDisplayName(player: Player) {
   );
 }
 
-function DroppableTeamRows({
+function DroppableTeamCard({
   team,
   teamPendingCount,
   membersContent,
-  actionsContent,
-  clubDisplayName,
-  clubFullName,
-  onDoubleClick,
+  footerContent,
+  onOpen,
 }: {
   team: Team;
   teamPendingCount: number;
   membersContent: React.ReactNode;
-  actionsContent: React.ReactNode;
-  clubDisplayName: string | null;
-  clubFullName?: string | null;
-  onDoubleClick: () => void;
+  footerContent: React.ReactNode;
+  onOpen: () => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({
     id: `team:${team.id}`,
     data: { teamName: team.shortName },
   });
-  const affectedPlayers = team.members.length;
 
   return (
-    <tbody
+    <div
       ref={setNodeRef}
-      className={cn("transition-colors", isOver && "bg-emerald-50/80")}
+      className={cn(
+        "flex min-h-[230px] w-[260px] min-w-[260px] cursor-pointer flex-col rounded-2xl border border-[var(--golf-muted)] bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md sm:w-[280px] sm:min-w-[280px]",
+        isOver && "border-emerald-400 bg-emerald-50 shadow-md ring-2 ring-emerald-400/60",
+      )}
+      onClick={onOpen}
+      title={[team.shortName, team.description?.trim()].filter(Boolean).join(" — ")}
     >
-      <tr
-        className={cn(
-          "align-top cursor-pointer hover:bg-gray-50 sm:border-b sm:border-gray-200",
-          isOver && "bg-emerald-50",
-        )}
-        onDoubleClick={onDoubleClick}
-        title="Double-click to edit"
-      >
-        <td
-          className={cn(
-            "px-4 py-1.5 font-medium",
-            isOver && "border-y border-emerald-300",
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100">
+          {team.icon ? (
+            <TeamIcon icon={team.icon} size={18} />
+          ) : (
+            <span className="text-lg">⛳</span>
           )}
-        >
-          <div className="flex items-center gap-1.5">
-            {team.icon && <TeamIcon icon={team.icon} size={14} />}
-            <span className="whitespace-nowrap">{team.shortName}</span>
-            {(team.category || team.description) && (
-              <span className="sm:hidden flex items-center gap-1 min-w-0">
-                {team.category && (
-                  <span className="text-xs font-normal text-gray-500 whitespace-nowrap">
-                    · {team.category}
-                  </span>
-                )}
-                {team.description && (
-                  <span className="text-xs font-normal text-gray-400 truncate max-w-[100px]">
-                    · {team.description.slice(0, 50)}
-                    {team.description.length > 50 ? "…" : ""}
-                  </span>
-                )}
-              </span>
-            )}
-          </div>
-          <div className="mt-1 space-y-0.5">
-            <span className="block text-[11px] font-medium text-amber-700">
-              {pendingLessonsLabel(teamPendingCount)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p
+            className="truncate text-sm font-semibold text-[var(--golf-heading)]"
+            title={team.shortName}
+          >
+            {team.shortName}
+          </p>
+          <p
+            className="mt-1 line-clamp-2 min-h-[2.5rem] text-xs leading-5 text-slate-500"
+            title={team.description ?? undefined}
+          >
+            {team.description?.trim() || "No description yet."}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex-1">
+        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+          Members
+        </div>
+        <div className="mt-2">{membersContent}</div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+        <div className="space-y-0.5">
+          <span className="block text-[11px] font-medium text-amber-700">
+            {pendingLessonsLabel(teamPendingCount)}
+          </span>
+          {isOver ? (
+            <span className="block text-[11px] font-medium text-emerald-700">
+              Assign to {team.shortName}
             </span>
-            {isOver && (
-              <>
-                <span className="block text-[11px] font-medium text-emerald-700">
-                  Assign to {team.shortName}
-                </span>
-                <span className="block text-[11px] text-emerald-700/90">
-                  {affectedPlayers} Players Affected
-                </span>
-              </>
-            )}
-          </div>
-        </td>
-        <td
-          className={cn(
-            "hidden sm:table-cell px-4 py-1.5 text-gray-600 max-w-xs",
-            isOver && "border-y border-emerald-300",
-          )}
-        >
-          {team.description ? (
-            `${team.description.slice(0, 50)}${team.description.length > 50 ? "…" : ""}`
-          ) : (
-            <span className="text-gray-400 italic">—</span>
-          )}
-        </td>
-        <td
-          className={cn(
-            "hidden sm:table-cell px-4 py-1.5 whitespace-nowrap text-gray-500",
-            isOver && "border-y border-emerald-300",
-          )}
-        >
-          {team.category}
-        </td>
-        <td
-          className={cn(
-            "hidden sm:table-cell px-4 py-1.5 whitespace-nowrap text-gray-500",
-            isOver && "border-y border-emerald-300",
-          )}
-        >
-          {clubDisplayName ? (
-            <span title={clubFullName ?? undefined}>{clubDisplayName}</span>
-          ) : (
-            <span className="text-gray-400 italic">—</span>
-          )}
-        </td>
-        <td
-          className={cn(
-            "hidden sm:table-cell px-4 py-1.5 min-w-[160px]",
-            isOver && "border-y border-emerald-300",
-          )}
-        >
-          {membersContent}
-        </td>
-        <td
-          className={cn(
-            "hidden sm:table-cell px-4 py-1.5 text-right",
-            isOver && "border-y border-emerald-300",
-          )}
-        >
-          {actionsContent}
-        </td>
-      </tr>
-      <tr
-        className={cn(
-          "sm:hidden border-b border-gray-200",
-          isOver && "bg-emerald-50",
-        )}
-      >
-        <td
-          colSpan={1}
-          className={cn("px-4 pb-2", isOver && "border-b border-emerald-300")}
-        >
-          <div className="flex items-center justify-between gap-2">
-            {membersContent}
-            {actionsContent}
-          </div>
-        </td>
-      </tr>
-    </tbody>
+          ) : null}
+        </div>
+        {footerContent}
+      </div>
+    </div>
   );
 }
 
@@ -406,9 +357,7 @@ function DroppablePlayerCard({
   return (
     <div
       ref={setNodeRef}
-      className={cn(
-        "relative group cursor-pointer select-none",
-      )}
+      className="relative group w-44 min-w-44 cursor-pointer select-none"
       onClick={onOpen}
       title="Click to view details"
     >
@@ -429,7 +378,13 @@ function DroppablePlayerCard({
         profileImage={player.profileImage}
         progress={player.learningProgress}
         inactive={isInactive}
-        className={cn(isOver ? "border-emerald-400 bg-emerald-50 shadow-md ring-2 ring-emerald-400/60" : undefined)}
+        className={cn(
+          "h-full",
+          isOver &&
+            "border-emerald-400 bg-emerald-50 shadow-md ring-2 ring-emerald-400/60",
+        )}
+        contentClassName="gap-2 p-3"
+        nameClassName="min-h-[2.2rem] text-[13px]"
         statusContent={isOver ? (
           <span className="text-[11px] font-medium text-emerald-700">
             {`Assign to ${name}`}
@@ -449,6 +404,8 @@ export default function TeamsPage() {
   const [myClubs, setMyClubs] = useState<ClubOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [teamsCollapsed, setTeamsCollapsed] = useState(false);
+  const [playersCollapsed, setPlayersCollapsed] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -456,11 +413,6 @@ export default function TeamsPage() {
   const [saving, setSaving] = useState(false);
 
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
-
-  const [addMemberTeamId, setAddMemberTeamId] = useState<string | null>(null);
-  // Players filtered for the "add member" dropdown of a specific team
-  const [teamPlayers, setTeamPlayers] = useState<Player[]>([]);
-  const [teamPlayersLoading, setTeamPlayersLoading] = useState(false);
 
   const [selectedMemberPlayer, setSelectedMemberPlayer] =
     useState<Player | null>(null);
@@ -483,8 +435,22 @@ export default function TeamsPage() {
     Record<string, number>
   >({});
   const [assignLesson, setAssignLesson] = useState<TrainingLesson | null>(null);
+  const [assignJourney, setAssignJourney] = useState<JourneyTemplate | null>(null);
   const [assignPlayerId, setAssignPlayerId] = useState<string | null>(null);
   const [assignTeamId, setAssignTeamId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTeamsCollapsed(loadCollapsedPreference(TEAMS_COLLAPSED_STORAGE_KEY));
+    setPlayersCollapsed(loadCollapsedPreference(PLAYERS_COLLAPSED_STORAGE_KEY));
+  }, []);
+
+  useEffect(() => {
+    saveCollapsedPreference(TEAMS_COLLAPSED_STORAGE_KEY, teamsCollapsed);
+  }, [teamsCollapsed]);
+
+  useEffect(() => {
+    saveCollapsedPreference(PLAYERS_COLLAPSED_STORAGE_KEY, playersCollapsed);
+  }, [playersCollapsed]);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -806,21 +772,6 @@ export default function TeamsPage() {
     }
   }
 
-  async function openAddMember(team: Team) {
-    setAddMemberTeamId(team.id);
-    setTeamPlayersLoading(true);
-    try {
-      const url = team.clubId
-        ? `/api/teams/club-players?clubId=${encodeURIComponent(team.clubId)}`
-        : "/api/teams/club-players";
-      const res = await fetch(url);
-      const data = await res.json();
-      setTeamPlayers(Array.isArray(data) ? data.filter(Boolean) : []);
-    } finally {
-      setTeamPlayersLoading(false);
-    }
-  }
-
   async function handleAddMember(teamId: string, userId: string) {
     const res = await fetch(`/api/teams/${teamId}/members`, {
       method: "POST",
@@ -923,589 +874,428 @@ export default function TeamsPage() {
         handleAssignmentSuccess(target, result as AssignmentResult | undefined);
       }}
     >
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className="mx-auto grid max-w-[1500px] gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="space-y-3">
-            <h1 className="text-2xl font-bold">Teams</h1>
-
-            {/* New Team Form */}
-            {showForm && (
-              <div className="rounded-xl border bg-white p-5 space-y-4 shadow-sm">
-                <h2 className="text-sm font-semibold text-gray-700">
-                  New Team
-                </h2>
-
-                {/* Icon picker */}
-                <div className="space-y-1">
-                  <Label>
-                    Icon{" "}
-                    <span className="text-gray-400 text-xs">(optional)</span>
-                  </Label>
-                  {/* Emoji icons + colored circles in one row */}
-                  <div className="flex flex-wrap gap-1">
-                    {TEAM_ICONS.map((emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() =>
-                          setForm((f) => ({
-                            ...f,
-                            icon: f.icon === emoji ? "" : emoji,
-                          }))
-                        }
-                        className={`text-base p-1 rounded border transition-colors ${
-                          form.icon === emoji
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-transparent hover:border-gray-300"
-                        }`}
-                        aria-label={`Select icon ${emoji}`}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                    {TEAM_COLOR_CIRCLES.map(({ value, label }) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() =>
-                          setForm((f) => ({
-                            ...f,
-                            icon: f.icon === value ? "" : value,
-                          }))
-                        }
-                        className={`p-1 rounded-full border transition-colors ${
-                          form.icon === value
-                            ? "border-blue-500 ring-2 ring-blue-300"
-                            : "border-transparent hover:border-gray-400"
-                        }`}
-                        aria-label={`Select ${label} circle`}
-                        title={label}
-                      >
-                        <TeamIcon icon={value} size={18} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="shortName">
-                    Short Name{" "}
-                    <span className="text-gray-400 text-xs">
-                      (max 20 chars)
-                    </span>
-                  </Label>
-                  <Input
-                    id="shortName"
-                    maxLength={20}
-                    value={form.shortName}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, shortName: e.target.value }))
-                    }
-                    placeholder="e.g. Team Alpha"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="description">
-                    Description{" "}
-                    <span className="text-gray-400 text-xs">
-                      (optional, max 200 chars — {form.description.length}/200)
-                    </span>
-                  </Label>
-                  <Textarea
-                    id="description"
-                    maxLength={200}
-                    rows={3}
-                    value={form.description}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, description: e.target.value }))
-                    }
-                    placeholder="Describe the team's purpose and goals…"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Label>
-                    Category{" "}
-                    <span className="text-gray-400 text-xs">(optional)</span>
-                  </Label>
-                  {categories.length > 0 && !form.categoryInput && (
-                    <Select
-                      value={form.category}
-                      onValueChange={(val) =>
-                        setForm((f) => ({
-                          ...f,
-                          category: val,
-                          categoryInput: "",
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select existing or type new below" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((c) => (
-                          <SelectItem key={c} value={c}>
-                            {c}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  <Input
-                    value={form.categoryInput}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        categoryInput: e.target.value,
-                        category: "",
-                      }))
-                    }
-                    placeholder={
-                      categories.length > 0
-                        ? "Or type a new category…"
-                        : "Type a category…"
-                    }
-                  />
-                </div>
-
-                {myClubs.length > 0 && (
-                  <div className="space-y-1">
-                    <Label>
-                      Club{" "}
-                      <span className="text-gray-400 text-xs">
-                        (optional – limits member selection)
-                      </span>
-                    </Label>
-                    <Select
-                      value={form.clubId || "__none__"}
-                      onValueChange={(val) =>
-                        setForm((f) => ({
-                          ...f,
-                          clubId: val === "__none__" ? "" : val,
-                        }))
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All clubs (no restriction)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">
-                          All clubs (no restriction)
-                        </SelectItem>
-                        {myClubs.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {formError && (
-                  <p className="text-sm text-red-600">{formError}</p>
-                )}
-
-                <div className="flex gap-2">
-                  <Button onClick={handleCreate} disabled={saving}>
-                    {saving ? "Creating…" : "Create Team"}
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowForm(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Teams Table */}
-            {/* Search bar + New Team button in one row directly above the table */}
-            <div className="flex items-center gap-2">
-              <div className="relative w-full max-w-xs">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  className="pl-8"
-                  placeholder="Search teams…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <Button
-                size="sm"
-                onClick={() => {
-                  setShowForm((v) => !v);
-                  setForm(EMPTY_FORM);
-                  setFormError("");
-                }}
+          <div className="space-y-8">
+            <section className="space-y-4">
+              <button
+                type="button"
+                onClick={() => setTeamsCollapsed((value) => !value)}
+                className="flex items-center gap-2 text-left"
+                aria-expanded={!teamsCollapsed}
               >
-                <Plus size={16} className="mr-1" /> New Team
-              </Button>
-            </div>
+                {teamsCollapsed ? (
+                  <Plus className="h-4 w-4 text-slate-500" />
+                ) : (
+                  <Minus className="h-4 w-4 text-slate-500" />
+                )}
+                <h1 className="text-2xl font-bold">Teams</h1>
+              </button>
 
-            {teams.length === 0 ? (
-              <p className="text-sm text-gray-500">
-                No teams yet. Create your first team above.
-              </p>
-            ) : filtered.length === 0 ? (
-              <p className="text-sm text-gray-500">No matching teams found.</p>
-            ) : (
-              <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-                    <tr>
-                      <th className="px-4 py-2 text-left">Team</th>
-                      <th className="hidden sm:table-cell px-4 py-2 text-left">
-                        Description
-                      </th>
-                      <th className="hidden sm:table-cell px-4 py-2 text-left">
-                        Category
-                      </th>
-                      <th className="hidden sm:table-cell px-4 py-2 text-left">
-                        Club
-                      </th>
-                      <th className="hidden sm:table-cell px-4 py-2 text-left">
-                        Members
-                      </th>
-                      <th className="hidden sm:table-cell px-4 py-2 text-right"></th>
-                    </tr>
-                  </thead>
-                  {filtered.map((team) => {
-                    const teamMemberIds = new Set(
-                      team.members.map((m) => m.userId),
-                    );
-                    const isAddingToThisTeam = addMemberTeamId === team.id;
-                    const availablePlayers = (
-                      isAddingToThisTeam ? teamPlayers : allPlayers
-                    ).filter((p) => !teamMemberIds.has(p.id));
-                    const teamPendingCount = teamPendingById[team.id] ?? 0;
-                    const club = myClubs.find((c) => c.id === team.clubId);
-                    const clubDisplayName = club
-                      ? club.shortId || club.name
-                      : null;
-                    const clubFullName = club?.name;
+              {!teamsCollapsed ? (
+                <>
+                  {showForm && (
+                    <div className="space-y-4 rounded-xl border bg-white p-5 shadow-sm">
+                      <h2 className="text-sm font-semibold text-gray-700">
+                        New Team
+                      </h2>
 
-                    const membersContent = (
-                      <div className="flex flex-wrap items-center gap-1">
-                        {team.members.map((m) => (
-                          <div key={m.userId} className="relative group">
-                            <Avatar
-                              className="h-7 w-7 text-xs cursor-pointer"
-                              title={`${m.user?.firstName ?? ""} ${m.user?.lastName ?? ""}`.trim()}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (m.user) setSelectedMemberPlayer(m.user);
-                              }}
-                            >
-                              {m.user?.profileImage && (
-                                <AvatarImage
-                                  src={m.user.profileImage}
-                                  alt={initials(m.user)}
-                                />
-                              )}
-                              <AvatarFallback className="bg-blue-100 text-blue-700">
-                                {m.user ? initials(m.user) : "?"}
-                              </AvatarFallback>
-                            </Avatar>
-                            {(playerQueueById[m.userId] ?? 0) > 0 && (
-                              <span
-                                className="absolute -bottom-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold leading-none text-white"
-                                title={`Queued lessons: ${playerQueueById[m.userId] ?? 0}`}
-                              >
-                                {queueCountLabel(
-                                  playerQueueById[m.userId] ?? 0,
-                                )}
-                              </span>
-                            )}
+                      <div className="space-y-1">
+                        <Label>
+                          Icon{" "}
+                          <span className="text-gray-400 text-xs">(optional)</span>
+                        </Label>
+                        <div className="flex flex-wrap gap-1">
+                          {TEAM_ICONS.map((emoji) => (
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveMember(team.id, m.userId);
-                              }}
-                              className="absolute -top-1 -right-1 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white"
-                              aria-label="Remove member"
+                              key={emoji}
+                              type="button"
+                              onClick={() =>
+                                setForm((f) => ({
+                                  ...f,
+                                  icon: f.icon === emoji ? "" : emoji,
+                                }))
+                              }
+                              className={`text-base p-1 rounded border transition-colors ${
+                                form.icon === emoji
+                                  ? "border-blue-500 bg-blue-50"
+                                  : "border-transparent hover:border-gray-300"
+                              }`}
+                              aria-label={`Select icon ${emoji}`}
                             >
-                              <X size={8} />
+                              {emoji}
                             </button>
-                          </div>
-                        ))}
-                        {isAddingToThisTeam ? (
-                          <div
-                            className="flex items-center gap-1"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {teamPlayersLoading ? (
-                              <span className="text-xs text-gray-400">
-                                Loading…
-                              </span>
-                            ) : availablePlayers.length > 0 ? (
-                              <Select
-                                onValueChange={(userId) =>
-                                  handleAddMember(team.id, userId)
-                                }
-                              >
-                                <SelectTrigger className="h-7 text-xs w-44">
-                                  <SelectValue placeholder="Select member…" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {availablePlayers.map((p) => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                      {`${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() ||
-                                        p.id}
-                                      {p.role && p.role !== "PLAYER" && (
-                                        <span className="ml-1 text-gray-400 text-xs">
-                                          ({p.role})
-                                        </span>
-                                      )}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              <span className="text-xs text-gray-400">
-                                No available members
-                              </span>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setAddMemberTeamId(null);
-                              }}
+                          ))}
+                          {TEAM_COLOR_CIRCLES.map(({ value, label }) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() =>
+                                setForm((f) => ({
+                                  ...f,
+                                  icon: f.icon === value ? "" : value,
+                                }))
+                              }
+                              className={`p-1 rounded-full border transition-colors ${
+                                form.icon === value
+                                  ? "border-blue-500 ring-2 ring-blue-300"
+                                  : "border-transparent hover:border-gray-400"
+                              }`}
+                              aria-label={`Select ${label} circle`}
+                              title={label}
                             >
-                              <X size={12} />
-                            </Button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openAddMember(team);
-                            }}
-                            className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500"
-                            aria-label="Add member"
+                              <TeamIcon icon={value} size={18} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="shortName">
+                          Short Name{" "}
+                          <span className="text-gray-400 text-xs">
+                            (max 20 chars)
+                          </span>
+                        </Label>
+                        <Input
+                          id="shortName"
+                          maxLength={20}
+                          value={form.shortName}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, shortName: e.target.value }))
+                          }
+                          placeholder="e.g. Team Alpha"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="description">
+                          Description{" "}
+                          <span className="text-gray-400 text-xs">
+                            (optional, max 200 chars — {form.description.length}/200)
+                          </span>
+                        </Label>
+                        <Textarea
+                          id="description"
+                          maxLength={200}
+                          rows={3}
+                          value={form.description}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, description: e.target.value }))
+                          }
+                          placeholder="Describe the team's purpose and goals…"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label>
+                          Category{" "}
+                          <span className="text-gray-400 text-xs">(optional)</span>
+                        </Label>
+                        {categories.length > 0 && !form.categoryInput && (
+                          <Select
+                            value={form.category}
+                            onValueChange={(val) =>
+                              setForm((f) => ({
+                                ...f,
+                                category: val,
+                                categoryInput: "",
+                              }))
+                            }
                           >
-                            <UserPlus size={12} />
-                          </button>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select existing or type new below" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories.map((c) => (
+                                <SelectItem key={c} value={c}>
+                                  {c}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         )}
+                        <Input
+                          value={form.categoryInput}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              categoryInput: e.target.value,
+                              category: "",
+                            }))
+                          }
+                          placeholder={
+                            categories.length > 0
+                              ? "Or type a new category…"
+                              : "Type a category…"
+                          }
+                        />
                       </div>
-                    );
 
-                    const actionsContent = (
-                      <div className="flex items-center gap-1">
-                        {/* Assign Lesson button */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-gray-500 hover:text-primary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setAssignLesson(null);
-                            setAssignPlayerId(null);
-                            setAssignTeamId(team.id);
-                          }}
-                          aria-label="Assign lesson to team"
-                          title="Assign Lesson"
-                        >
-                          <BookOpen size={16} />
-                        </Button>
-                        {/* Dev Plans button with badge */}
-                        <div className="relative">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={
-                              teamPlanCounts[team.id]
-                                ? "text-emerald-600 hover:text-emerald-700"
-                                : "text-gray-500 hover:text-emerald-600"
-                            }
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setJourneyTeam(team);
-                            }}
-                            aria-label="Team Journeys"
-                            title="Journeys"
-                          >
-                            <RouteIcon size={16} />
-                          </Button>
-                          {(teamPlanCounts[team.id] ?? 0) > 0 && (
-                            <span className="pointer-events-none absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white">
-                              {teamPlanCounts[team.id]}
+                      {myClubs.length > 0 && (
+                        <div className="space-y-1">
+                          <Label>
+                            Club{" "}
+                            <span className="text-gray-400 text-xs">
+                              (optional – limits member selection)
                             </span>
-                          )}
-                        </div>
-
-                        {/* Training Windows button with badge */}
-                        <div className="relative">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={
-                              teamWindowCounts[team.id]
-                                ? "text-blue-600 hover:text-blue-700"
-                                : "text-gray-500 hover:text-blue-600"
+                          </Label>
+                          <Select
+                            value={form.clubId || "__none__"}
+                            onValueChange={(val) =>
+                              setForm((f) => ({
+                                ...f,
+                                clubId: val === "__none__" ? "" : val,
+                              }))
                             }
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setTrainingWindowsTeam(team);
-                            }}
-                            aria-label="Team Training Windows"
-                            title="Training Windows"
                           >
-                            <CalendarDays size={16} />
-                          </Button>
-                          {(teamWindowCounts[team.id] ?? 0) > 0 && (
-                            <span className="pointer-events-none absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white">
-                              {teamWindowCounts[team.id]}
-                            </span>
-                          )}
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="All clubs (no restriction)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">
+                                All clubs (no restriction)
+                              </SelectItem>
+                              {myClubs.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
+                      )}
 
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-gray-500 hover:text-blue-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingTeam(team);
-                          }}
-                          aria-label="Edit team"
-                          title="Edit team"
-                        >
-                          <SquarePen size={16} />
+                      {formError ? (
+                        <p className="text-sm text-red-600">{formError}</p>
+                      ) : null}
+
+                      <div className="flex gap-2">
+                        <Button onClick={handleCreate} disabled={saving}>
+                          {saving ? "Creating…" : "Create Team"}
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-gray-400 hover:text-gray-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(team.id);
-                          }}
-                          aria-label="Delete team"
-                          title="Delete team"
-                        >
-                          <Trash2 size={16} />
+                        <Button variant="outline" onClick={() => setShowForm(false)}>
+                          Cancel
                         </Button>
                       </div>
-                    );
+                    </div>
+                  )}
 
-                    return (
-                      <DroppableTeamRows
-                        key={team.id}
-                        team={team}
-                        teamPendingCount={teamPendingCount}
-                        membersContent={membersContent}
-                        actionsContent={actionsContent}
-                        clubDisplayName={clubDisplayName}
-                        clubFullName={clubFullName}
-                        onDoubleClick={() => setEditingTeam(team)}
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <div className="relative w-full sm:max-w-xs">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                      <Input
+                        className="pl-8"
+                        placeholder="Search teams…"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
                       />
-                    );
-                  })}
-                </table>
-              </div>
-            )}
+                    </div>
+                    <Button
+                      size="sm"
+                      className="whitespace-nowrap"
+                      onClick={() => {
+                        setShowForm((v) => !v);
+                        setForm(EMPTY_FORM);
+                        setFormError("");
+                      }}
+                    >
+                      <Plus size={16} className="mr-1" />
+                      <span className="sm:hidden">Team</span>
+                      <span className="hidden sm:inline">New Team</span>
+                    </Button>
+                  </div>
 
-            {/* ── Players Section ── */}
-            <div className="mt-10">
-              <PlayersSection
-                players={myPlayers}
-                myClubs={myClubs}
-                onPlayerInvited={(newPlayer) => {
-                  setMyPlayers((prev) => {
-                    const exists = prev.some((p) => p.id === newPlayer.id);
-                    return exists ? prev : [...prev, newPlayer];
-                  });
-                  setPlayerQueueById((prev) => ({
-                    ...prev,
-                    [newPlayer.id]: newPlayer.pendingLessons ?? 0,
-                  }));
-                }}
-                onPlayerRemoved={(playerId) => {
-                  setMyPlayers((prev) => prev.filter((p) => p.id !== playerId));
-                  setPlayerQueueById((prev) => {
-                    const next = { ...prev };
-                    delete next[playerId];
-                    return next;
-                  });
+                  {teams.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      No teams yet. Create your first team above.
+                    </p>
+                  ) : filtered.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      No matching teams found.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto overflow-y-hidden pb-2">
+                      <div className="flex min-w-max gap-4">
+                        {filtered.map((team) => {
+                          const visibleMembers = team.members.slice(0, 9);
+                          const extraMembers = Math.max(team.members.length - 9, 0);
+                          const teamPendingCount = teamPendingById[team.id] ?? 0;
+
+                          const membersContent = (
+                            <div className="flex max-w-[196px] flex-wrap gap-2">
+                              {visibleMembers.length > 0 ? (
+                                visibleMembers.map((member) => (
+                                  <button
+                                    key={member.userId}
+                                    type="button"
+                                    className="relative"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      if (member.user) {
+                                        setSelectedMemberPlayer(member.user);
+                                      }
+                                    }}
+                                    title={member.user ? playerDisplayName(member.user) : member.userId}
+                                  >
+                                    <Avatar className="h-8 w-8 text-xs">
+                                      {member.user?.profileImage ? (
+                                        <AvatarImage
+                                          src={member.user.profileImage}
+                                          alt={member.user ? initials(member.user) : "?"}
+                                        />
+                                      ) : null}
+                                      <AvatarFallback className="bg-blue-100 text-blue-700">
+                                        {member.user ? initials(member.user) : "?"}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    {(playerQueueById[member.userId] ?? 0) > 0 ? (
+                                      <span
+                                        className="absolute -bottom-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold leading-none text-white"
+                                        title={`Queued lessons: ${playerQueueById[member.userId] ?? 0}`}
+                                      >
+                                        {queueCountLabel(playerQueueById[member.userId] ?? 0)}
+                                      </span>
+                                    ) : null}
+                                  </button>
+                                ))
+                              ) : (
+                                <span className="text-xs text-slate-400">No members yet.</span>
+                              )}
+                              {extraMembers > 0 ? (
+                                <span
+                                  className="flex h-8 min-w-8 items-center justify-center rounded-full bg-slate-100 px-2 text-[11px] font-semibold text-slate-600"
+                                  title={`${extraMembers} more members`}
+                                >
+                                  +{extraMembers}
+                                </span>
+                              ) : null}
+                            </div>
+                          );
+
+                          const footerContent = (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="relative text-slate-500 hover:text-slate-700"
+                                  onClick={(event) => event.stopPropagation()}
+                                  aria-label="Team actions"
+                                >
+                                  <MoreHorizontal size={16} />
+                                  {(teamPlanCounts[team.id] ?? 0) > 0 ? (
+                                    <span className="pointer-events-none absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[9px] font-bold text-white">
+                                      {teamPlanCounts[team.id]}
+                                    </span>
+                                  ) : null}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52">
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setAssignLesson(null);
+                                    setAssignPlayerId(null);
+                                    setAssignTeamId(team.id);
+                                  }}
+                                >
+                                  <BookOpen size={16} />
+                                  Lessons overview
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setJourneyTeam(team)}>
+                                  <RouteIcon size={16} />
+                                  Journeys overview
+                                  {(teamPlanCounts[team.id] ?? 0) > 0
+                                    ? ` (${teamPlanCounts[team.id]})`
+                                    : ""}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setTrainingWindowsTeam(team)}
+                                >
+                                  <CalendarDays size={16} />
+                                  Training window
+                                  {(teamWindowCounts[team.id] ?? 0) > 0
+                                    ? ` (${teamWindowCounts[team.id]})`
+                                    : ""}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setEditingTeam(team)}>
+                                  <SquarePen size={16} />
+                                  Edit team
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  variant="destructive"
+                                  onClick={() => handleDelete(team.id)}
+                                >
+                                  <Trash2 size={16} />
+                                  Delete team
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          );
+
+                          return (
+                            <DroppableTeamCard
+                              key={team.id}
+                              team={team}
+                              teamPendingCount={teamPendingCount}
+                              membersContent={membersContent}
+                              footerContent={footerContent}
+                              onOpen={() => setEditingTeam(team)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </section>
+
+            <PlayersSection
+              players={myPlayers}
+              myClubs={myClubs}
+              collapsed={playersCollapsed}
+              onCollapsedChange={setPlayersCollapsed}
+              onPlayerInvited={(newPlayer) => {
+                setMyPlayers((prev) => {
+                  const exists = prev.some((p) => p.id === newPlayer.id);
+                  return exists ? prev : [...prev, newPlayer];
+                });
+                setPlayerQueueById((prev) => ({
+                  ...prev,
+                  [newPlayer.id]: newPlayer.pendingLessons ?? 0,
+                }));
+              }}
+              onPlayerRemoved={(playerId) => {
+                setMyPlayers((prev) => prev.filter((p) => p.id !== playerId));
+                setPlayerQueueById((prev) => {
+                  const next = { ...prev };
+                  delete next[playerId];
+                  return next;
+                });
+              }}
+            />
+          </div>
+
+          <div className="order-last space-y-4 rounded-2xl border-t border-slate-200 bg-[#f7f8f7] p-4 xl:sticky xl:top-6 xl:self-start xl:border xl:border-slate-200 xl:bg-[#f5f7f5] xl:p-5">
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-background max-h-[24rem] xl:max-h-[calc(42vh-2rem)]">
+              <JourneyTemplateLibrarySidebar
+                onJourneyClick={(journey) => {
+                  if (myPlayers.length === 0 && teams.length === 0) {
+                    toast.error("No player or team available for assignment.");
+                    return;
+                  }
+                  setAssignJourney(journey);
                 }}
               />
             </div>
-          </div>
-
-          <div className="space-y-3 xl:sticky xl:top-6">
-            <div className="overflow-hidden rounded-xl border bg-background max-h-[calc(50vh-2rem)] xl:max-h-[calc(58vh-2rem)]">
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-background max-h-[28rem] xl:max-h-[calc(50vh-2rem)]">
               <LessonLibrarySidebar
                 inlineFullWidth
                 onLessonClick={(lesson) => {
                   setAssignLesson(lesson);
                   setAssignPlayerId(null);
                   setAssignTeamId(null);
-                }}
-              />
-            </div>
-            <div className="overflow-hidden rounded-xl border bg-background max-h-[calc(42vh-2rem)] xl:max-h-[calc(40vh-2rem)]">
-              <JourneyTemplateLibrarySidebar
-                onJourneyClick={async (journey: JourneyTemplate) => {
-                  if (myPlayers.length === 0 && teams.length === 0) {
-                    toast.error("No player or team available for assignment.");
-                    return;
-                  }
-                  try {
-                    const target = window.prompt(
-                      "Assign journey to player or team (p:<playerId> or t:<teamId>):",
-                    );
-                    if (!target) return;
-                    if (target.startsWith("p:")) {
-                      const playerId = target.slice(2).trim();
-                      const player = myPlayers.find((entry) => entry.id === playerId);
-                      if (!player) {
-                        toast.error("Unknown player id.");
-                        return;
-                      }
-                      const result = await api.assignJourneyToPlayer(
-                        journey.id,
-                        playerId,
-                      );
-                      handleJourneyAssignmentSuccess(
-                        {
-                          kind: "player",
-                          playerId,
-                          playerName: playerDisplayName(player),
-                        },
-                        result as AssignmentResult,
-                      );
-                    } else if (target.startsWith("t:")) {
-                      const teamId = target.slice(2).trim();
-                      const team = teams.find((entry) => entry.id === teamId);
-                      if (!team) {
-                        toast.error("Unknown team id.");
-                        return;
-                      }
-                      const result = await api.assignJourneyToTeam(
-                        journey.id,
-                        teamId,
-                      );
-                      handleJourneyAssignmentSuccess(
-                        {
-                          kind: "team",
-                          teamId,
-                          teamName: team.shortName,
-                        },
-                        result as AssignmentResult,
-                      );
-                    } else {
-                      toast.error("Use p:<playerId> or t:<teamId>.");
-                    }
-                  } catch (error) {
-                    toast.error(
-                      error instanceof Error
-                        ? error.message
-                        : "Journey assignment failed.",
-                    );
-                  }
                 }}
               />
             </div>
@@ -1558,6 +1348,17 @@ export default function TeamsPage() {
             }}
           />
         )}
+
+        <AssignJourneyModal
+          journey={assignJourney}
+          players={myPlayers}
+          teams={teams}
+          onClose={() => setAssignJourney(null)}
+          onAssigned={(target, result) => {
+            handleJourneyAssignmentSuccess(target, result);
+            setAssignJourney(null);
+          }}
+        />
 
         <AssignLessonModal
           open={Boolean(assignLesson || assignPlayerId || assignTeamId)}
@@ -1931,6 +1732,187 @@ function EditTeamDialog({
             </Button>
           </div>
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AssignJourneyModal({
+  journey,
+  players,
+  teams,
+  onClose,
+  onAssigned,
+}: {
+  journey: JourneyTemplate | null;
+  players: Player[];
+  teams: Team[];
+  onClose: () => void;
+  onAssigned: (
+    target: AssignmentTarget,
+    result?: AssignmentResult,
+  ) => void | Promise<void>;
+}) {
+  const [targetType, setTargetType] = useState<"player" | "team">("player");
+  const [selectedPlayerId, setSelectedPlayerId] = useState("");
+  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!journey) return;
+    if (players.length > 0) {
+      setTargetType("player");
+      setSelectedPlayerId(players[0]?.id ?? "");
+      setSelectedTeamId("");
+      return;
+    }
+    setTargetType("team");
+    setSelectedPlayerId("");
+    setSelectedTeamId(teams[0]?.id ?? "");
+  }, [journey, players, teams]);
+
+  async function handleSubmit() {
+    if (!journey) return;
+    if (targetType === "player") {
+      const player = players.find((entry) => entry.id === selectedPlayerId);
+      if (!player) {
+        toast.error("Please select a player.");
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const result = await api.assignJourneyToPlayer(journey.id, player.id);
+        await onAssigned(
+          {
+            kind: "player",
+            playerId: player.id,
+            playerName: playerDisplayName(player),
+          },
+          result as AssignmentResult,
+        );
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Journey assignment failed.",
+        );
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    const team = teams.find((entry) => entry.id === selectedTeamId);
+    if (!team) {
+      toast.error("Please select a team.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const result = await api.assignJourneyToTeam(journey.id, team.id);
+      await onAssigned(
+        { kind: "team", teamId: team.id, teamName: team.shortName },
+        result as AssignmentResult,
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Journey assignment failed.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog
+      open={Boolean(journey)}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Assign Journey</DialogTitle>
+        </DialogHeader>
+        {journey ? (
+          <div className="space-y-4 pt-2">
+            <div className="rounded-xl border bg-slate-50 px-4 py-3">
+              <p className="text-sm font-semibold text-slate-800">{journey.name}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {journey.category ?? "Uncategorized"} ·{" "}
+                {journey.lessons.length} lesson
+                {journey.lessons.length === 1 ? "" : "s"}
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Assign To</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={targetType === "player" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setTargetType("player")}
+                  disabled={players.length === 0}
+                >
+                  Player
+                </Button>
+                <Button
+                  type="button"
+                  variant={targetType === "team" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setTargetType("team")}
+                  disabled={teams.length === 0}
+                >
+                  Team
+                </Button>
+              </div>
+            </div>
+
+            {targetType === "player" ? (
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Player</Label>
+                <Select value={selectedPlayerId} onValueChange={setSelectedPlayerId}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Select a player…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {players.map((player) => (
+                      <SelectItem key={player.id} value={player.id}>
+                        {playerDisplayName(player)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Team</Label>
+                <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Select a team…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teams.map((team) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        {team.shortName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" size="sm" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleSubmit} disabled={submitting}>
+                {submitting ? "Assigning…" : "Assign Journey"}
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   );
@@ -2324,11 +2306,15 @@ function AddPlayerDialog({
 function PlayersSection({
   players,
   myClubs,
+  collapsed,
+  onCollapsedChange,
   onPlayerInvited,
   onPlayerRemoved,
 }: {
   players: Player[];
   myClubs: ClubOption[];
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
   onPlayerInvited: (player: Player) => void;
   onPlayerRemoved: (playerId: string) => void;
 }) {
@@ -2360,50 +2346,63 @@ function PlayersSection({
 
   return (
     <div className="space-y-3">
-      <h2 className="text-2xl font-bold">Players</h2>
+      <button
+        type="button"
+        onClick={() => onCollapsedChange(!collapsed)}
+        className="flex items-center gap-2 text-left"
+        aria-expanded={!collapsed}
+      >
+        {collapsed ? (
+          <Plus className="h-4 w-4 text-slate-500" />
+        ) : (
+          <Minus className="h-4 w-4 text-slate-500" />
+        )}
+        <h2 className="text-2xl font-bold">Players</h2>
+      </button>
 
-      {/* Search bar + Add Player button in one row directly above the grid */}
-      <div className="flex items-center gap-2">
-        <div className="relative w-full max-w-xs">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-          <Input
-            className="pl-8"
-            placeholder="Search players…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <Button
-          size="sm"
-          onClick={() => setShowAddPlayer(true)}
-          className="gap-2"
-        >
-          <UserPlus size={16} />
-          Add Player
-        </Button>
-      </div>
+      {!collapsed ? (
+        <>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+              <Input
+                className="pl-8"
+                placeholder="Search players…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setShowAddPlayer(true)}
+              className="gap-2 whitespace-nowrap"
+            >
+              <Plus size={16} />
+              <span className="sm:hidden">Player</span>
+              <span className="hidden sm:inline">Add Player</span>
+            </Button>
+          </div>
 
-      {players.length === 0 ? (
-        <p className="text-sm text-gray-500">No players found.</p>
-      ) : filtered.length === 0 ? (
-        <p className="text-sm text-gray-500">No matching players found.</p>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {filtered.map((p) => {
-            return (
-              <React.Fragment key={p.id}>
-                <DroppablePlayerCard
-                  player={p}
-                  onOpen={() => setSelectedPlayerId(p.id)}
-                  onRemove={() =>
-                    handleRemovePlayer(p.id, playerDisplayName(p))
-                  }
-                />
-              </React.Fragment>
-            );
-          })}
-        </div>
-      )}
+          {players.length === 0 ? (
+            <p className="text-sm text-gray-500">No players found.</p>
+          ) : filtered.length === 0 ? (
+            <p className="text-sm text-gray-500">No matching players found.</p>
+          ) : (
+            <div className="overflow-x-auto overflow-y-hidden pb-2">
+              <div className="flex min-w-max flex-nowrap gap-3">
+                {filtered.map((p) => (
+                  <DroppablePlayerCard
+                    key={p.id}
+                    player={p}
+                    onOpen={() => setSelectedPlayerId(p.id)}
+                    onRemove={() => handleRemovePlayer(p.id, playerDisplayName(p))}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      ) : null}
 
       {selectedPlayer && (
         <PlayerDetailDialog
@@ -2451,7 +2450,7 @@ function TeamJourneyDialog({
           <DialogTitle>
             <span className="flex items-center gap-2">
               {team.icon && <TeamIcon icon={team.icon} size={18} />}
-              Journey — {team.shortName}
+              Journeys — {team.shortName}
             </span>
           </DialogTitle>
         </DialogHeader>

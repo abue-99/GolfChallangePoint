@@ -100,6 +100,14 @@ export class AssignmentsService {
     return team;
   }
 
+  private async getActiveTeamIdsForPlayer(playerId: string) {
+    const memberships = await this.prisma.teamMember.findMany({
+      where: { userId: playerId },
+      select: { teamId: true },
+    });
+    return memberships.map((membership) => membership.teamId);
+  }
+
   private async resolvePlayerAccess(
     assignment: {
       targetType: AssignmentTargetType;
@@ -165,6 +173,15 @@ export class AssignmentsService {
         select: {
           id: true,
           planId: true,
+          plan: {
+            select: {
+              id: true,
+              name: true,
+              ownerType: true,
+              teamId: true,
+              team: { select: { id: true, shortName: true, icon: true } },
+            },
+          },
         },
       },
     } satisfies Prisma.LessonAssignmentInclude;
@@ -601,6 +618,166 @@ export class AssignmentsService {
       );
     }
 
+    async listAssignmentsForCoachPlayer(
+      coachId: string,
+      role: string,
+      playerId: string,
+      filters: { status?: string; queueOnly?: string },
+    ) {
+      this.requireCoachOrAdmin(role);
+      if (role !== 'ADMIN') {
+        await this.assertCoachPlayerLink(coachId, playerId);
+      }
+
+      const activeTeamIds = await this.getActiveTeamIdsForPlayer(playerId);
+      let journeyAssignments: JourneyAssignmentListItem[] = [];
+
+      if (filters.queueOnly !== 'true') {
+        journeyAssignments = await this.prisma.journeyTemplateAssignment.findMany({
+          where: {
+            playerId,
+            ...(role === 'ADMIN' ? {} : { coachId }),
+            ...(filters.status
+              ? { status: toStoredAssignmentStatus(filters.status) }
+              : {}),
+          },
+          include: journeyAssignmentInclude,
+          orderBy: { createdAt: 'desc' },
+        });
+
+        const validPlanIdSet = new Set(
+          (
+            await this.prisma.playerDevelopmentPlan.findMany({
+              where: {
+                id: {
+                  in: journeyAssignments.map(
+                    (assignment) => assignment.playerPlanId,
+                  ),
+                },
+              },
+              select: { id: true },
+            })
+          ).map((plan) => plan.id),
+        );
+
+        const invalidJourneyIds = journeyAssignments
+          .filter((assignment) => !validPlanIdSet.has(assignment.playerPlanId))
+          .map((assignment) => assignment.id);
+        if (invalidJourneyIds.length > 0) {
+          await this.prisma.journeyTemplateAssignment.deleteMany({
+            where: { id: { in: invalidJourneyIds } },
+          });
+        }
+
+        const queuedJourneyIds = journeyAssignments
+          .filter(
+            (assignment) =>
+              validPlanIdSet.has(assignment.playerPlanId) &&
+              assignment.isInTrainingQueue,
+          )
+          .map((assignment) => assignment.id);
+        if (queuedJourneyIds.length > 0) {
+          await this.prisma.journeyTemplateAssignment.updateMany({
+            where: { id: { in: queuedJourneyIds } },
+            data: { isInTrainingQueue: false },
+          });
+        }
+
+        const validPlanIds = journeyAssignments
+          .map((assignment) => assignment.playerPlanId)
+          .filter((planId) => validPlanIdSet.has(planId));
+        await syncJourneyAssignmentLifecycleForPlanIds(this.prisma, validPlanIds);
+
+        journeyAssignments = await this.prisma.journeyTemplateAssignment.findMany({
+          where: {
+            playerId,
+            ...(role === 'ADMIN' ? {} : { coachId }),
+            playerPlanId: { in: validPlanIds },
+            ...(filters.status
+              ? { status: toStoredAssignmentStatus(filters.status) }
+              : {}),
+          },
+          include: journeyAssignmentInclude,
+          orderBy: { createdAt: 'desc' },
+        });
+      }
+
+      const lessonAssignments = await this.prisma.lessonAssignment.findMany({
+        where: {
+          ...(role === 'ADMIN' ? {} : { coachId }),
+          OR: [
+            { targetType: AssignmentTargetType.PLAYER, playerId },
+            ...(activeTeamIds.length > 0
+              ? [
+                  {
+                    targetType: AssignmentTargetType.TEAM,
+                    teamId: { in: activeTeamIds },
+                  },
+                ]
+              : []),
+          ],
+          ...(filters.status
+            ? { status: toStoredAssignmentStatus(filters.status) }
+            : {}),
+          ...(filters.queueOnly === 'true' ? { isInTrainingQueue: true } : {}),
+        },
+        include: this.assignmentInclude(),
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const journeyByPlanId = new Map(
+        journeyAssignments.map((assignment) => [
+          assignment.playerPlanId,
+          assignment.journeyTemplate,
+        ]),
+      );
+
+      const lessonItems = lessonAssignments.map((assignment) => ({
+        ...this.toQueueLessonItem(assignment),
+        journeyTemplate: assignment.block?.planId
+          ? (journeyByPlanId.get(assignment.block.planId) ?? null)
+          : null,
+        playerPlanId: assignment.block?.planId ?? null,
+      }));
+      const journeyItems = journeyAssignments.map((assignment) => ({
+        id: assignment.id,
+        lessonId: null,
+        targetType: AssignmentTargetType.PLAYER,
+        sourceType: assignment.teamId
+          ? AssignmentSourceType.TEAM
+          : AssignmentSourceType.PLAYER,
+        sourceReference: assignment.teamId ?? assignment.playerId,
+        playerId: assignment.playerId,
+        teamId: assignment.teamId,
+        groupName: null,
+        coachId: assignment.coachId,
+        status: assignment.status,
+        priority: LessonPriority.MEDIUM,
+        isInTrainingQueue: assignment.isInTrainingQueue,
+        dueDate: null,
+        playerNotes: null,
+        sortOrder: 0,
+        createdAt: assignment.createdAt,
+        updatedAt: assignment.updatedAt,
+        lesson: null,
+        player: assignment.player,
+        team: assignment.team,
+        teamEvent: null,
+        calendarTask: null,
+        block: null,
+        itemType: 'journey' as const,
+        isNew: assignment.status === AssignmentStatus.NEW,
+        source: assignment.source,
+        journeyTemplate: assignment.journeyTemplate,
+        playerPlanId: assignment.playerPlanId,
+      }));
+
+      return [...lessonItems, ...journeyItems].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+    }
+
     this.requireCoachOrAdmin(role);
     let journeyAssignments: JourneyAssignmentListItem[] = [];
 
@@ -874,5 +1051,44 @@ export class AssignmentsService {
         }
         return updated;
       });
+  }
+
+  async deleteAssignment(userId: string, role: string, assignmentId: string) {
+    const assignment = await this.prisma.lessonAssignment.findUnique({
+      where: { id: assignmentId },
+      select: {
+        id: true,
+        coachId: true,
+        playerId: true,
+        teamId: true,
+        targetType: true,
+        block: {
+          select: {
+            planId: true,
+          },
+        },
+      },
+    });
+    if (!assignment) throw new NotFoundException('Assignment not found');
+
+    const isCoachOrAdmin = role === 'COACH' || role === 'ADMIN';
+    if (isCoachOrAdmin) {
+      if (role !== 'ADMIN' && assignment.coachId !== userId) {
+        throw new ForbiddenException('Not your assignment');
+      }
+    } else {
+      const canAccess = await this.resolvePlayerAccess(assignment, userId);
+      if (!canAccess) throw new ForbiddenException('Not your assignment');
+    }
+
+    await this.prisma.lessonAssignment.delete({ where: { id: assignmentId } });
+
+    if (assignment.block?.planId) {
+      await syncJourneyAssignmentLifecycleForPlanIds(this.prisma, [
+        assignment.block.planId,
+      ]);
+    }
+
+    return { ok: true };
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { ExternalLink, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ExternalLink, Loader2, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import {
   LearningProgressSection,
   type LearningProgressSummary,
 } from "@/components/LearningProgress";
+import { useState } from "react";
 
 type CoachSummary = {
   id: string;
@@ -72,10 +73,17 @@ export default function PlayerOverviewDialog({
 }) {
   const isInactive = !player.lastLogin;
   const name = playerName(player);
+  const router = useRouter();
+  const [openingPlayerPage, setOpeningPlayerPage] = useState(false);
 
   async function handleRemove() {
     if (!onRemove) return;
     await onRemove(player.id);
+  }
+
+  function handleOpenPlayerPage() {
+    setOpeningPlayerPage(true);
+    router.push(`/coach/players/${player.id}`);
   }
 
   return (
@@ -164,14 +172,23 @@ export default function PlayerOverviewDialog({
             </div>
 
             <div className="mt-2 flex w-full flex-col gap-2">
-              <Button asChild variant="outline" className="w-full">
-                <Link
-                  href={`/coach/players/${player.id}`}
-                  className="flex items-center justify-center gap-2"
-                >
-                  <ExternalLink size={16} />
-                  Go to Player
-                </Link>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleOpenPlayerPage}
+                disabled={openingPlayerPage}
+              >
+                {openingPlayerPage ? (
+                  <>
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                    Opening Player…
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink size={16} className="mr-2" />
+                    Go to Player
+                  </>
+                )}
               </Button>
 
               {onRemove ? (

@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PlayerCapabilitiesRadarCard, PlayerCapabilitiesWidget } from "@/components/player-capabilities-widget";
 import { DevelopmentPlanManager } from "@/components/DevelopmentPlanManager";
-import AssignLessonButton from "@/components/AssignLessonButton";
 
 type LinkedPlayer = {
   id: string;
@@ -56,9 +55,6 @@ export default async function CoachPlayerDashboardPage({
           >
             Open calendar comparison
           </Link>
-        </div>
-        <div className="shrink-0">
-          <AssignLessonButton playerId={playerId} />
         </div>
       </header>
       <div className="grid gap-4 lg:grid-cols-5">

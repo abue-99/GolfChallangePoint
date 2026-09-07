@@ -32,4 +32,27 @@ export async function PATCH(
     console.error("[/api/assignments/:id PATCH]", err);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
+
+  export async function DELETE(
+    _req: NextRequest,
+    { params }: { params: Promise<{ id: string }> },
+  ) {
+    const token = await getToken();
+    if (!token) return NextResponse.json(null, { status: 401 });
+
+    const { id } = await params;
+    try {
+      const res = await fetch(`${API_URL}/assignments/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      return NextResponse.json(data, { status: res.status });
+    } catch (err) {
+      console.error("[/api/assignments/:id DELETE]", err);
+      return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+    }
+  }
 }

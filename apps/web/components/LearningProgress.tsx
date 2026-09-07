@@ -96,24 +96,21 @@ function CompactLearningSummaryRow({
       className={cn("flex items-center gap-2 text-xs text-slate-700", className)}
       aria-label={`${label} summary`}
     >
-      <span className="w-14 shrink-0 text-left text-[11px] font-semibold text-slate-500">
+      <span className="w-14 shrink-0 text-left text-[8px] font-semibold uppercase tracking-[0.08em] text-slate-500">
         {label}
       </span>
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="grid h-2 w-full grid-cols-4 gap-1">
         {visibleSegments.map((status) => (
-          <span
+          <div
             key={status}
-            className="inline-flex h-[22px] min-w-10 shrink-0 items-center justify-center rounded-[6px] px-2 text-xs font-bold text-white"
+            className="h-full rounded-full"
             style={{ backgroundColor: LIFECYCLE_META[status].color }}
             title={`${LIFECYCLE_META[status].label}: ${counts[status]}`}
           >
             <span className="sr-only">
               {`${label} ${LIFECYCLE_META[status].label}: ${counts[status]}`}
             </span>
-            <span aria-hidden="true" className="tabular-nums">
-              {counts[status]}
-            </span>
-          </span>
+          </div>
         ))}
       </div>
     </div>
@@ -152,30 +149,20 @@ export function LifecycleBar({
   counts?: Partial<LifecycleCounts> | null;
 }) {
   const normalized = normalizeCounts(counts);
-  const total = sumLifecycleCounts(normalized);
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold text-slate-800">{title}</span>
-        <div className="flex items-center gap-3 whitespace-nowrap text-xs text-slate-600">
-          {LIFECYCLE_ORDER.map((status) => (
-            <span key={status}>
-              {LIFECYCLE_META[status].emoji}
-              {normalized[status]}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+    <div className="space-y-1.5">
+      <span className="text-sm font-semibold text-slate-800">{title}</span>
+      <div className="grid h-2.5 w-full grid-cols-4 gap-1">
         {LIFECYCLE_ORDER.map((status) => {
           const value = normalized[status];
-          const width = total > 0 ? `${(value / total) * 100}%` : "0%";
           return (
             <div
               key={status}
-              className={cn("h-full", value > 0 ? "" : "hidden", LIFECYCLE_META[status].bgClass)}
-              style={{ width }}
+              className={cn(
+                "h-full rounded-full",
+                value > 0 ? LIFECYCLE_META[status].bgClass : "bg-slate-200",
+              )}
               title={`${LIFECYCLE_META[status].label}: ${value}`}
             />
           );

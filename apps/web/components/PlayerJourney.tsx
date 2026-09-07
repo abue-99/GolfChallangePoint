@@ -796,10 +796,10 @@ function LessonDetailModal({
                       "rounded-2xl border-2 py-3 text-xs font-semibold transition-all",
                       status === s.value
                         ? s.value === "OPEN"
-                          ? "border-[#FACC15] bg-[#FACC15] text-white"
+                          ? "border-[#FACC15] bg-[#FACC15] text-[#422006]"
                           : s.value === "IN_PROGRESS"
-                            ? "border-[#4ADE00] bg-[#4ADE00] text-white"
-                            : "border-[#16A34A] bg-[#16A34A] text-white"
+                            ? "border-[#4ADE00] bg-[#4ADE00] text-[#1A2E05]"
+                            : "border-[#16A34A] bg-[#16A34A] text-[#052E16]"
                         : "border-gray-200 text-slate-500 hover:border-slate-300",
                     )}
                   >

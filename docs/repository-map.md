@@ -231,7 +231,7 @@ All require JWT + COACH or ADMIN.
 
 ### Next.js API proxy routes (`apps/web/app/api/`)
 
-Proxies all browser requests to the NestJS backend. Mirrors the API structure:
+Contains Next.js proxy handlers for browser API traffic to NestJS. Mirrors the API structure:
 
 ```
 app/api/
@@ -249,7 +249,7 @@ app/api/
 └── upload/
 ```
 
-Current status: journey CRUD routes and coach lesson/journey assignment proxy routes share `apps/web/lib/api-proxy-auth.ts`, which refreshes expired access tokens once and retries the backend call before returning 401.
+Current status: journey CRUD routes, journey assignment routes, and coach lesson assignment routes share `apps/web/lib/api-proxy-auth.ts`, which refreshes expired access tokens once and retries the backend call before returning 401. In production, Caddy must route `/api/journeys*` and `/api/coach/journeys*` to `web:3000` so these handlers execute.
 
 ### Key component files (`apps/web/components/`)
 

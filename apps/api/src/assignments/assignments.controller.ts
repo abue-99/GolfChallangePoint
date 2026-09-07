@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -86,5 +87,13 @@ export class AssignmentsController {
   @Post(':id/queue')
   moveToQueue(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.service.moveToQueue(user.id, user.role as string, id);
+  }
+
+  @Delete(':id')
+  deleteAssignment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.service.deleteAssignment(user.id, user.role as string, id);
   }
 }

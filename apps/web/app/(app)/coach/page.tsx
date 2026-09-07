@@ -10,7 +10,7 @@ import type { CalendarActivity as BaseCalendarActivity } from "@/types/calendar"
 import CompactCoachPlayerCard from "@/components/CompactCoachPlayerCard";
 import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
 import {
-  hasVisibleLearningProgress,
+  hasOpenLifecycleItems,
 } from "@/components/LearningProgress";
 import { subscribeLearningProgressChanges } from "@/lib/learning-progress-events";
 
@@ -204,7 +204,9 @@ export default function CoachHome() {
   const activePlayers = useMemo(
     () =>
       players.filter((player) => {
-        if (!hasVisibleLearningProgress(player.learningProgress)) return false;
+        if (!hasOpenLifecycleItems(player.learningProgress?.journeys)) {
+          return false;
+        }
         if (!normalizedQuery) return true;
         return nameOfPlayer(player).toLowerCase().includes(normalizedQuery);
       }),
@@ -255,7 +257,7 @@ export default function CoachHome() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Coach Dashboard</h1>
           <p className="text-sm text-slate-500">
-            Teams und Spieler mit aktueller Journey oder Trainingsfenster.
+            Teams und Spieler mit offenen Journey-Status.
           </p>
         </div>
         <div className="relative max-w-sm">

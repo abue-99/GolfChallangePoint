@@ -11,7 +11,7 @@ import type { CalendarActivity as BaseCalendarActivity } from "@/types/calendar"
 import { formatDateInTimeZone, resolveCalendarTimeZone } from "@/lib/timezone";
 import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
 import {
-  hasVisibleLearningProgress,
+  hasOpenLifecycleItems,
 } from "@/components/LearningProgress";
 import CompactCoachPlayerCard from "@/components/CompactCoachPlayerCard";
 import { subscribeLearningProgressChanges } from "@/lib/learning-progress-events";
@@ -166,7 +166,10 @@ export default function Dashboard() {
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
   const coachNextUp = upcomingCoachItems[0] ?? null;
   const activePlayers = useMemo(
-    () => coachPlayers.filter((player) => hasVisibleLearningProgress(player.learningProgress)),
+    () =>
+      coachPlayers.filter((player) =>
+        hasOpenLifecycleItems(player.learningProgress?.journeys),
+      ),
     [coachPlayers],
   );
   const selectedPlayer = useMemo(
@@ -226,7 +229,7 @@ export default function Dashboard() {
               Active Players
             </h2>
             <p className="text-sm text-[var(--golf-muted-text)]">
-              Players with open learning activity or completions from the last 90 days.
+              Players with pending, accepted, or active journeys.
             </p>
           </div>
           {activePlayers.length === 0 ? (

@@ -1,4 +1,8 @@
-import { AssignmentStatus } from '@challengepoint/db';
+import {
+  AssignmentStatus,
+  AssignmentTargetType,
+  OwnerType,
+} from '@challengepoint/db';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type LifecycleStatus = 'PENDING' | 'ACCEPTED' | 'ACTIVE' | 'COMPLETED';
@@ -219,11 +223,60 @@ export async function loadPlayerLearningSummaries(
     ]),
   ) as Record<string, PlayerLearningSummary>;
 
-  const [lessonAssignments, rawJourneyAssignments] = await Promise.all([
-    prisma.lessonAssignment.findMany({
-      where: { playerId: { in: uniquePlayerIds } },
+  const teamMemberships = await prisma.teamMember.findMany({
+    where: { userId: { in: uniquePlayerIds } },
+    select: { userId: true, teamId: true },
+  });
+
+  const teamIdsByPlayerId = new Map<string, Set<string>>();
+  const playerIdsByTeamId = new Map<string, Set<string>>();
+  for (const membership of teamMemberships) {
+    const playerTeamIds = teamIdsByPlayerId.get(membership.userId) ?? new Set();
+    playerTeamIds.add(membership.teamId);
+    teamIdsByPlayerId.set(membership.userId, playerTeamIds);
+
+    const teamPlayerIds = playerIdsByTeamId.get(membership.teamId) ?? new Set();
+    teamPlayerIds.add(membership.userId);
+    playerIdsByTeamId.set(membership.teamId, teamPlayerIds);
+  }
+
+  const allTeamIds = [...new Set(teamMemberships.map((membership) => membership.teamId))];
+
+  const [plans, lessonAssignments, rawJourneyAssignments] = await Promise.all([
+    prisma.playerDevelopmentPlan.findMany({
+      where: {
+        OR: [
+          { ownerType: OwnerType.PLAYER, playerId: { in: uniquePlayerIds } },
+          ...(allTeamIds.length > 0
+            ? [{ ownerType: OwnerType.TEAM, teamId: { in: allTeamIds } }]
+            : []),
+        ],
+      },
       select: {
+        id: true,
+        ownerType: true,
         playerId: true,
+        teamId: true,
+      },
+    }),
+    prisma.lessonAssignment.findMany({
+      where: {
+        OR: [
+          { playerId: { in: uniquePlayerIds } },
+          ...(allTeamIds.length > 0
+            ? [
+                {
+                  targetType: AssignmentTargetType.TEAM,
+                  teamId: { in: allTeamIds },
+                },
+              ]
+            : []),
+        ],
+      },
+      select: {
+        targetType: true,
+        playerId: true,
+        teamId: true,
         status: true,
         completedAt: true,
         block: {
@@ -246,19 +299,10 @@ export async function loadPlayerLearningSummaries(
     }),
   ]);
 
-  const uniquePlanIds = [
-    ...new Set(
-      rawJourneyAssignments.map((assignment) => assignment.playerPlanId),
-    ),
+  const validPlanIdSet = new Set(plans.map((plan) => plan.id));
+  const journeyPlanIds = [
+    ...new Set(rawJourneyAssignments.map((assignment) => assignment.playerPlanId)),
   ];
-  const validPlanIdSet = new Set(
-    (
-      await prisma.playerDevelopmentPlan.findMany({
-        where: { id: { in: uniquePlanIds } },
-        select: { id: true },
-      })
-    ).map((plan) => plan.id),
-  );
 
   const invalidJourneyIds = rawJourneyAssignments
     .filter((assignment) => !validPlanIdSet.has(assignment.playerPlanId))
@@ -274,114 +318,167 @@ export async function loadPlayerLearningSummaries(
     validPlanIdSet.has(assignment.playerPlanId),
   );
 
-  const planLessonAssignments =
-    uniquePlanIds.length === 0
-      ? []
-      : await prisma.lessonAssignment.findMany({
-          where: {
-            block: {
-              planId: { in: [...validPlanIdSet] },
-            },
-          },
-          select: {
-            status: true,
-            completedAt: true,
-            block: {
-              select: {
-                planId: true,
-              },
-            },
-          },
-        });
-
-  const journeyStatusesByPlanId = new Map<string, AssignmentStatus>();
-  const planStatuses = new Map<string, string[]>();
-  for (const assignment of planLessonAssignments) {
+  const lessonAssignmentsByPlanId = new Map<
+    string,
+    Array<{
+      targetType: AssignmentTargetType;
+      playerId: string | null;
+      teamId: string | null;
+      status: AssignmentStatus;
+      completedAt: Date | null;
+    }>
+  >();
+  for (const assignment of lessonAssignments) {
     const planId = assignment.block?.planId;
     if (!planId) continue;
-    const statuses = planStatuses.get(planId) ?? [];
-    statuses.push(assignment.status);
-    planStatuses.set(planId, statuses);
+    const list = lessonAssignmentsByPlanId.get(planId) ?? [];
+    list.push({
+      targetType: assignment.targetType,
+      playerId: assignment.playerId,
+      teamId: assignment.teamId,
+      status: assignment.status,
+      completedAt: assignment.completedAt,
+    });
+    lessonAssignmentsByPlanId.set(planId, list);
   }
 
-  await Promise.all(
-    journeyAssignments.map((assignment) => {
-      const nextStatus = deriveJourneyAssignmentStatus(
-        planStatuses.get(assignment.playerPlanId) ?? [],
-        assignment.status,
-      );
-      journeyStatusesByPlanId.set(assignment.playerPlanId, nextStatus);
-      const completedAtUpdate = getCompletedAtUpdate(
-        assignment.status,
-        nextStatus,
-        assignment.completedAt,
-      );
-
-      if (
-        nextStatus === assignment.status &&
-        !assignment.isInTrainingQueue &&
-        completedAtUpdate === undefined
-      ) {
-        return Promise.resolve(null);
-      }
-
-      return prisma.journeyTemplateAssignment.update({
-        where: { id: assignment.id },
-        data: {
-          status: nextStatus,
-          ...(completedAtUpdate !== undefined
-            ? { completedAt: completedAtUpdate }
-            : {}),
-          ...(assignment.isInTrainingQueue ? { isInTrainingQueue: false } : {}),
-        },
-      });
-    }),
-  );
+  const pendingJourneyKeys = new Set<string>();
+  const journeyAssignmentByPlayerPlanKey = new Map<
+    string,
+    (typeof journeyAssignments)[number]
+  >();
 
   for (const assignment of journeyAssignments) {
-    if (!assignment.playerId) continue;
-    const lifecycleStatus = toLifecycleStatus(
-      journeyStatusesByPlanId.get(assignment.playerPlanId) ?? assignment.status,
-    );
-    summaries[assignment.playerId].journeys[lifecycleStatus] += 1;
-    if (
-      lifecycleStatus === 'COMPLETED' &&
-      assignment.completedAt &&
-      assignment.completedAt >= recentCompletionThreshold
-    ) {
-      summaries[assignment.playerId].recentCompletions.journeys += 1;
+    const key = `${assignment.playerId}:${assignment.playerPlanId}`;
+    journeyAssignmentByPlayerPlanKey.set(key, assignment);
+  }
+
+  const syncUpdates: Array<Promise<unknown>> = [];
+
+  for (const plan of plans) {
+    const planAssignments = lessonAssignmentsByPlanId.get(plan.id) ?? [];
+    const relatedPlayerIds =
+      plan.ownerType === OwnerType.PLAYER
+        ? plan.playerId
+          ? [plan.playerId]
+          : []
+        : plan.teamId
+          ? [...(playerIdsByTeamId.get(plan.teamId) ?? new Set())]
+          : [];
+
+    for (const playerId of relatedPlayerIds) {
+      if (!summaries[playerId]) continue;
+      const teamIdsForPlayer = teamIdsByPlayerId.get(playerId) ?? new Set();
+      const relevantAssignments = planAssignments.filter((assignment) => {
+        if (assignment.targetType === AssignmentTargetType.PLAYER) {
+          return assignment.playerId === playerId;
+        }
+        if (assignment.targetType === AssignmentTargetType.TEAM) {
+          return (
+            Boolean(assignment.teamId) &&
+            teamIdsForPlayer.has(assignment.teamId as string)
+          );
+        }
+        return true;
+      });
+
+      const key = `${playerId}:${plan.id}`;
+      const linkedJourneyAssignment = journeyAssignmentByPlayerPlanKey.get(key);
+      const nextStatus = deriveJourneyAssignmentStatus(
+        relevantAssignments.map((assignment) => assignment.status),
+        linkedJourneyAssignment?.status ?? AssignmentStatus.NEW,
+      );
+      const lifecycleStatus = toLifecycleStatus(nextStatus);
+      summaries[playerId].journeys[lifecycleStatus] += 1;
+      if (lifecycleStatus === 'PENDING') {
+        pendingJourneyKeys.add(key);
+      }
+
+      if (lifecycleStatus === 'COMPLETED') {
+        const lessonCompletionTimestamps = relevantAssignments
+          .map((assignment) => assignment.completedAt?.getTime() ?? 0)
+          .filter((timestamp) => timestamp > 0);
+        const latestLessonCompletion =
+          lessonCompletionTimestamps.length > 0
+            ? new Date(Math.max(...lessonCompletionTimestamps))
+            : null;
+        const completedAt =
+          linkedJourneyAssignment?.completedAt ?? latestLessonCompletion;
+        if (completedAt && completedAt >= recentCompletionThreshold) {
+          summaries[playerId].recentCompletions.journeys += 1;
+        }
+      }
+
+      if (linkedJourneyAssignment) {
+        const completedAtUpdate = getCompletedAtUpdate(
+          linkedJourneyAssignment.status,
+          nextStatus,
+          linkedJourneyAssignment.completedAt,
+        );
+        if (
+          nextStatus !== linkedJourneyAssignment.status ||
+          linkedJourneyAssignment.isInTrainingQueue ||
+          completedAtUpdate !== undefined
+        ) {
+          syncUpdates.push(
+            prisma.journeyTemplateAssignment.update({
+              where: { id: linkedJourneyAssignment.id },
+              data: {
+                status: nextStatus,
+                ...(completedAtUpdate !== undefined
+                  ? { completedAt: completedAtUpdate }
+                  : {}),
+                ...(linkedJourneyAssignment.isInTrainingQueue
+                  ? { isInTrainingQueue: false }
+                  : {}),
+              },
+            }),
+          );
+        }
+      }
     }
   }
 
-  const pendingJourneyPlanIds = new Set(
-    journeyAssignments
-      .filter(
-        (assignment) =>
-          toLifecycleStatus(
-            journeyStatusesByPlanId.get(assignment.playerPlanId) ??
-              assignment.status,
-          ) === 'PENDING',
-      )
-      .map((assignment) => assignment.playerPlanId),
-  );
+  if (syncUpdates.length > 0) {
+    await Promise.all(syncUpdates);
+  }
+
+  const planIdSet = new Set(plans.map((plan) => plan.id));
 
   for (const assignment of lessonAssignments) {
-    if (
-      !assignment.playerId ||
-      (assignment.block?.planId &&
-        pendingJourneyPlanIds.has(assignment.block.planId))
-    ) {
-      continue;
+    for (const playerId of uniquePlayerIds) {
+      const playerTeamIds = teamIdsByPlayerId.get(playerId) ?? new Set();
+      const visibleToPlayer =
+        (assignment.targetType === AssignmentTargetType.PLAYER &&
+          assignment.playerId === playerId) ||
+        (assignment.targetType === AssignmentTargetType.TEAM &&
+          assignment.teamId &&
+          playerTeamIds.has(assignment.teamId));
+      if (!visibleToPlayer) continue;
+
+      const planId = assignment.block?.planId;
+      if (
+        planId &&
+        planIdSet.has(planId) &&
+        pendingJourneyKeys.has(`${playerId}:${planId}`)
+      ) {
+        continue;
+      }
+
+      const lifecycleStatus = toLifecycleStatus(assignment.status);
+      summaries[playerId].lessons[lifecycleStatus] += 1;
+      if (
+        lifecycleStatus === 'COMPLETED' &&
+        assignment.completedAt &&
+        assignment.completedAt >= recentCompletionThreshold
+      ) {
+        summaries[playerId].recentCompletions.lessons += 1;
+      }
     }
-    const lifecycleStatus = toLifecycleStatus(assignment.status);
-    summaries[assignment.playerId].lessons[lifecycleStatus] += 1;
-    if (
-      lifecycleStatus === 'COMPLETED' &&
-      assignment.completedAt &&
-      assignment.completedAt >= recentCompletionThreshold
-    ) {
-      summaries[assignment.playerId].recentCompletions.lessons += 1;
-    }
+  }
+
+  if (journeyPlanIds.length > 0) {
+    await syncJourneyAssignmentLifecycleForPlanIds(prisma, journeyPlanIds);
   }
 
   return summaries;

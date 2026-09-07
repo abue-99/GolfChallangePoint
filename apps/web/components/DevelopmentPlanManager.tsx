@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +33,34 @@ interface Props {
   teamId?: string;
 }
 
+type AssignmentListItem = {
+  id: string;
+  itemType?: "lesson" | "journey";
+  status?: string;
+  sourceType?: "PLAYER" | "TEAM" | "GROUP";
+  team?: { id: string; shortName: string; icon?: string | null } | null;
+  journeyTemplate?: { id: string; name: string } | null;
+  playerPlanId?: string | null;
+  lesson?: {
+    id: string;
+    name: string;
+    focusArea: string;
+    subCapability?: string | null;
+    subSubCapability?: string | null;
+    durationMinutes: number;
+  } | null;
+  block?: {
+    id: string;
+    planId: string;
+    plan?: {
+      id: string;
+      name: string;
+      ownerType: "PLAYER" | "TEAM";
+      team?: { id: string; shortName: string; icon?: string | null } | null;
+    } | null;
+  } | null;
+};
+
 const FOCUS_AREA_EMOJI: Record<string, string> = {
   SETUP: "🏌️",
   PUTTING: "⛳",
@@ -56,29 +84,62 @@ const STATUS_BADGE: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = {
   NEW: "Pending",
   OPEN: "Accepted",
-  IN_PROGRESS: "In Progress",
+  IN_PROGRESS: "Active",
   COMPLETED: "Completed",
   ARCHIVED: "Archived",
+};
+
+const STATUS_ORDER: Record<string, number> = {
+  IN_PROGRESS: 0,
+  OPEN: 1,
+  NEW: 2,
+  COMPLETED: 3,
+  ARCHIVED: 4,
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function DevelopmentPlanManager({ playerId, teamId }: Props) {
   const [plans, setPlans] = useState<PlayerDevelopmentPlan[]>([]);
+  const [playerAssignments, setPlayerAssignments] = useState<AssignmentListItem[]>([]);
+  const [lessonTemplates, setLessonTemplates] = useState<TrainingLesson[]>([]);
+  const [journeyTemplates, setJourneyTemplates] = useState<Array<{ id: string; name: string; description?: string | null }>>([]);
   const [loading, setLoading] = useState(true);
   const [showNewPlan, setShowNewPlan] = useState(false);
+  const [assigningLessonId, setAssigningLessonId] = useState<string | null>(null);
+  const [assigningJourneyId, setAssigningJourneyId] = useState<string | null>(null);
+  const [lessonFilter, setLessonFilter] = useState("ALL");
+  const [journeyFilter, setJourneyFilter] = useState("ALL");
+  const [lessonSearch, setLessonSearch] = useState("");
+  const [journeySearch, setJourneySearch] = useState("");
 
   const load = useCallback(async () => {
     try {
-      let data: PlayerDevelopmentPlan[];
       if (teamId) {
-        data = await api.listPlansForTeam(teamId);
-      } else if (playerId) {
-        data = await api.listPlansForPlayer(playerId);
-      } else {
-        data = [];
+        const data = await api.listPlansForTeam(teamId);
+        setPlans(Array.isArray(data) ? data : []);
+        setPlayerAssignments([]);
+        setLessonTemplates([]);
+        setJourneyTemplates([]);
+        return;
       }
-      setPlans(Array.isArray(data) ? data : []);
+      if (!playerId) {
+        setPlans([]);
+        setPlayerAssignments([]);
+        setLessonTemplates([]);
+        setJourneyTemplates([]);
+        return;
+      }
+      const [plansData, assignmentsData, lessonsData, journeyTemplatesData] = await Promise.all([
+        api.listPlansForPlayer(playerId),
+        api.listCoachPlayerAssignments(playerId),
+        api.listLessons(),
+        api.listJourneyTemplates(),
+      ]);
+      setPlans(Array.isArray(plansData) ? plansData : []);
+      setPlayerAssignments(Array.isArray(assignmentsData) ? assignmentsData : []);
+      setLessonTemplates(Array.isArray(lessonsData) ? lessonsData : []);
+      setJourneyTemplates(Array.isArray(journeyTemplatesData) ? journeyTemplatesData : []);
     } finally {
       setLoading(false);
     }
@@ -86,21 +147,334 @@ export function DevelopmentPlanManager({ playerId, teamId }: Props) {
 
   useEffect(() => { load(); }, [load]);
 
+  const journeyAssignmentByPlanId = useMemo(() => {
+    return new Map(
+      playerAssignments
+        .filter((entry) => entry.itemType === "journey" && entry.playerPlanId)
+        .map((entry) => [entry.playerPlanId as string, entry]),
+    );
+  }, [playerAssignments]);
+
+  const journeyRows = useMemo(() => {
+    return plans.map((plan) => {
+      const linkedJourney = journeyAssignmentByPlanId.get(plan.id);
+      const allStatuses = plan.blocks.flatMap((block) =>
+        block.assignments.map((assignment) => normalizeAssignmentStatus(assignment.status)),
+      );
+      const derivedStatus =
+        linkedJourney?.status
+          ? normalizeAssignmentStatus(linkedJourney.status)
+          : allStatuses.length === 0
+            ? "NEW"
+            : allStatuses.every((status) => status === "COMPLETED")
+              ? "COMPLETED"
+              : allStatuses.some((status) => status === "IN_PROGRESS")
+                ? "IN_PROGRESS"
+                : allStatuses.some((status) => status === "OPEN")
+                  ? "OPEN"
+                  : "NEW";
+      const origin: "TEAM" | "TEMPLATE" | "INDIVIDUAL" = plan.ownerType === "TEAM"
+        ? "TEAM"
+        : linkedJourney?.team?.id
+          ? "TEAM"
+          : linkedJourney
+            ? "TEMPLATE"
+            : "INDIVIDUAL";
+      return {
+        plan,
+        status: derivedStatus,
+        origin,
+      };
+    });
+  }, [journeyAssignmentByPlanId, plans]);
+
+  const lessonRows = useMemo(() => {
+    return playerAssignments
+      .filter((entry) => entry.itemType !== "journey" && entry.lesson)
+      .map((entry) => {
+        const normalizedStatus = normalizeAssignmentStatus(entry.status);
+        const isPartOfJourney = Boolean(entry.block?.plan);
+        const origin =
+          entry.sourceType === "TEAM" || entry.team?.id
+            ? "TEAM"
+            : "INDIVIDUAL";
+        return {
+          ...entry,
+          normalizedStatus,
+          origin,
+          context: isPartOfJourney ? "Part of Journey" : "Standalone Lesson",
+          parentJourneyName: entry.block?.plan?.name ?? null,
+        };
+      });
+  }, [playerAssignments]);
+
+  const filteredLessonRows = useMemo(() => {
+    const query = lessonSearch.trim().toLowerCase();
+    return lessonRows
+      .filter((row) => lessonFilter === "ALL" || row.normalizedStatus === lessonFilter)
+      .filter((row) => {
+        if (!query) return true;
+        const lessonName = row.lesson?.name.toLowerCase() ?? "";
+        const journeyName = row.parentJourneyName?.toLowerCase() ?? "";
+        return lessonName.includes(query) || journeyName.includes(query);
+      })
+      .sort((a, b) => {
+        const priorityDiff =
+          (STATUS_ORDER[a.normalizedStatus] ?? 99) -
+          (STATUS_ORDER[b.normalizedStatus] ?? 99);
+        if (priorityDiff !== 0) return priorityDiff;
+        return (b.lesson?.name ?? "").localeCompare(a.lesson?.name ?? "");
+      });
+  }, [lessonFilter, lessonRows, lessonSearch]);
+
+  const filteredJourneyRows = useMemo(() => {
+    const query = journeySearch.trim().toLowerCase();
+    return journeyRows
+      .filter((row) => journeyFilter === "ALL" || row.status === journeyFilter)
+      .filter((row) => {
+        if (!query) return true;
+        return row.plan.name.toLowerCase().includes(query);
+      })
+      .sort((a, b) => {
+        const priorityDiff =
+          (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99);
+        if (priorityDiff !== 0) return priorityDiff;
+        return b.plan.createdAt.localeCompare(a.plan.createdAt);
+      });
+  }, [journeyFilter, journeyRows, journeySearch]);
+
+  const lessonSummary = useMemo(() => {
+    return lessonRows.reduce(
+      (acc, row) => {
+        if (row.normalizedStatus === "NEW") acc.pending += 1;
+        if (row.normalizedStatus === "IN_PROGRESS") acc.active += 1;
+        return acc;
+      },
+      { pending: 0, active: 0 },
+    );
+  }, [lessonRows]);
+
+  const journeySummary = useMemo(() => {
+    return journeyRows.reduce(
+      (acc, row) => {
+        if (row.status === "NEW") acc.pending += 1;
+        if (row.status === "IN_PROGRESS") acc.active += 1;
+        return acc;
+      },
+      { pending: 0, active: 0 },
+    );
+  }, [journeyRows]);
+
+  async function assignLessonTemplate(lessonId: string) {
+    if (!playerId) return;
+    try {
+      setAssigningLessonId(lessonId);
+      await api.assignLessonToPlayer(playerId, { lessonId });
+      toast.success("Lesson assigned");
+      await load();
+    } catch {
+      toast.error("Failed to assign lesson");
+    } finally {
+      setAssigningLessonId(null);
+    }
+  }
+
+  async function assignJourneyTemplate(journeyId: string) {
+    if (!playerId) return;
+    try {
+      setAssigningJourneyId(journeyId);
+      await api.assignJourneyToPlayer(journeyId, playerId);
+      toast.success("Journey assigned");
+      await load();
+    } catch {
+      toast.error("Failed to assign journey");
+    } finally {
+      setAssigningJourneyId(null);
+    }
+  }
+
+  async function updateLessonStatus(assignmentId: string, status: string) {
+    try {
+      await api.updateStandaloneAssignment(assignmentId, { status });
+      toast.success("Lesson updated");
+      await load();
+    } catch {
+      toast.error("Failed to update lesson");
+    }
+  }
+
+  async function deleteLessonAssignment(assignmentId: string) {
+    try {
+      await api.deleteStandaloneAssignment(assignmentId);
+      toast.success("Lesson deleted");
+      await load();
+    } catch {
+      toast.error("Failed to delete lesson");
+    }
+  }
+
   if (loading) return <PlanSkeleton />;
 
   return (
     <div className="space-y-4">
+      {playerId ? (
+        <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4">
+          <h2 className="text-lg font-semibold text-slate-800">Assignments</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-slate-700">Lesson Library</h3>
+              <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                {lessonTemplates.map((lesson) => (
+                  <div key={lesson.id} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-800">{lesson.name}</p>
+                      <p className="text-xs text-slate-500">{lesson.durationMinutes}m · {getFocusAreaPath(lesson.focusArea, lesson.subCapability, lesson.subSubCapability)}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={assigningLessonId === lesson.id}
+                      onClick={() => assignLessonTemplate(lesson.id)}
+                    >
+                      Assign
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-slate-700">Journey Templates</h3>
+              <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                {journeyTemplates.map((journey) => (
+                  <div key={journey.id} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-800">{journey.name}</p>
+                      {journey.description ? (
+                        <p className="truncate text-xs text-slate-500">{journey.description}</p>
+                      ) : null}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={assigningJourneyId === journey.id}
+                      onClick={() => assignJourneyTemplate(journey.id)}
+                    >
+                      Assign
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {playerId ? (
+        <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-4">
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold text-slate-800">Lessons</h2>
+            <p className="text-xs text-slate-500">
+              Pending Lessons: {lessonSummary.pending} · Active Lessons: {lessonSummary.active}
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              value={lessonSearch}
+              onChange={(event) => setLessonSearch(event.target.value)}
+              placeholder="Search lessons or journeys…"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+            />
+            <select
+              value={lessonFilter}
+              onChange={(event) => setLessonFilter(event.target.value)}
+              className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+            >
+              <option value="ALL">All</option>
+              <option value="NEW">Pending</option>
+              <option value="OPEN">Accepted</option>
+              <option value="IN_PROGRESS">Active</option>
+              <option value="COMPLETED">Completed</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            {filteredLessonRows.map((assignment) => (
+              <div key={assignment.id} className="rounded-xl border border-slate-200 p-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900">{assignment.lesson?.name}</p>
+                    <p className="text-xs text-slate-500">
+                      {assignment.origin === "TEAM" ? "Team" : "Individual"} · {assignment.context}
+                    </p>
+                    {assignment.parentJourneyName ? (
+                      <p className="text-xs text-slate-500">Part of Journey: {assignment.parentJourneyName}</p>
+                    ) : null}
+                  </div>
+                  <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", STATUS_BADGE[assignment.normalizedStatus] ?? "bg-slate-100 text-slate-700")}>
+                    {STATUS_LABEL[assignment.normalizedStatus] ?? assignment.normalizedStatus}
+                  </span>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <select
+                    value={assignment.normalizedStatus}
+                    onChange={(event) => updateLessonStatus(assignment.id, event.target.value)}
+                    className="rounded-md border border-slate-200 px-2 py-1 text-xs"
+                  >
+                    <option value="NEW">Pending</option>
+                    <option value="OPEN">Accepted</option>
+                    <option value="IN_PROGRESS">Active</option>
+                    <option value="COMPLETED">Completed</option>
+                  </select>
+                  <Button size="sm" variant="outline" onClick={() => deleteLessonAssignment(assignment.id)}>
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {filteredLessonRows.length === 0 ? (
+              <p className="text-sm text-slate-500">No lessons for the selected filters.</p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-slate-800">Journeys</h2>
         <Button
           size="sm"
-          className="bg-blue-600 text-white hover:bg-blue-500"
+          className="bg-green-600 text-white hover:bg-green-500"
           onClick={() => setShowNewPlan(true)}
         >
           <Plus className="mr-1.5 h-4 w-4" />
-          Add Journey
+          Create Journey
         </Button>
       </div>
+
+      {playerId ? (
+        <div className="space-y-2 rounded-2xl border border-gray-200 bg-white p-4">
+          <p className="text-xs text-slate-500">
+            Pending Journeys: {journeySummary.pending} · Active Journeys: {journeySummary.active}
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              value={journeySearch}
+              onChange={(event) => setJourneySearch(event.target.value)}
+              placeholder="Search journeys…"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-200"
+            />
+            <select
+              value={journeyFilter}
+              onChange={(event) => setJourneyFilter(event.target.value)}
+              className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-200"
+            >
+              <option value="ALL">All</option>
+              <option value="NEW">Pending</option>
+              <option value="OPEN">Accepted</option>
+              <option value="IN_PROGRESS">Active</option>
+              <option value="COMPLETED">Completed</option>
+            </select>
+          </div>
+        </div>
+      ) : null}
 
       {showNewPlan && (
         <NewPlanForm
@@ -124,11 +498,13 @@ export function DevelopmentPlanManager({ playerId, teamId }: Props) {
         </Card>
       ) : (
         <div className="space-y-4">
-          {plans.map((plan) => (
+          {(playerId ? filteredJourneyRows.map((row) => row.plan) : plans).map((plan) => (
             <PlanCard
               key={plan.id}
               plan={plan}
               playerId={playerId}
+              statusBadge={playerId ? (journeyRows.find((row) => row.plan.id === plan.id)?.status ?? "NEW") : undefined}
+              originBadge={playerId ? (journeyRows.find((row) => row.plan.id === plan.id)?.origin ?? "INDIVIDUAL") : undefined}
               onDeleted={() => setPlans((prev) => prev.filter((p) => p.id !== plan.id))}
               onUpdated={(updated) => setPlans((prev) => prev.map((p) => p.id === updated.id ? updated : p))}
             />
@@ -189,21 +565,21 @@ function NewPlanForm({
   }
 
   return (
-    <Card className="border border-blue-200 bg-blue-50/50">
+    <Card className="border border-green-200 bg-green-50/50">
       <CardContent className="p-4">
         <form onSubmit={handleSubmit} className="space-y-3">
           <h3 className="font-medium text-slate-800">New Journey</h3>
           <input
             autoFocus
             required
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-200"
             placeholder="Journey name (e.g. Putting Improvement Journey)"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <textarea
             rows={2}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-200"
             placeholder="Description (optional)"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -213,7 +589,7 @@ function NewPlanForm({
               <label className="mb-1 block text-xs font-medium text-slate-500">Start Date</label>
               <input
                 type="date"
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-200"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
@@ -222,14 +598,14 @@ function NewPlanForm({
               <label className="mb-1 block text-xs font-medium text-slate-500">End Date</label>
               <input
                 type="date"
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-200"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
           </div>
           <div className="flex gap-2">
-            <Button type="submit" size="sm" disabled={saving} className="bg-blue-600 text-white hover:bg-blue-500">
+            <Button type="submit" size="sm" disabled={saving} className="bg-green-600 text-white hover:bg-green-500">
               {saving ? "Creating…" : "Create Journey"}
             </Button>
             <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
@@ -340,11 +716,15 @@ function EditPlanForm({
 function PlanCard({
   plan,
   playerId,
+  statusBadge,
+  originBadge,
   onDeleted,
   onUpdated,
 }: {
   plan: PlayerDevelopmentPlan;
   playerId?: string;
+  statusBadge?: string;
+  originBadge?: "TEMPLATE" | "INDIVIDUAL" | "TEAM";
   onDeleted: () => void;
   onUpdated: (plan: PlayerDevelopmentPlan) => void;
 }) {
@@ -394,6 +774,21 @@ function PlanCard({
         <div className="min-w-0 flex-1">
           <p className="font-extrabold text-lg text-slate-900 leading-tight truncate">{plan.name}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {originBadge ? (
+              <span className={cn(
+                "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
+                originBadge === "TEMPLATE" && "bg-violet-100 text-violet-700",
+                originBadge === "INDIVIDUAL" && "bg-blue-100 text-blue-700",
+                originBadge === "TEAM" && "bg-emerald-100 text-emerald-700",
+              )}>
+                {originBadge === "TEMPLATE" ? "Template" : originBadge === "TEAM" ? "Team" : "Individual"}
+              </span>
+            ) : null}
+            {statusBadge ? (
+              <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold", STATUS_BADGE[statusBadge] ?? "bg-slate-100 text-slate-700")}>
+                {STATUS_LABEL[statusBadge] ?? statusBadge}
+              </span>
+            ) : null}
             {plan.ownerType === "TEAM" ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
                 👥 Team{plan.team?.shortName ? ` · ${plan.team.shortName}` : ""}

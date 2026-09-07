@@ -206,7 +206,7 @@ All require JWT + COACH or ADMIN.
 | ------------------------------------ | ----------------------------------- | -------------------------------------------------------------------------------------- |
 | `/dashboard`                         | `dashboard/page.tsx`                | Role-specific dashboard tiles plus coach next-up and active-player sections            |
 | `/coach/players`                     | `coach/players/page.tsx`            | Coach's player grid                                                                    |
-| `/coach/players/[playerId]`          | `coach/players/[playerId]/page.tsx` | Player detail                                                                          |
+| `/coach/players/[playerId]`          | `coach/players/[playerId]/page.tsx` | Coach player workspace with assignment hub, lessons-first lifecycle list, and journeys |
 | `/coach/players/[playerId]/planning` | `…/planning/page.tsx`               | Player's development plan                                                              |
 | `/coach/players/[playerId]/calendar` | `…/calendar/page.tsx`               | Player's calendar (coach view)                                                         |
 | `/coach/lessons`                     | `coach/lessons/page.tsx`            | Lesson library                                                                         |

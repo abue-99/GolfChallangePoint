@@ -201,6 +201,18 @@ export const api = {
     fetch(`/api/development-plans/player/${playerId}`, {
       cache: "no-store",
     }).then((r) => r.json()),
+  listCoachPlayerAssignments: (
+    playerId: string,
+    params?: { status?: string; queueOnly?: boolean },
+  ) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    if (params?.queueOnly) qs.set("queueOnly", "true");
+    const url = qs.toString()
+      ? `/api/coach/players/${playerId}/assignments?${qs}`
+      : `/api/coach/players/${playerId}/assignments`;
+    return fetch(url, { cache: "no-store" }).then(handleResponse);
+  },
   listPlansForTeam: (teamId: string) =>
     fetch(`/api/development-plans/team/${teamId}`, { cache: "no-store" }).then(
       (r) => r.json(),
@@ -297,6 +309,12 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify(payload),
       }),
+    ),
+  deleteStandaloneAssignment: (id: string) =>
+    withLearningProgressRefresh(
+      fetch(`/api/assignments/${id}`, {
+        method: "DELETE",
+      }).then(handleResponse),
     ),
   moveStandaloneAssignmentToQueue: (id: string) =>
     withLearningProgressRefresh(

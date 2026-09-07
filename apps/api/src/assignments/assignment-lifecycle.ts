@@ -36,7 +36,7 @@ export function toStoredAssignmentStatus(
     case 'ARCHIVED':
       return AssignmentStatus.COMPLETED;
     default:
-      return AssignmentStatus.OPEN;
+      return AssignmentStatus.NEW;
   }
 }
 
@@ -56,7 +56,7 @@ export function toLifecycleStatus(status?: string | null): LifecycleStatus {
     case 'COMPLETED':
       return 'COMPLETED';
     default:
-      return 'ACCEPTED';
+      return 'PENDING';
   }
 }
 

@@ -676,23 +676,20 @@ export class AssignmentsService {
       );
     }
 
-    const [lessonAssignments, coachJourneyAssignments] = await Promise.all([
-      this.prisma.lessonAssignment.findMany({
-        where: {
-          ...(role === 'ADMIN' ? {} : { coachId: userId }),
-          ...(filters.status
-            ? { status: toStoredAssignmentStatus(filters.status) }
-            : {}),
-          ...(filters.queueOnly === 'true' ? { isInTrainingQueue: true } : {}),
-        },
-        include: this.assignmentInclude(),
-        orderBy: { createdAt: 'desc' },
-      }),
-      Promise.resolve(journeyAssignments),
-    ]);
+    const lessonAssignments = await this.prisma.lessonAssignment.findMany({
+      where: {
+        ...(role === 'ADMIN' ? {} : { coachId: userId }),
+        ...(filters.status
+          ? { status: toStoredAssignmentStatus(filters.status) }
+          : {}),
+        ...(filters.queueOnly === 'true' ? { isInTrainingQueue: true } : {}),
+      },
+      include: this.assignmentInclude(),
+      orderBy: { createdAt: 'desc' },
+    });
 
     const journeyByPlanId = new Map(
-      coachJourneyAssignments.map((assignment) => [
+      journeyAssignments.map((assignment) => [
         assignment.playerPlanId,
         assignment.journeyTemplate,
       ]),

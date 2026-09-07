@@ -166,7 +166,7 @@ export default function PlayerOverviewDialog({
                   className="flex items-center justify-center gap-2"
                 >
                   <ExternalLink size={16} />
-                  Goto/Open Player
+                  Go to Player
                 </Link>
               </Button>
 
@@ -177,7 +177,7 @@ export default function PlayerOverviewDialog({
                   onClick={handleRemove}
                 >
                   <Trash2 size={16} />
-                  Delete Player
+                  Remove from My Players
                 </Button>
               ) : null}
             </div>

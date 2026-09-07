@@ -4,10 +4,12 @@ FROM node:22-bookworm-slim AS base
 WORKDIR /repo
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
+ARG PNPM_TGZ_SHA256=33dd0748f27e7916c4f1c8b6943461983e3453b06bbda6312a6280130b4881e5
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl python3 make g++ && rm -rf /var/lib/apt/lists/*
 ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 ADD https://registry.npmjs.org/pnpm/-/pnpm-11.25.0.tgz /tmp/pnpm.tgz
 RUN mkdir -p /usr/local/lib/node_modules/pnpm \
+ && echo "$PNPM_TGZ_SHA256  /tmp/pnpm.tgz" | sha256sum -c - \
  && tar -xzf /tmp/pnpm.tgz --strip-components=1 -C /usr/local/lib/node_modules/pnpm \
  && printf '#!/bin/sh\nexec node /usr/local/lib/node_modules/pnpm/bin/pnpm.cjs "$@"\n' > /usr/local/bin/pnpm \
  && chmod +x /usr/local/bin/pnpm \

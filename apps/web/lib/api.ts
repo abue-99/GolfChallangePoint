@@ -222,10 +222,8 @@ export const api = {
       body: JSON.stringify(payload),
     }).then((r) => r.json()),
   deletePlan: (planId: string) =>
-    withLearningProgressRefresh(
-      fetch(`/api/development-plans/${planId}`, { method: "DELETE" }).then((r) =>
-        r.json(),
-      ),
+    fetch(`/api/development-plans/${planId}`, { method: "DELETE" }).then((r) =>
+      r.json(),
     ),
 
   // Training Blocks
@@ -294,10 +292,12 @@ export const api = {
     return fetch(url, { cache: "no-store" }).then(handleResponse);
   },
   updateStandaloneAssignment: (id: string, payload: Record<string, unknown>) =>
-    fetchJsonWithAuth(`/api/assignments/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    }),
+    withLearningProgressRefresh(
+      fetchJsonWithAuth(`/api/assignments/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      }),
+    ),
   moveStandaloneAssignmentToQueue: (id: string) =>
     withLearningProgressRefresh(
       fetchJsonWithAuth(`/api/assignments/${id}/queue`, { method: "POST" }),

@@ -85,6 +85,7 @@ export default function CoachHome() {
   const [teamCounts, setTeamCounts] = useState<Record<string, ItemCount>>({});
   const [nextUp, setNextUp] = useState<CalendarActivity | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [viewerRole, setViewerRole] = useState<string | null>(null);
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
@@ -99,6 +100,7 @@ export default function CoachHome() {
 
       const nextPlayers = Array.isArray(playersRes) ? playersRes : [];
       const nextTeams = Array.isArray(teamsRes) ? teamsRes : [];
+      setViewerRole(typeof me?.role === "string" ? me.role : null);
       setPlayers(nextPlayers);
       setTeams(nextTeams);
 
@@ -177,9 +179,15 @@ export default function CoachHome() {
     };
   }, [loadDashboardData]);
 
-  useEffect(() => subscribeLearningProgressChanges(() => {
-    void loadDashboardData();
-  }), [loadDashboardData]);
+  useEffect(() => {
+    if (viewerRole !== "COACH") {
+      return;
+    }
+
+    return subscribeLearningProgressChanges(() => {
+      void loadDashboardData();
+    });
+  }, [loadDashboardData, viewerRole]);
 
   const normalizedQuery = query.trim().toLowerCase();
 

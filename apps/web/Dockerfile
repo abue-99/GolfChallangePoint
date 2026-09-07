@@ -14,11 +14,14 @@ RUN mkdir -p /usr/local/lib/node_modules/pnpm \
  && printf '#!/bin/sh\nexec node /usr/local/lib/node_modules/pnpm/bin/pnpx.cjs "$@"\n' > /usr/local/bin/pnpx \
  && chmod +x /usr/local/bin/pnpx
 
+FROM base AS manifests
+COPY . .
+RUN mkdir -p /tmp/manifests && \
+    cp package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json /tmp/manifests/ && \
+    find apps packages -name package.json -exec sh -c 'for file do mkdir -p "/tmp/manifests/$(dirname "$file")"; cp "$file" "/tmp/manifests/$file"; done' sh {} +
+
 FROM base AS deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
-COPY apps/api/package.json ./apps/api/package.json
-COPY apps/web/package.json ./apps/web/package.json
-COPY packages/db/package.json ./packages/db/package.json
+COPY --from=manifests /tmp/manifests/ ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store && \
     pnpm install --filter golf-challenge-point-web... --frozen-lockfile

@@ -236,13 +236,13 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
               {activePlayers.map((player) => (
                 <button
                   key={player.id}
                   type="button"
                   onClick={() => setSelectedPlayerId(player.id)}
-                  className="text-left"
+                  className="h-full w-full text-left"
                 >
                   <CompactCoachPlayerCard
                     name={playerName(player)}

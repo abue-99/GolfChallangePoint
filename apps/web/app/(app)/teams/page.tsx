@@ -42,8 +42,8 @@ import JourneyTemplateLibrarySidebar from "@/components/JourneyTemplateLibrarySi
 import type { JourneyTemplate } from "@/types/journey-template";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import CompactCoachPlayerCard from "@/components/CompactCoachPlayerCard";
 import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
-import { LearningProgressSection } from "@/components/LearningProgress";
 import { subscribeLearningProgressChanges } from "@/lib/learning-progress-events";
 
 // Common icons represented as emoji for team assignment
@@ -407,9 +407,7 @@ function DroppablePlayerCard({
     <div
       ref={setNodeRef}
       className={cn(
-        "relative flex flex-col items-center gap-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all cursor-pointer select-none group hover:shadow-md",
-        isOver &&
-          "border-emerald-400 bg-emerald-50 shadow-md ring-2 ring-emerald-400/60",
+        "relative group cursor-pointer select-none",
       )}
       onClick={onOpen}
       title="Click to view details"
@@ -425,37 +423,19 @@ function DroppablePlayerCard({
       >
         <X size={10} />
       </button>
-      <div className="relative">
-        <Avatar className="h-16 w-16">
-          {player.profileImage && (
-            <AvatarImage src={player.profileImage} alt={name} />
-          )}
-          <AvatarFallback className="text-xl bg-gray-200 text-gray-600">
-            {playerInitials}
-          </AvatarFallback>
-        </Avatar>
-        {isInactive && (
-          <span
-            className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-amber-400 border-2 border-white"
-            title="Inactive"
-          />
-        )}
-      </div>
-      <span className="text-sm font-medium text-center text-gray-800 leading-snug">
-        {name}
-      </span>
-      <div className="w-full">
-        {isOver ? (
+      <CompactCoachPlayerCard
+        name={name}
+        initials={playerInitials}
+        profileImage={player.profileImage}
+        progress={player.learningProgress}
+        inactive={isInactive}
+        className={cn(isOver ? "border-emerald-400 bg-emerald-50 shadow-md ring-2 ring-emerald-400/60" : undefined)}
+        statusContent={isOver ? (
           <span className="text-[11px] font-medium text-emerald-700">
             {`Assign to ${name}`}
           </span>
-        ) : (
-          <LearningProgressSection
-            progress={player.learningProgress}
-            compact
-          />
-        )}
-      </div>
+        ) : undefined}
+      />
     </div>
   );
 }

@@ -92,20 +92,27 @@ function CompactLearningSummaryRow({
   const rowLabel = prefix === "J" ? "Journeys" : "Lessons";
   if (visibleSegments.length === 0) return null;
 
+  const badgeStyles: Record<(typeof visibleSegments)[number], string> = {
+    PENDING: "#F97316",
+    ACCEPTED: "#CA8A04",
+    ACTIVE: "#84CC16",
+    COMPLETED: "#16A34A",
+  };
+
   return (
     <div
       className={cn("flex items-center gap-2 text-xs text-slate-700", className)}
       aria-label={`${rowLabel} summary`}
     >
-      <span className="font-semibold text-slate-500">{prefix}</span>
-      <div className="flex flex-wrap items-center gap-2">
+      <span className="w-3 shrink-0 text-[11px] font-semibold text-slate-500">{prefix}</span>
+      <div className="flex flex-wrap items-center gap-1.5">
         {visibleSegments.map((status) => (
           <span
             key={status}
-            className="font-semibold"
+            className="inline-flex h-[18px] w-9 shrink-0 items-center justify-center rounded-md px-2 text-[11px] font-bold text-white"
+            style={{ backgroundColor: badgeStyles[status] }}
             title={`${LIFECYCLE_META[status].label}: ${counts[status]}`}
           >
-            <span aria-hidden="true">{LIFECYCLE_META[status].emoji}</span>
             <span className="sr-only">
               {`${rowLabel} ${LIFECYCLE_META[status].label}: ${counts[status]}`}
             </span>
@@ -134,7 +141,7 @@ export function CompactLearningSummary({
   );
 
   return (
-    <div className={cn("w-full space-y-1.5", className)}>
+    <div className={cn("w-full space-y-1", className)}>
       <CompactLearningSummaryRow prefix="J" counts={journeyCounts} />
       <CompactLearningSummaryRow prefix="L" counts={lessonCounts} />
     </div>

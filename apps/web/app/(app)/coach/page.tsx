@@ -7,9 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CalendarDays, Route, Search, Users } from "lucide-react";
 import type { CalendarActivity as BaseCalendarActivity } from "@/types/calendar";
+import CompactCoachPlayerCard from "@/components/CompactCoachPlayerCard";
 import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
 import {
-  LearningProgressSection,
   hasVisibleLearningProgress,
 } from "@/components/LearningProgress";
 import { subscribeLearningProgressChanges } from "@/lib/learning-progress-events";
@@ -304,7 +304,7 @@ export default function CoachHome() {
         ) : activePlayers.length === 0 ? (
           <EmptyState text="No active players right now." />
         ) : (
-          <div className="flex gap-3 overflow-x-auto pb-1">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {activePlayers.map((player) => {
               const name = nameOfPlayer(player);
               return (
@@ -312,27 +312,15 @@ export default function CoachHome() {
                   key={player.id}
                   type="button"
                   onClick={() => setSelectedPlayerId(player.id)}
-                  className="min-w-[220px] text-left"
+                  className="w-full text-left"
                 >
-                  <Card className="h-full border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-                    <CardContent className="flex items-center gap-3 p-4">
-                      <Avatar className="h-14 w-14">
-                        {player.profileImage ? (
-                          <AvatarImage src={player.profileImage} alt={name} />
-                        ) : null}
-                        <AvatarFallback className="bg-blue-100 text-lg text-blue-700">
-                          {initials(name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-slate-800">{name}</p>
-                        <LearningProgressSection
-                          progress={player.learningProgress}
-                          compact
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <CompactCoachPlayerCard
+                    name={name}
+                    initials={initials(name)}
+                    profileImage={player.profileImage}
+                    progress={player.learningProgress}
+                    avatarFallbackClassName="bg-blue-100 text-xl text-blue-700"
+                  />
                 </button>
               );
             })}
@@ -381,23 +369,13 @@ export default function CoachHome() {
               const name = nameOfPlayer(player);
               return (
                 <Link key={player.id} href={`/coach/players/${player.id}`}>
-                  <Card className="h-full border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-                    <CardContent className="flex flex-col items-center gap-3 p-4 text-center">
-                      <Avatar className="h-16 w-16">
-                        {player.profileImage ? <AvatarImage src={player.profileImage} alt={name} /> : null}
-                        <AvatarFallback className="bg-blue-100 text-xl text-blue-700">
-                          {initials(name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="space-y-1">
-                        <p className="font-medium text-slate-800">{name}</p>
-                        <LearningProgressSection
-                          progress={player.learningProgress}
-                          compact
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <CompactCoachPlayerCard
+                    name={name}
+                    initials={initials(name)}
+                    profileImage={player.profileImage}
+                    progress={player.learningProgress}
+                    avatarFallbackClassName="bg-blue-100 text-xl text-blue-700"
+                  />
                 </Link>
               );
             })}

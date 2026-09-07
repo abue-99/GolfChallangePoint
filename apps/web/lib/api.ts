@@ -1,3 +1,5 @@
+import { notifyLearningProgressChanged } from "@/lib/learning-progress-events";
+
 export const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,6 +32,12 @@ async function fetchJsonWithAuth(path: string, init?: RequestInit) {
     headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
   });
   return handleResponse(res);
+}
+
+async function withLearningProgressRefresh<T>(promise: Promise<T>): Promise<T> {
+  const result = await promise;
+  notifyLearningProgressChanged();
+  return result;
 }
 
 export const api = {
@@ -238,21 +246,27 @@ export const api = {
 
   // Lesson Assignments
   addAssignment: (blockId: string, payload: Record<string, unknown>) =>
-    fetch(`/api/development-plans/blocks/${blockId}/assignments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).then(handleResponse),
+    withLearningProgressRefresh(
+      fetch(`/api/development-plans/blocks/${blockId}/assignments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).then(handleResponse),
+    ),
   updateAssignment: (assignmentId: string, payload: Record<string, unknown>) =>
-    fetch(`/api/development-plans/assignments/${assignmentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).then(handleResponse),
+    withLearningProgressRefresh(
+      fetch(`/api/development-plans/assignments/${assignmentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).then(handleResponse),
+    ),
   removeAssignment: (assignmentId: string) =>
-    fetch(`/api/development-plans/assignments/${assignmentId}`, {
-      method: "DELETE",
-    }).then(handleResponse),
+    withLearningProgressRefresh(
+      fetch(`/api/development-plans/assignments/${assignmentId}`, {
+        method: "DELETE",
+      }).then(handleResponse),
+    ),
   getGamificationProfile: (userId: string) =>
     fetch(`/api/gamification/${userId}`, { cache: "no-store" }).then((r) =>
       r.json(),
@@ -264,10 +278,12 @@ export const api = {
 
   // Standalone Lesson Assignments (Assignment-First model)
   createStandaloneAssignment: (payload: Record<string, unknown>) =>
-    fetchJsonWithAuth("/api/assignments", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
+    withLearningProgressRefresh(
+      fetchJsonWithAuth("/api/assignments", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    ),
   listMyStandaloneAssignments: (params?: { status?: string; queueOnly?: boolean }) => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);
@@ -276,23 +292,31 @@ export const api = {
     return fetch(url, { cache: "no-store" }).then(handleResponse);
   },
   updateStandaloneAssignment: (id: string, payload: Record<string, unknown>) =>
-    fetchJsonWithAuth(`/api/assignments/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    }),
+    withLearningProgressRefresh(
+      fetchJsonWithAuth(`/api/assignments/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      }),
+    ),
   moveStandaloneAssignmentToQueue: (id: string) =>
-    fetchJsonWithAuth(`/api/assignments/${id}/queue`, { method: "POST" }),
+    withLearningProgressRefresh(
+      fetchJsonWithAuth(`/api/assignments/${id}/queue`, { method: "POST" }),
+    ),
 
   assignLessonToPlayer: (playerId: string, payload: Record<string, unknown>) =>
-    fetchJsonWithAuth(`/api/coach/players/${playerId}/assignments`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
+    withLearningProgressRefresh(
+      fetchJsonWithAuth(`/api/coach/players/${playerId}/assignments`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    ),
   assignLessonToTeam: (teamId: string, payload: Record<string, unknown>) =>
-    fetchJsonWithAuth(`/api/coach/teams/${teamId}/assignments`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
+    withLearningProgressRefresh(
+      fetchJsonWithAuth(`/api/coach/teams/${teamId}/assignments`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    ),
 
   // Journey Templates
   listJourneyTemplates: (params?: { visibility?: string }) => {
@@ -320,24 +344,30 @@ export const api = {
       handleResponse,
     ),
   assignJourneyToPlayer: (journeyId: string, playerId: string) =>
-    fetchJsonWithAuth(`/api/coach/journeys/${journeyId}/assign/player/${playerId}`, {
-      method: "POST",
-      body: JSON.stringify({}),
-    }),
+    withLearningProgressRefresh(
+      fetchJsonWithAuth(`/api/coach/journeys/${journeyId}/assign/player/${playerId}`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
+    ),
   assignJourneyToTeam: (journeyId: string, teamId: string) =>
-    fetchJsonWithAuth(`/api/coach/journeys/${journeyId}/assign/team/${teamId}`, {
-      method: "POST",
-      body: JSON.stringify({}),
-    }),
+    withLearningProgressRefresh(
+      fetchJsonWithAuth(`/api/coach/journeys/${journeyId}/assign/team/${teamId}`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
+    ),
   updateJourneyAssignment: (
     assignmentId: string,
     payload: { status?: string; isInTrainingQueue?: boolean },
   ) =>
-    fetch(`/api/journeys/assignments/${assignmentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).then(handleResponse),
+    withLearningProgressRefresh(
+      fetch(`/api/journeys/assignments/${assignmentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).then(handleResponse),
+    ),
 };
 
 /**

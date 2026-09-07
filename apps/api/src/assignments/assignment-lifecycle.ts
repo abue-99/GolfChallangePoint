@@ -8,6 +8,10 @@ export type LifecycleCounts = Record<LifecycleStatus, number>;
 export type PlayerLearningSummary = {
   lessons: LifecycleCounts;
   journeys: LifecycleCounts;
+  recentCompletions: {
+    lessons: number;
+    journeys: number;
+  };
 };
 
 export function createLifecycleCounts(): LifecycleCounts {
@@ -96,6 +100,22 @@ export function deriveJourneyAssignmentStatus(
   return AssignmentStatus.OPEN;
 }
 
+function getCompletedAtUpdate(
+  currentStatus: string | null | undefined,
+  nextStatus: AssignmentStatus,
+  currentCompletedAt: Date | null | undefined,
+): Date | null | undefined {
+  if (nextStatus === AssignmentStatus.COMPLETED) {
+    return currentCompletedAt ?? new Date();
+  }
+
+  if (toLifecycleStatus(currentStatus) === 'COMPLETED') {
+    return null;
+  }
+
+  return undefined;
+}
+
 export async function syncJourneyAssignmentLifecycleForPlanIds(
   prisma: PrismaService,
   planIds: string[],
@@ -109,6 +129,7 @@ export async function syncJourneyAssignmentLifecycleForPlanIds(
       id: true,
       playerPlanId: true,
       status: true,
+      completedAt: true,
       isInTrainingQueue: true,
     },
   });
@@ -147,7 +168,16 @@ export async function syncJourneyAssignmentLifecycleForPlanIds(
         assignment.status,
       );
       const shouldLeaveQueue = assignment.isInTrainingQueue;
-      if (!shouldLeaveQueue && nextStatus === assignment.status) {
+      const completedAtUpdate = getCompletedAtUpdate(
+        assignment.status,
+        nextStatus,
+        assignment.completedAt,
+      );
+      if (
+        !shouldLeaveQueue &&
+        nextStatus === assignment.status &&
+        completedAtUpdate === undefined
+      ) {
         return Promise.resolve(null);
       }
 
@@ -155,6 +185,9 @@ export async function syncJourneyAssignmentLifecycleForPlanIds(
         where: { id: assignment.id },
         data: {
           status: nextStatus,
+          ...(completedAtUpdate !== undefined
+            ? { completedAt: completedAtUpdate }
+            : {}),
           ...(shouldLeaveQueue ? { isInTrainingQueue: false } : {}),
         },
       });
@@ -166,6 +199,9 @@ export async function loadPlayerLearningSummaries(
   prisma: PrismaService,
   playerIds: string[],
 ): Promise<Record<string, PlayerLearningSummary>> {
+  const recentCompletionThreshold = new Date(
+    Date.now() - 90 * 24 * 60 * 60 * 1000,
+  );
   const uniquePlayerIds = [...new Set(playerIds.filter(Boolean))];
   if (uniquePlayerIds.length === 0) return {};
 
@@ -175,6 +211,10 @@ export async function loadPlayerLearningSummaries(
       {
         lessons: createLifecycleCounts(),
         journeys: createLifecycleCounts(),
+        recentCompletions: {
+          lessons: 0,
+          journeys: 0,
+        },
       },
     ]),
   ) as Record<string, PlayerLearningSummary>;
@@ -185,6 +225,7 @@ export async function loadPlayerLearningSummaries(
       select: {
         playerId: true,
         status: true,
+        completedAt: true,
         block: {
           select: {
             planId: true,
@@ -200,6 +241,7 @@ export async function loadPlayerLearningSummaries(
         playerPlanId: true,
         status: true,
         isInTrainingQueue: true,
+        completedAt: true,
       },
     }),
   ]);
@@ -243,6 +285,7 @@ export async function loadPlayerLearningSummaries(
           },
           select: {
             status: true,
+            completedAt: true,
             block: {
               select: {
                 planId: true,
@@ -268,8 +311,17 @@ export async function loadPlayerLearningSummaries(
         assignment.status,
       );
       journeyStatusesByPlanId.set(assignment.playerPlanId, nextStatus);
+      const completedAtUpdate = getCompletedAtUpdate(
+        assignment.status,
+        nextStatus,
+        assignment.completedAt,
+      );
 
-      if (nextStatus === assignment.status && !assignment.isInTrainingQueue) {
+      if (
+        nextStatus === assignment.status &&
+        !assignment.isInTrainingQueue &&
+        completedAtUpdate === undefined
+      ) {
         return Promise.resolve(null);
       }
 
@@ -277,6 +329,9 @@ export async function loadPlayerLearningSummaries(
         where: { id: assignment.id },
         data: {
           status: nextStatus,
+          ...(completedAtUpdate !== undefined
+            ? { completedAt: completedAtUpdate }
+            : {}),
           ...(assignment.isInTrainingQueue ? { isInTrainingQueue: false } : {}),
         },
       });
@@ -285,12 +340,17 @@ export async function loadPlayerLearningSummaries(
 
   for (const assignment of journeyAssignments) {
     if (!assignment.playerId) continue;
-    summaries[assignment.playerId].journeys[
-      toLifecycleStatus(
-        journeyStatusesByPlanId.get(assignment.playerPlanId) ??
-          assignment.status,
-      )
-    ] += 1;
+    const lifecycleStatus = toLifecycleStatus(
+      journeyStatusesByPlanId.get(assignment.playerPlanId) ?? assignment.status,
+    );
+    summaries[assignment.playerId].journeys[lifecycleStatus] += 1;
+    if (
+      lifecycleStatus === 'COMPLETED' &&
+      assignment.completedAt &&
+      assignment.completedAt >= recentCompletionThreshold
+    ) {
+      summaries[assignment.playerId].recentCompletions.journeys += 1;
+    }
   }
 
   const pendingJourneyPlanIds = new Set(
@@ -313,9 +373,15 @@ export async function loadPlayerLearningSummaries(
     ) {
       continue;
     }
-    summaries[assignment.playerId].lessons[
-      toLifecycleStatus(assignment.status)
-    ] += 1;
+    const lifecycleStatus = toLifecycleStatus(assignment.status);
+    summaries[assignment.playerId].lessons[lifecycleStatus] += 1;
+    if (
+      lifecycleStatus === 'COMPLETED' &&
+      assignment.completedAt &&
+      assignment.completedAt >= recentCompletionThreshold
+    ) {
+      summaries[assignment.playerId].recentCompletions.lessons += 1;
+    }
   }
 
   return summaries;

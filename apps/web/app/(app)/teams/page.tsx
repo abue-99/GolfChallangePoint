@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   Trash2,
@@ -44,6 +44,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
 import { LearningProgressSection } from "@/components/LearningProgress";
+import { subscribeLearningProgressChanges } from "@/lib/learning-progress-events";
 
 // Common icons represented as emoji for team assignment
 const TEAM_ICONS = [
@@ -608,6 +609,49 @@ export default function TeamsPage() {
       setTeamPlanCounts((prev) => ({ ...prev, [teamId]: planCount }));
     });
   }
+
+  const refreshLearningProgressData = useCallback(async () => {
+    if (role !== "COACH" && role !== "ADMIN") return;
+    try {
+      const [teamsResponse, allPlayersResponse, myPlayersResponse] = await Promise.all([
+        fetch("/api/teams", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+        fetch("/api/teams/club-players", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+        fetch("/api/players/my", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+      ]);
+
+      const nextTeams: Team[] = Array.isArray(teamsResponse) ? teamsResponse : [];
+      const nextAllPlayers: Player[] = Array.isArray(allPlayersResponse)
+        ? allPlayersResponse.filter(Boolean)
+        : [];
+      const nextMyPlayers: Player[] = Array.isArray(myPlayersResponse)
+        ? myPlayersResponse.filter(Boolean)
+        : [];
+
+      setTeams(nextTeams);
+      setAllPlayers(nextAllPlayers);
+      setMyPlayers(nextMyPlayers);
+      setEditingTeam((prev) =>
+        prev ? nextTeams.find((team) => team.id === prev.id) ?? null : prev,
+      );
+      setPlayerQueueById(
+        Object.fromEntries(
+          nextMyPlayers.map((player) => [player.id, player.pendingLessons ?? 0]),
+        ),
+      );
+      setTeamPendingById(
+        Object.fromEntries(
+          nextTeams.map((team) => [team.id, team.pendingLessons ?? 0]),
+        ),
+      );
+    } catch {}
+  }, [role]);
+
+  useEffect(() => {
+    if (role !== "COACH" && role !== "ADMIN") return;
+    return subscribeLearningProgressChanges(() => {
+      void refreshLearningProgressData();
+    });
+  }, [refreshLearningProgressData, role]);
 
   function applyOptimisticAssignment(
     target: AssignmentTarget,
@@ -2285,8 +2329,11 @@ function PlayersSection({
   onPlayerRemoved: (playerId: string) => void;
 }) {
   const [search, setSearch] = useState("");
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const selectedPlayer = selectedPlayerId
+    ? players.find((player) => player.id === selectedPlayerId) ?? null
+    : null;
 
   const filtered = players.filter((p) => {
     const q = search.toLowerCase();
@@ -2343,7 +2390,7 @@ function PlayersSection({
               <React.Fragment key={p.id}>
                 <DroppablePlayerCard
                   player={p}
-                  onOpen={() => setSelectedPlayer(p)}
+                  onOpen={() => setSelectedPlayerId(p.id)}
                   onRemove={() =>
                     handleRemovePlayer(p.id, playerDisplayName(p))
                   }
@@ -2357,10 +2404,10 @@ function PlayersSection({
       {selectedPlayer && (
         <PlayerDetailDialog
           player={selectedPlayer}
-          onClose={() => setSelectedPlayer(null)}
+          onClose={() => setSelectedPlayerId(null)}
           onRemove={(playerId) => {
             onPlayerRemoved(playerId);
-            setSelectedPlayer(null);
+            setSelectedPlayerId(null);
           }}
         />
       )}

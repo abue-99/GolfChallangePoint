@@ -529,7 +529,14 @@ export class JourneysService {
   ) {
     const assignment = await this.prisma.journeyTemplateAssignment.findUnique({
       where: { id: assignmentId },
-      select: { id: true, playerId: true, coachId: true, playerPlanId: true },
+      select: {
+        id: true,
+        playerId: true,
+        coachId: true,
+        playerPlanId: true,
+        status: true,
+        completedAt: true,
+      },
     });
     if (!assignment)
       throw new NotFoundException('Journey assignment not found');
@@ -543,12 +550,22 @@ export class JourneysService {
       throw new ForbiddenException('Not your journey assignment');
     }
 
+    const nextStatus =
+      data.status !== undefined
+        ? toStoredAssignmentStatus(data.status)
+        : assignment.status;
+
     return this.prisma.journeyTemplateAssignment
       .update({
         where: { id: assignmentId },
         data: {
+          ...(data.status !== undefined ? { status: nextStatus } : {}),
           ...(data.status !== undefined
-            ? { status: toStoredAssignmentStatus(data.status) }
+            ? nextStatus === AssignmentStatus.COMPLETED
+              ? { completedAt: assignment.completedAt ?? new Date() }
+              : assignment.status === AssignmentStatus.COMPLETED
+                ? { completedAt: null }
+                : {}
             : {}),
           ...(data.isInTrainingQueue !== undefined
             ? { isInTrainingQueue: Boolean(data.isInTrainingQueue) }

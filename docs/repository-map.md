@@ -19,6 +19,7 @@
 ├── .github/workflows/        # GitHub Actions CI pipelines
 ├── docker-compose.yml        # Production multi-service compose
 ├── Caddyfile                 # Caddy reverse-proxy config
+├── Dockerfile                # Root web image build with the same cache strategy as apps/web/Dockerfile
 ├── turbo.json                # Turborepo task graph
 ├── pnpm-workspace.yaml       # pnpm workspace definition
 ├── TECHNICAL_DESCRIPTION.md  # Verbose project description (existing doc)
@@ -202,7 +203,7 @@ All require JWT + COACH or ADMIN.
 
 | Route                                | File                                | Description                                                                            |
 | ------------------------------------ | ----------------------------------- | -------------------------------------------------------------------------------------- |
-| `/dashboard`                         | `dashboard/page.tsx`                | Role-specific dashboard tiles                                                          |
+| `/dashboard`                         | `dashboard/page.tsx`                | Role-specific dashboard tiles plus coach next-up and active-player sections            |
 | `/coach/players`                     | `coach/players/page.tsx`            | Coach's player grid                                                                    |
 | `/coach/players/[playerId]`          | `coach/players/[playerId]/page.tsx` | Player detail                                                                          |
 | `/coach/players/[playerId]/planning` | `…/planning/page.tsx`               | Player's development plan                                                              |
@@ -287,6 +288,7 @@ Current status: journey CRUD routes, journey assignment routes, and coach lesson
 | `assignment-lifecycle.ts` | UI lifecycle normalization (`PENDING`/`ACCEPTED`/`ACTIVE`/`COMPLETED`) |
 | `player-capabilities.ts` | CAPABILITY_DEFINITIONS skill tree                |
 | `api.ts`                 | Fetch wrapper for client-side API calls          |
+| `learning-progress-events.ts` | Browser event helper for live learning-progress refresh |
 | `auth-cookies.ts`        | Cookie read/write helpers                        |
 | `api-proxy-auth.ts`      | Shared server-side proxy retry/refresh helper    |
 | `calendar-activity.ts`   | Calendar activity helpers                        |
@@ -294,9 +296,16 @@ Current status: journey CRUD routes, journey assignment routes, and coach lesson
 
 ### Learning lifecycle touchpoints
 
-- **Coach player summaries**: `/teams`, `/coach/players`, and `/coach` consume `learningProgress` from coach-facing player payloads to render the mobile-first journey/lesson lifecycle overview.
+- **Coach player summaries**: `/teams`, `/coach/players`, `/coach`, and the coach `/dashboard` view consume `learningProgress` from coach-facing player payloads to render the mobile-first journey/lesson lifecycle overview.
+- **Recent completion visibility**: compact coach cards use `recentCompletions` to show `COMPLETED` only for the last 90 days, while `PlayerOverviewDialog.tsx` keeps the full historical lifecycle counts; backend summaries depend on persisted assignment `completedAt` timestamps.
 - **Player acceptance flow**: `NewAssignmentsSection.tsx`, `PlayerJourney.tsx`, and `player/queue/page.tsx` implement the `Assign → Accept → Train → Complete` flow while keeping journeys out of the queue.
 - **Backend lifecycle sync**: `apps/api/src/assignments/assignment-lifecycle.ts` centralises lifecycle normalization, journey-status syncing, and coach/player learning-summary aggregation.
+
+### Container build touchpoints
+
+- `apps/web/Dockerfile`: filtered `golf-challenge-point-web...` install, cached Prisma generate layer, cached Next `.next/cache`
+- `apps/api/Dockerfile`: filtered `api...` install, cached Prisma generate layer, shared pnpm store cache
+- `.dockerignore`: excludes local build artifacts so context churn does not trigger unnecessary image rebuilds
 | `jwt.ts`                 | JWT sign/verify helpers                          |
 | `prisma.ts`              | Prisma client singleton for SSR                  |
 | `utils.ts`               | General utilities (cn, etc.)                     |

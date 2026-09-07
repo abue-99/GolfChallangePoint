@@ -341,6 +341,10 @@ export class UsersService {
           ACTIVE: 0,
           COMPLETED: 0,
         },
+        recentCompletions: {
+          lessons: 0,
+          journeys: 0,
+        },
       },
     }));
   }

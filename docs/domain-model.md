@@ -30,6 +30,18 @@
 
 ---
 
+### Derived learning-progress summary *(API projection, not a Prisma model)*
+
+Coach-facing player payloads expose a computed `learningProgress` object with:
+
+- `lessons`: lifecycle counts mapped to `PENDING` / `ACCEPTED` / `ACTIVE` / `COMPLETED`
+- `journeys`: the same lifecycle counts for journey assignments
+- `recentCompletions`: 90-day completed totals used only by compact avatar/dashboard cards; popup views still show full historical `COMPLETED` totals
+
+This summary is derived in the assignments lifecycle helpers from `LessonAssignment` and `JourneyTemplateAssignment`.
+
+---
+
 ## Entity Reference
 
 ### `User` (table: `users`)
@@ -322,6 +334,7 @@ Reusable assignment record. It can belong to a `TrainingBlock`, or exist standal
 | `calendarTaskId`    | via `CalendarTask.assignmentId` | Optional scheduled task linkage                              |
 | `priority`          | `LessonPriority`                | default `MEDIUM`                                             |
 | `status`            | `AssignmentStatus`              | default `NEW`                                                |
+| `completedAt`       | DateTime?                       | Set when the lesson first reaches `COMPLETED`; cleared if reopened |
 | `sortOrder`         | Int                             | default 0                                                    |
 | `playerNotes`       | String?                         |                                                              |
 | `selfAssessment`    | Int?                            | Player 1–10 rating                                           |
@@ -388,6 +401,7 @@ Journey assignment created when a coach assigns a journey to a player or team.
 | `coachId`           | FK → User             | Assigning coach                                             |
 | `playerPlanId`      | String                | Links the queued journey back to the generated player plan  |
 | `status`            | `AssignmentStatus`    | default `NEW`                                               |
+| `completedAt`       | DateTime?             | Derived completion timestamp used for recent-completion coach views |
 | `isInTrainingQueue` | Boolean               | default `false`; journeys are intentionally excluded from the training queue |
 | `source`            | String                | default `"assignedByCoach"`                                 |
 | `createdAt`         | DateTime              | auto                                                        |
@@ -397,6 +411,7 @@ Journey assignment created when a coach assigns a journey to a player or team.
 
 - Direct assignment to a single player creates one `JourneyTemplateAssignment` and a generated player plan.
 - Direct assignment to a team resolves all active members and creates one separate `JourneyTemplateAssignment` per member.
+- Journey recent-completion visibility should use persisted lesson/journey `completedAt` timestamps instead of `updatedAt`.
 - Player UX normalises journey lifecycle to `PENDING` → `ACCEPTED` → `ACTIVE` → `COMPLETED`, with `ACTIVE`/`COMPLETED` derived from the linked plan's lesson assignments.
 - Invalid journey assignments whose `playerPlanId` no longer exists are cleaned up during coach/player assignment reads.
 - Coach-facing journey save and assignment flows rely on the web proxy layer to refresh expired access tokens before retrying the backend request, so journey API paths must be routed through Next.js proxy handlers.

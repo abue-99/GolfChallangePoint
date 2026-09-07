@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { BookOpen, UserPlus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import { DndLessonProvider } from "@/components/DndLessonProvider";
 import { toast } from "sonner";
 import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
 import { LearningProgressSection } from "@/components/LearningProgress";
+import { subscribeLearningProgressChanges } from "@/lib/learning-progress-events";
 
 type Club = { id: string; name: string };
 
@@ -227,7 +228,7 @@ export default function PlayersPage() {
   const [myClubs, setMyClubs] = useState<Club[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [showInvite, setShowInvite] = useState(false);
 
   // Assign lesson modal state
@@ -240,22 +241,45 @@ export default function PlayersPage() {
       .then((me) => { if (me?.role) setRole(me.role); });
   }, []);
 
-  useEffect(() => {
+  const loadPlayers = useCallback(async () => {
     if (!role) return;
-
-    Promise.all([
-      fetch("/api/teams/club-players").then((r) => r.ok ? r.json() : []),
-      fetch("/api/clubs/my").then((r) => r.ok ? r.json() : []),
-    ]).then(([p, clubs]) => {
+    setLoading(true);
+    try {
+      const [p, clubs] = await Promise.all([
+        fetch("/api/teams/club-players", { cache: "no-store" }).then((r) => r.ok ? r.json() : []),
+        fetch("/api/clubs/my", { cache: "no-store" }).then((r) => r.ok ? r.json() : []),
+      ]);
       setPlayers(Array.isArray(p) ? p.filter(Boolean) : []);
       if (Array.isArray(clubs)) {
         setMyClubs(clubs.map((uc: { club: Club }) => uc.club).filter(Boolean));
       }
+    } finally {
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }
   }, [role]);
 
+  useEffect(() => {
+    let ignore = false;
+    void (async () => {
+      if (ignore) return;
+      await loadPlayers();
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, [loadPlayers]);
+
+  useEffect(() => {
+    if (!role) return;
+    return subscribeLearningProgressChanges(() => {
+      void loadPlayers();
+    });
+  }, [loadPlayers, role]);
+
   const isCoachOrAdmin = role === "COACH" || role === "ADMIN";
+  const selectedPlayer = selectedPlayerId
+    ? players.find((player) => player.id === selectedPlayerId) ?? null
+    : null;
 
   if (loading) return <div className="p-4">Loading…</div>;
 
@@ -310,7 +334,7 @@ export default function PlayersPage() {
                 >
                   <div
                     className="flex flex-col items-center gap-2 rounded-xl border border-[var(--golf-muted)] bg-white p-4 shadow-sm hover:shadow-md transition-all cursor-pointer select-none"
-                    onClick={() => setSelectedPlayer(player)}
+                    onClick={() => setSelectedPlayerId(player.id)}
                     title="Click to view details"
                   >
                     <div className="relative">
@@ -363,10 +387,10 @@ export default function PlayersPage() {
         {selectedPlayer && (
           <PlayerDetailDialog
             player={selectedPlayer}
-            onClose={() => setSelectedPlayer(null)}
+            onClose={() => setSelectedPlayerId(null)}
             onRemove={(playerId) => {
               setPlayers((prev) => prev.filter((p) => p.id !== playerId));
-              setSelectedPlayer(null);
+              setSelectedPlayerId(null);
             }}
           />
         )}

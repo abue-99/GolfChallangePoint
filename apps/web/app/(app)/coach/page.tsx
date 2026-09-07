@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,8 +10,9 @@ import type { CalendarActivity as BaseCalendarActivity } from "@/types/calendar"
 import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
 import {
   LearningProgressSection,
-  hasOpenLifecycleItems,
+  hasVisibleLearningProgress,
 } from "@/components/LearningProgress";
+import { subscribeLearningProgressChanges } from "@/lib/learning-progress-events";
 
 type Team = {
   id: string;
@@ -83,97 +84,110 @@ export default function CoachHome() {
   const [playerCounts, setPlayerCounts] = useState<Record<string, ItemCount>>({});
   const [teamCounts, setTeamCounts] = useState<Record<string, ItemCount>>({});
   const [nextUp, setNextUp] = useState<CalendarActivity | null>(null);
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [viewerRole, setViewerRole] = useState<string | null>(null);
+
+  const loadDashboardData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [playersRes, teamsRes, me] = await Promise.all([
+        fetch("/api/players/my", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+        fetch("/api/teams", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+        fetch("/api/auth/me", { cache: "no-store" }).then((r) =>
+          r.ok ? r.json() : null,
+        ),
+      ]);
+
+      const nextPlayers = Array.isArray(playersRes) ? playersRes : [];
+      const nextTeams = Array.isArray(teamsRes) ? teamsRes : [];
+      setViewerRole(typeof me?.role === "string" ? me.role : null);
+      setPlayers(nextPlayers);
+      setTeams(nextTeams);
+
+      const coachCalendarPromise = me?.id
+        ? fetch(`/api/calendar/player/${me.id}`, {
+            cache: "no-store",
+          }).then((r) => (r.ok ? r.json() : null))
+        : Promise.resolve(null);
+
+      const [coachCalendar, playerEntries, teamEntries] = await Promise.all([
+        coachCalendarPromise,
+        Promise.all(
+          nextPlayers.map(async (player: Player) => {
+            const [plans, calendar] = await Promise.all([
+              fetch(`/api/development-plans/player/${player.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+              fetch(`/api/calendar/player/${player.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : { slots: [] })),
+            ]);
+            return [
+              player.id,
+              {
+                plans: Array.isArray(plans) ? plans.length : 0,
+                windows: Array.isArray(calendar?.slots) ? calendar.slots.length : 0,
+              },
+            ] as const;
+          }),
+        ),
+        Promise.all(
+          nextTeams.map(async (team: Team) => {
+            const [plans, windows] = await Promise.all([
+              fetch(`/api/development-plans/team/${team.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+              fetch(`/api/calendar/team-slots/${team.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+            ]);
+            return [
+              team.id,
+              {
+                plans: Array.isArray(plans) ? plans.length : 0,
+                windows: Array.isArray(windows) ? windows.length : 0,
+              },
+            ] as const;
+          }),
+        ),
+      ]);
+
+      if (me?.id) {
+        const nowMs = Date.now();
+        const upcoming = (Array.isArray(coachCalendar?.activities)
+          ? coachCalendar.activities
+          : []
+        )
+          .filter(
+            (activity: CalendarActivity) =>
+              new Date(activity.end).getTime() >= nowMs,
+          )
+          .sort(
+            (a: CalendarActivity, b: CalendarActivity) =>
+              new Date(a.start).getTime() - new Date(b.start).getTime(),
+          );
+        setNextUp(upcoming[0] ?? null);
+      }
+
+      setPlayerCounts(Object.fromEntries(playerEntries));
+      setTeamCounts(Object.fromEntries(teamEntries));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let ignore = false;
-
-    (async () => {
-      try {
-        const [playersRes, teamsRes, me] = await Promise.all([
-          fetch("/api/players/my", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
-          fetch("/api/teams", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
-          fetch("/api/auth/me", { cache: "no-store" }).then((r) =>
-            r.ok ? r.json() : null,
-          ),
-        ]);
-
-        if (ignore) return;
-
-        const nextPlayers = Array.isArray(playersRes) ? playersRes : [];
-        const nextTeams = Array.isArray(teamsRes) ? teamsRes : [];
-        setPlayers(nextPlayers);
-        setTeams(nextTeams);
-
-        const coachCalendarPromise = me?.id
-          ? fetch(`/api/calendar/player/${me.id}`, {
-              cache: "no-store",
-            }).then((r) => (r.ok ? r.json() : null))
-          : Promise.resolve(null);
-
-        const [coachCalendar, playerEntries, teamEntries] = await Promise.all([
-          coachCalendarPromise,
-          Promise.all(
-            nextPlayers.map(async (player: Player) => {
-              const [plans, calendar] = await Promise.all([
-                fetch(`/api/development-plans/player/${player.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
-                fetch(`/api/calendar/player/${player.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : { slots: [] })),
-              ]);
-              return [
-                player.id,
-                {
-                  plans: Array.isArray(plans) ? plans.length : 0,
-                  windows: Array.isArray(calendar?.slots) ? calendar.slots.length : 0,
-                },
-              ] as const;
-            })
-          ),
-          Promise.all(
-            nextTeams.map(async (team: Team) => {
-              const [plans, windows] = await Promise.all([
-                fetch(`/api/development-plans/team/${team.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
-                fetch(`/api/calendar/team-slots/${team.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
-              ]);
-              return [
-                team.id,
-                {
-                  plans: Array.isArray(plans) ? plans.length : 0,
-                  windows: Array.isArray(windows) ? windows.length : 0,
-                },
-              ] as const;
-            })
-          ),
-        ]);
-
-        if (me?.id) {
-          const nowMs = Date.now();
-          const upcoming = (Array.isArray(coachCalendar?.activities)
-            ? coachCalendar.activities
-            : []
-          )
-            .filter(
-              (activity: CalendarActivity) =>
-                new Date(activity.end).getTime() >= nowMs,
-            )
-            .sort(
-              (a: CalendarActivity, b: CalendarActivity) =>
-                new Date(a.start).getTime() - new Date(b.start).getTime(),
-            );
-          if (!ignore) setNextUp(upcoming[0] ?? null);
-        }
-
-        if (ignore) return;
-        setPlayerCounts(Object.fromEntries(playerEntries));
-        setTeamCounts(Object.fromEntries(teamEntries));
-      } finally {
-        if (!ignore) setLoading(false);
-      }
+    void (async () => {
+      if (ignore) return;
+      await loadDashboardData();
     })();
-
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [loadDashboardData]);
+
+  useEffect(() => {
+    if (viewerRole !== "COACH") {
+      return;
+    }
+
+    return subscribeLearningProgressChanges(() => {
+      void loadDashboardData();
+    });
+  }, [loadDashboardData, viewerRole]);
 
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -190,14 +204,18 @@ export default function CoachHome() {
   const activePlayers = useMemo(
     () =>
       players.filter((player) => {
-        const hasAssignments =
-          hasOpenLifecycleItems(player.learningProgress?.journeys) ||
-          hasOpenLifecycleItems(player.learningProgress?.lessons);
-        if (!hasAssignments) return false;
+        if (!hasVisibleLearningProgress(player.learningProgress)) return false;
         if (!normalizedQuery) return true;
         return nameOfPlayer(player).toLowerCase().includes(normalizedQuery);
       }),
     [normalizedQuery, players],
+  );
+  const selectedPlayer = useMemo(
+    () =>
+      selectedPlayerId
+        ? players.find((player) => player.id === selectedPlayerId) ?? null
+        : null,
+    [players, selectedPlayerId],
   );
 
   const visibleTeams = useMemo(
@@ -293,7 +311,7 @@ export default function CoachHome() {
                 <button
                   key={player.id}
                   type="button"
-                  onClick={() => setSelectedPlayer(player)}
+                  onClick={() => setSelectedPlayerId(player.id)}
                   className="min-w-[220px] text-left"
                 >
                   <Card className="h-full border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
@@ -389,7 +407,7 @@ export default function CoachHome() {
       {selectedPlayer ? (
         <PlayerOverviewDialog
           player={selectedPlayer}
-          onClose={() => setSelectedPlayer(null)}
+          onClose={() => setSelectedPlayerId(null)}
         />
       ) : null}
     </div>

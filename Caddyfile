@@ -43,6 +43,18 @@ golf-challengepoint.com, www.golf-challengepoint.com {
                 reverse_proxy web:3000
         }
 
+        handle /api/assignments* {
+                reverse_proxy web:3000
+        }
+
+        handle /api/coach/players* {
+                reverse_proxy web:3000
+        }
+
+        handle /api/coach/teams* {
+                reverse_proxy web:3000
+        }
+
         handle /api/coach/journeys* {
                 reverse_proxy web:3000
         }
@@ -58,4 +70,3 @@ golf-challengepoint.com, www.golf-challengepoint.com {
                 reverse_proxy web:3000
         }
 }
-

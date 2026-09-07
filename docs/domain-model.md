@@ -333,6 +333,7 @@ Reusable assignment/queue record. It can belong to a `TrainingBlock`, or exist s
 - Direct assignment to a single player creates one queue-backed `LessonAssignment`.
 - Direct assignment to a team resolves all active members and creates one separate `LessonAssignment` per member.
 - Team pending counters in the coach UI are aggregates of each member's open queue-backed assignments; they are not stored on the `Team` row itself.
+- Coach-facing lesson assignment endpoints (`/api/assignments*`, `/api/coach/players*`, `/api/coach/teams*`) must be routed through Next.js proxy handlers so auth retry can run before returning 401.
 
 ---
 

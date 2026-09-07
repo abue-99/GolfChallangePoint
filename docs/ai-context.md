@@ -71,7 +71,7 @@ Administrators manage clubs and user accounts.
 1. `POST /auth/login` in the NestJS API returns `{ accessToken, user }` and sets the httpOnly `refresh_token` cookie.
 2. The Next.js login proxy forwards that response and persists `accessToken` as the httpOnly `token` cookie used by web proxy routes and middleware.
 3. Next.js middleware (`apps/web/middleware.ts`) protects all `(app)` routes.
-4. Browser auth-sensitive routes (including journey CRUD and journey assignment endpoints) must pass through Next.js proxy routes (`apps/web/app/api/…`) so the `token` cookie is converted to an Authorization header.
+4. Browser auth-sensitive routes (including journey CRUD, journey assignment, and lesson assignment endpoints) must pass through Next.js proxy routes (`apps/web/app/api/…`) so the `token` cookie is converted to an Authorization header.
 5. On 401, client fetches retry through `apps/web/lib/api.ts`, while server-side proxy routes can refresh via `apps/web/lib/api-proxy-auth.ts` and retry with rotated cookies.
 
 ---

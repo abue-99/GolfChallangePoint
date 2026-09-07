@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import {
   createLifecycleCounts,
   LIFECYCLE_META,
@@ -92,11 +93,19 @@ function CompactLearningSummaryRow({
   const rowLabel = prefix === "J" ? "Journeys" : "Lessons";
   if (visibleSegments.length === 0) return null;
 
-  const badgeStyles: Record<(typeof visibleSegments)[number], string> = {
-    PENDING: "#F97316",
-    ACCEPTED: "#CA8A04",
-    ACTIVE: "#84CC16",
-    COMPLETED: "#16A34A",
+  const badgeStyles: Record<(typeof visibleSegments)[number], CSSProperties> = {
+    PENDING: {
+      background: "linear-gradient(rgba(0, 0, 0, 0.14), rgba(0, 0, 0, 0.14)), #F97316",
+    },
+    ACCEPTED: {
+      background: "linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.12)), #CA8A04",
+    },
+    ACTIVE: {
+      background: "linear-gradient(rgba(0, 0, 0, 0.36), rgba(0, 0, 0, 0.36)), #84CC16",
+    },
+    COMPLETED: {
+      background: "linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.12)), #16A34A",
+    },
   };
 
   return (
@@ -110,7 +119,10 @@ function CompactLearningSummaryRow({
           <span
             key={status}
             className="inline-flex h-[18px] w-9 shrink-0 items-center justify-center rounded-md px-2 text-[11px] font-bold text-white"
-            style={{ backgroundColor: badgeStyles[status] }}
+            style={{
+              ...badgeStyles[status],
+              textShadow: "0 1px 1px rgba(0, 0, 0, 0.18)",
+            }}
             title={`${LIFECYCLE_META[status].label}: ${counts[status]}`}
           >
             <span className="sr-only">

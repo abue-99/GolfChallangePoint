@@ -18,7 +18,7 @@
 | `LessonVisibility`           | `PUBLIC` · `PRIVATE`                                                                 |
 | `LessonPriority`             | `LOW` · `MEDIUM` · `HIGH`                                                            |
 | `GoalAchieved`               | `YES` · `PARTIALLY` · `NO`                                                           |
-| `AssignmentStatus`           | `NEW` · `OPEN` · `IN_PROGRESS` · `COMPLETED` · `ARCHIVED`                            |
+| `AssignmentStatus`           | `NEW` · `OPEN` · `IN_PROGRESS` · `COMPLETED` · `ARCHIVED` *(stored)*                 |
 | `AssignmentTargetType`       | `PLAYER` · `TEAM` · `GROUP`                                                          |
 | `AssignmentSourceType`       | `PLAYER` · `TEAM` · `GROUP`                                                          |
 | `JourneyDifficulty`          | `BEGINNER` · `INTERMEDIATE` · `ADVANCED`                                             |
@@ -302,7 +302,7 @@ A phase or section within a `PlayerDevelopmentPlan`. Contains ordered lesson ass
 
 ### `LessonAssignment` (table: `lesson_assignments`)
 
-Reusable assignment/queue record. It can belong to a `TrainingBlock`, or exist standalone as a direct coach assignment into the training queue.
+Reusable assignment record. It can belong to a `TrainingBlock`, or exist standalone as a direct coach assignment that the player later accepts into the training queue.
 
 | Field               | Type                            | Notes                                                        |
 | ------------------- | ------------------------------- | ------------------------------------------------------------ |
@@ -317,7 +317,7 @@ Reusable assignment/queue record. It can belong to a `TrainingBlock`, or exist s
 | `groupName`         | String?                         | Optional group label                                         |
 | `coachId`           | FK → User                       | Assigning coach                                              |
 | `dueDate`           | DateTime?                       |                                                              |
-| `isInTrainingQueue` | Boolean                         | default `false`; direct coach assignment sets this to `true` |
+| `isInTrainingQueue` | Boolean                         | default `false`; player-controlled queue membership for lessons |
 | `teamEventId`       | FK → TeamEvent?                 | Optional link to a team event                                |
 | `calendarTaskId`    | via `CalendarTask.assignmentId` | Optional scheduled task linkage                              |
 | `priority`          | `LessonPriority`                | default `MEDIUM`                                             |
@@ -330,9 +330,10 @@ Reusable assignment/queue record. It can belong to a `TrainingBlock`, or exist s
 
 **Operational notes**
 
-- Direct assignment to a single player creates one queue-backed `LessonAssignment`.
+- Direct assignment to a single player creates one standalone `LessonAssignment` in lifecycle state `PENDING` (`status = NEW`).
 - Direct assignment to a team resolves all active members and creates one separate `LessonAssignment` per member.
-- Team pending counters in the coach UI are aggregates of each member's open queue-backed assignments; they are not stored on the `Team` row itself.
+- Player UX normalises lesson lifecycle to `PENDING` → `ACCEPTED` → `ACTIVE` → `COMPLETED`.
+- Journey-plan lessons can optionally be added to the training queue one by one; the journey container itself never appears in the queue.
 - Coach-facing lesson assignment endpoints (`/api/assignments*`, `/api/coach/players*`, `/api/coach/teams*`) must be routed through Next.js proxy handlers so auth retry can run before returning 401.
 
 ---
@@ -376,7 +377,7 @@ Ordered join table between a `JourneyTemplate` and its lessons.
 
 ### `JourneyTemplateAssignment` (table: `journey_template_assignments`)
 
-Queue-backed assignment created when a coach assigns a journey to a player or team.
+Journey assignment created when a coach assigns a journey to a player or team.
 
 | Field               | Type                  | Notes                                                       |
 | ------------------- | --------------------- | ----------------------------------------------------------- |
@@ -387,7 +388,7 @@ Queue-backed assignment created when a coach assigns a journey to a player or te
 | `coachId`           | FK → User             | Assigning coach                                             |
 | `playerPlanId`      | String                | Links the queued journey back to the generated player plan  |
 | `status`            | `AssignmentStatus`    | default `NEW`                                               |
-| `isInTrainingQueue` | Boolean               | default `true`                                              |
+| `isInTrainingQueue` | Boolean               | default `false`; journeys are intentionally excluded from the training queue |
 | `source`            | String                | default `"assignedByCoach"`                                 |
 | `createdAt`         | DateTime              | auto                                                        |
 | `updatedAt`         | DateTime              | auto                                                        |
@@ -396,6 +397,8 @@ Queue-backed assignment created when a coach assigns a journey to a player or te
 
 - Direct assignment to a single player creates one `JourneyTemplateAssignment` and a generated player plan.
 - Direct assignment to a team resolves all active members and creates one separate `JourneyTemplateAssignment` per member.
+- Player UX normalises journey lifecycle to `PENDING` → `ACCEPTED` → `ACTIVE` → `COMPLETED`, with `ACTIVE`/`COMPLETED` derived from the linked plan's lesson assignments.
+- Invalid journey assignments whose `playerPlanId` no longer exists are cleaned up during coach/player assignment reads.
 - Coach-facing journey save and assignment flows rely on the web proxy layer to refresh expired access tokens before retrying the backend request, so journey API paths must be routed through Next.js proxy handlers.
 
 ---

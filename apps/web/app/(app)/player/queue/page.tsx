@@ -7,46 +7,42 @@ import { FOCUS_AREA_EMOJI } from "@/lib/lesson-types";
 import { cn } from "@/lib/utils";
 import {
   CalendarPlus,
-  CheckCircle,
   ClipboardList,
   Clock,
   Inbox,
-  Square,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-
-const STATUS_LABELS: Record<string, string> = {
-  NEW: "New",
-  OPEN: "Open",
-  IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed",
-  ARCHIVED: "Archived",
-};
+import {
+  LIFECYCLE_META,
+  normalizeLifecycleStatus,
+} from "@/lib/assignment-lifecycle";
 
 function QueueItem({
   assignment,
   onStatusChange,
-  onJourneyAccept,
-  onJourneyKeepInQueue,
 }: {
   assignment: StandaloneAssignment;
-  onStatusChange: (id: string, status: string) => Promise<void>;
-  onJourneyAccept: (id: string) => Promise<void>;
-  onJourneyKeepInQueue: (id: string) => Promise<void>;
+  onStatusChange: (
+    id: string,
+    status: string,
+    options?: { ensureInQueue?: boolean },
+  ) => Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
-  const isJourney = assignment.itemType === "journey";
   const isTeam =
     assignment.sourceType === "TEAM" ||
     assignment.targetType === "TEAM" ||
     Boolean(assignment.teamId);
+  const lifecycle = normalizeLifecycleStatus(assignment.status);
+  const contextLabel = assignment.journeyTemplate ? "PART OF JOURNEY" : "SINGLE LESSON";
+  const scheduleLabel = assignment.calendarTask?.scheduledDate || assignment.dueDate;
 
-  async function act(status: string) {
+  async function act(status: string, options?: { ensureInQueue?: boolean }) {
     setBusy(true);
     try {
-      await onStatusChange(assignment.id, status);
+      await onStatusChange(assignment.id, status, options);
     } finally {
       setBusy(false);
     }
@@ -54,32 +50,15 @@ function QueueItem({
 
   return (
     <div className="flex items-start gap-3 rounded-lg border bg-card p-3 shadow-sm">
-      {/* Status icon */}
-      <button
-        type="button"
-        className="mt-0.5 shrink-0 text-muted-foreground hover:text-primary"
-        onClick={() => act(assignment.status === "COMPLETED" ? "OPEN" : "COMPLETED")}
-        title="Toggle complete"
-        disabled={busy}
-      >
-        {assignment.status === "COMPLETED" ? (
-          <CheckCircle className="h-5 w-5 text-green-600" />
-        ) : (
-          <Square className="h-5 w-5" />
-        )}
-      </button>
-
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <p
             className={cn(
               "font-medium text-sm",
-              assignment.status === "COMPLETED" && "line-through text-muted-foreground",
+              lifecycle === "COMPLETED" && "line-through text-muted-foreground",
             )}
           >
-            {isJourney
-              ? assignment.journeyTemplate?.name ?? "Journey"
-              : assignment.lesson?.name ?? "—"}
+            {assignment.lesson?.name ?? "—"}
           </p>
           <Badge
             variant="outline"
@@ -94,92 +73,93 @@ function QueueItem({
           </Badge>
           <Badge
             variant="outline"
-            className={cn(
-              "text-[10px] px-1.5 py-0 shrink-0",
-              isJourney
-                ? "border-violet-500 text-violet-700 dark:text-violet-400"
-                : "border-blue-500 text-blue-700 dark:text-blue-400",
-            )}
+            className="border-blue-500 px-1.5 py-0 text-[10px] text-blue-700 dark:text-blue-400"
           >
-            {isJourney
-              ? "🛣️ NEW Journey"
-              : assignment.isNew
-                ? "NEW Lesson"
-                : "Lesson"}
+            Lesson
+          </Badge>
+          <Badge
+            variant="outline"
+            className="px-1.5 py-0 text-[10px]"
+            style={{
+              borderColor: LIFECYCLE_META[lifecycle].color,
+              color: LIFECYCLE_META[lifecycle].color,
+            }}
+          >
+            {LIFECYCLE_META[lifecycle].label}
           </Badge>
         </div>
 
         <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-          {!isJourney && assignment.lesson?.focusArea && (
+          {assignment.lesson?.focusArea && (
             <span className="text-xs text-muted-foreground">
               {FOCUS_AREA_EMOJI[assignment.lesson.focusArea] ?? ""}{" "}
               {assignment.lesson.focusArea.replace(/_/g, " ")}
             </span>
           )}
-          {!isJourney && assignment.lesson?.durationMinutes && (
+          {assignment.lesson?.durationMinutes && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
               {assignment.lesson.durationMinutes}m
             </span>
           )}
-          {isJourney && assignment.journeyTemplate?.category && (
+          {assignment.journeyTemplate?.name && (
             <span className="text-xs text-muted-foreground">
-              {assignment.journeyTemplate.category}
+              {contextLabel}: {assignment.journeyTemplate.name}
             </span>
           )}
-          <span className="text-xs text-muted-foreground">
-            {STATUS_LABELS[assignment.status] ?? assignment.status}
-          </span>
+        </div>
+
+        <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+          <div>{isTeam ? "TEAM" : "PERSONAL"}</div>
+          <div>{contextLabel}</div>
+          <div>
+            {scheduleLabel
+              ? `Scheduled: ${new Date(scheduleLabel).toLocaleString()}`
+              : "Unscheduled"}
+          </div>
         </div>
       </div>
 
-      {/* Secondary actions */}
-      {!isTeam && !isJourney && assignment.status !== "COMPLETED" && (
-        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild title="Schedule">
+      <div className="flex shrink-0 flex-col items-end gap-2">
+        {lifecycle !== "COMPLETED" ? (
+          <Button variant="ghost" size="icon" className="h-7 w-7" asChild title="Schedule">
           <a href="/calendar">
             <CalendarPlus className="h-4 w-4" />
           </a>
-        </Button>
-      )}
-      {isJourney && assignment.status !== "COMPLETED" && (
-        <div className="flex items-center gap-1 shrink-0">
-          <Button variant="outline" size="sm" className="h-7 text-xs" asChild>
-            <a href="/player">Open Journey</a>
           </Button>
+        ) : null}
+        {lifecycle === "ACCEPTED" ? (
           <Button
             variant="outline"
             size="sm"
             className="h-7 text-xs"
             disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              try {
-                await onJourneyAccept(assignment.id);
-              } finally {
-                setBusy(false);
-              }
-            }}
+            onClick={() => act("IN_PROGRESS")}
           >
-            Add To My Journeys
+            Start
           </Button>
+        ) : lifecycle === "ACTIVE" ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            disabled={busy}
+            onClick={() => act("COMPLETED")}
+          >
+            Complete
+          </Button>
+        ) : lifecycle === "COMPLETED" ? (
           <Button
             variant="ghost"
             size="sm"
             className="h-7 text-xs"
             disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              try {
-                await onJourneyKeepInQueue(assignment.id);
-              } finally {
-                setBusy(false);
-              }
-            }}
+            onClick={() => act("OPEN", { ensureInQueue: true })}
           >
-            Keep In Queue
+            Reopen
           </Button>
-        </div>
-      )}
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -206,11 +186,22 @@ export default function TrainingQueuePage() {
   }, [load]);
 
   const handleStatusChange = useCallback(
-    async (id: string, status: string) => {
+    async (
+      id: string,
+      status: string,
+      options?: { ensureInQueue?: boolean },
+    ) => {
       try {
-        await api.updateStandaloneAssignment(id, { status });
+        await api.updateStandaloneAssignment(id, {
+          status,
+          ...(options?.ensureInQueue ? { isInTrainingQueue: true } : {}),
+        });
         toast.success(
-          status === "COMPLETED" ? "Marked as completed." : "Marked as open.",
+          status === "IN_PROGRESS"
+            ? "Lesson started."
+            : status === "COMPLETED"
+              ? "Marked as completed."
+              : "Lesson moved back to accepted.",
         );
         load();
       } catch {
@@ -220,41 +211,10 @@ export default function TrainingQueuePage() {
     [load],
   );
 
-  const handleJourneyAccept = useCallback(
-    async (id: string) => {
-      try {
-        await api.updateJourneyAssignment(id, {
-          status: "OPEN",
-          isInTrainingQueue: false,
-        });
-        toast.success("Journey added to My Journeys.");
-        load();
-      } catch {
-        toast.error("Failed to accept journey.");
-      }
-    },
-    [load],
-  );
-
-  const handleJourneyKeepInQueue = useCallback(
-    async (id: string) => {
-      try {
-        await api.updateJourneyAssignment(id, {
-          status: "NEW",
-          isInTrainingQueue: true,
-        });
-        toast.success("Journey kept in queue.");
-        load();
-      } catch {
-        toast.error("Failed to update journey.");
-      }
-    },
-    [load],
-  );
-
   const visible = (assignments ?? []).filter((a) => {
-    if (filter === "completed") return a.status === "COMPLETED";
-    return a.status !== "COMPLETED" && a.status !== "ARCHIVED";
+    const lifecycle = normalizeLifecycleStatus(a.status);
+    if (filter === "completed") return lifecycle === "COMPLETED";
+    return lifecycle !== "COMPLETED";
   });
 
   return (
@@ -315,8 +275,6 @@ export default function TrainingQueuePage() {
               key={a.id}
               assignment={a}
               onStatusChange={handleStatusChange}
-              onJourneyAccept={handleJourneyAccept}
-              onJourneyKeepInQueue={handleJourneyKeepInQueue}
             />
           ))}
         </div>

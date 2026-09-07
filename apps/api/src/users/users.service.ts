@@ -1,9 +1,9 @@
-import { AssignmentStatus } from '@challengepoint/db';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { Resend } from 'resend';
 import { PrismaService } from '../prisma/prisma.service';
+import { loadPlayerLearningSummaries } from '../assignments/assignment-lifecycle';
 
 @Injectable()
 export class UsersService {
@@ -314,37 +314,34 @@ export class UsersService {
           coaches: playerCoachLinks.map((pcl) => pcl.coach).filter(Boolean),
         };
       })
-      .filter((player): player is NonNullable<typeof player> => player !== null);
+      .filter(
+        (player): player is NonNullable<typeof player> => player !== null,
+      );
 
     const playerIds = players.map((player) => player.id);
-    const activeStatuses: AssignmentStatus[] = [
-      AssignmentStatus.NEW,
-      AssignmentStatus.OPEN,
-      AssignmentStatus.IN_PROGRESS,
-    ];
-
-    const pendingCounts =
-      playerIds.length === 0
-        ? []
-        : await this.prisma.lessonAssignment.groupBy({
-            by: ['playerId'],
-            where: {
-              playerId: { in: playerIds },
-              isInTrainingQueue: true,
-              status: { in: activeStatuses },
-            },
-            _count: { _all: true },
-          });
-
-    const pendingByPlayerId = Object.fromEntries(
-      pendingCounts
-        .filter((row) => Boolean(row.playerId))
-        .map((row) => [row.playerId as string, row._count._all]),
+    const learningProgressByPlayerId = await loadPlayerLearningSummaries(
+      this.prisma,
+      playerIds,
     );
 
     return players.map((player) => ({
       ...player,
-      pendingLessons: pendingByPlayerId[player.id] ?? 0,
+      pendingLessons:
+        learningProgressByPlayerId[player.id]?.lessons.PENDING ?? 0,
+      learningProgress: learningProgressByPlayerId[player.id] ?? {
+        lessons: {
+          PENDING: 0,
+          ACCEPTED: 0,
+          ACTIVE: 0,
+          COMPLETED: 0,
+        },
+        journeys: {
+          PENDING: 0,
+          ACCEPTED: 0,
+          ACTIVE: 0,
+          COMPLETED: 0,
+        },
+      },
     }));
   }
 

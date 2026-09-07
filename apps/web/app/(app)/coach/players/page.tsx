@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { BookOpen, ExternalLink, Trash2, UserPlus } from "lucide-react";
+import { BookOpen, UserPlus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,11 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PlayerCapabilitiesRadarCard } from "@/components/player-capabilities-widget";
 import AssignLessonModal from "@/components/AssignLessonModal";
 import DroppableZone from "@/components/DroppableZone";
 import { DndLessonProvider } from "@/components/DndLessonProvider";
 import { toast } from "sonner";
+import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
+import { LearningProgressSection } from "@/components/LearningProgress";
 
 type Club = { id: string; name: string };
 
@@ -39,6 +39,20 @@ type Player = {
   role?: string;
   lastLogin?: string | null;
   userClubs?: { clubId: string; club: Club | null }[];
+  learningProgress?: {
+    lessons: {
+      PENDING: number;
+      ACCEPTED: number;
+      ACTIVE: number;
+      COMPLETED: number;
+    };
+    journeys: {
+      PENDING: number;
+      ACCEPTED: number;
+      ACTIVE: number;
+      COMPLETED: number;
+    };
+  };
 };
 
 function playerInitials(p: Player) {
@@ -59,7 +73,6 @@ function PlayerDetailDialog({
   onClose: () => void;
   onRemove?: (playerId: string) => void;
 }) {
-  const isInactive = !player.lastLogin;
   const [removing, setRemoving] = useState(false);
 
   async function handleRemove() {
@@ -76,92 +89,16 @@ function PlayerDetailDialog({
   }
 
   return (
-    <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>Player Overview</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-4 pt-2 lg:grid-cols-2">
-          <div className="flex flex-col items-center gap-4">
-            <Avatar className="h-24 w-24">
-              {player.profileImage && (
-                <AvatarImage src={player.profileImage} alt={playerName(player)} />
-              )}
-              <AvatarFallback className="text-2xl bg-gray-200 text-gray-600">
-                {playerInitials(player)}
-              </AvatarFallback>
-            </Avatar>
-
-            {isInactive && (
-              <span className="rounded-full bg-amber-100 px-3 py-0.5 text-xs font-semibold text-amber-700">
-                Inactive (pending activation)
-              </span>
-            )}
-
-            <div className="w-full space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-500">Name</span>
-                <span>{playerName(player)}</span>
-              </div>
-              {player.email && (
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-500">Email</span>
-                  <span className="break-all">{player.email}</span>
-                </div>
-              )}
-              {player.phoneNumber && (
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-500">Phone</span>
-                  <span>{player.phoneNumber}</span>
-                </div>
-              )}
-              {player.timezone && (
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-500">Timezone</span>
-                  <span>{player.timezone.replace(/_/g, " ")}</span>
-                </div>
-              )}
-              {player.userClubs && player.userClubs.length > 0 && (
-                <div className="flex justify-between gap-2">
-                  <span className="font-medium text-gray-500 shrink-0">Clubs</span>
-                  <span className="text-right">
-                    {player.userClubs.map((uc) => uc.club?.name ?? "").filter(Boolean).join(", ")}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <PlayerCapabilitiesRadarCard
-            playerId={player.id}
-            title="Skill Radar"
-            journeyLabel="Goto Journey"
-            journeyHref={`/coach/players/${player.id}`}
-          />
-        </div>
-
-        <div className="mt-4 flex flex-col gap-2">
-          <Button asChild variant="outline" className="w-full">
-            <Link href={`/coach/players/${player.id}`} className="flex items-center justify-center gap-2">
-              <ExternalLink size={16} />
-              Goto/Open Player
-            </Link>
-          </Button>
-
-          {onRemove && (
-            <Button
-              variant="destructive"
-              className="w-full gap-2"
-              onClick={handleRemove}
-              disabled={removing}
-            >
-              <Trash2 size={16} />
-              {removing ? "Removing…" : "Delete Player"}
-            </Button>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+    <PlayerOverviewDialog
+      player={player}
+      onClose={onClose}
+      removeDisabled={removing}
+      removeLabel={removing ? "Removing…" : "Remove from My Players"}
+      onRemove={onRemove ? async () => {
+        if (removing) return;
+        await handleRemove();
+      } : undefined}
+    />
   );
 }
 
@@ -395,6 +332,10 @@ export default function PlayersPage() {
                     <span className="text-sm font-medium text-center text-[var(--golf-heading)] leading-snug">
                       {playerName(player)}
                     </span>
+                    <LearningProgressSection
+                     progress={player.learningProgress}
+                     compact
+                    />
                     {/* Quick-assign button for touch / non-DnD */}
                     {isCoachOrAdmin && (
                       <Button

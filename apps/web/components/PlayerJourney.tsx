@@ -36,7 +36,6 @@ type StatusKey =
   | "OPEN"
   | "IN_PROGRESS"
   | "COMPLETED"
-  | "ARCHIVED"
   | "LOCKED";
 
 const STATUS_STYLE: Record<
@@ -44,17 +43,17 @@ const STATUS_STYLE: Record<
   { label: string; badge: string; dot: string }
 > = {
   NEW: {
-    label: "New",
+    label: "Pending",
     badge: "bg-slate-100 text-slate-600",
     dot: "bg-slate-300",
   },
   OPEN: {
-    label: "Open",
-    badge: "bg-slate-100 text-slate-600",
-    dot: "bg-slate-300",
+    label: "Accepted",
+    badge: "bg-yellow-100 text-yellow-700",
+    dot: "bg-yellow-400",
   },
   IN_PROGRESS: {
-    label: "In Progress",
+    label: "Active",
     badge: "bg-blue-100 text-blue-700",
     dot: "bg-blue-500",
   },
@@ -62,11 +61,6 @@ const STATUS_STYLE: Record<
     label: "Completed",
     badge: "bg-green-100 text-green-700",
     dot: "bg-green-500",
-  },
-  ARCHIVED: {
-    label: "Archived",
-    badge: "bg-amber-100 text-amber-700",
-    dot: "bg-amber-400",
   },
   LOCKED: {
     label: "Locked",
@@ -202,7 +196,6 @@ function LessonCard({
         "flex items-center gap-3 rounded-xl border-2 p-3 transition-all duration-200",
         statusKey === "IN_PROGRESS" && "border-blue-200 bg-blue-50/60",
         statusKey === "COMPLETED" && "border-green-200 bg-green-50/60",
-        statusKey === "ARCHIVED" && "border-amber-200 bg-amber-50/60",
         (statusKey === "NEW" || statusKey === "OPEN") &&
           "border-gray-200 bg-white",
         statusKey === "LOCKED" && "border-slate-100 bg-slate-50/60 opacity-60",
@@ -216,7 +209,6 @@ function LessonCard({
           "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-base border-2",
           statusKey === "IN_PROGRESS" && "border-blue-300 bg-blue-100",
           statusKey === "COMPLETED" && "border-green-300 bg-green-100",
-          statusKey === "ARCHIVED" && "border-amber-300 bg-amber-100",
           (statusKey === "NEW" || statusKey === "OPEN") &&
             "border-slate-200 bg-slate-100",
           statusKey === "LOCKED" && "border-slate-100 bg-slate-50",
@@ -224,9 +216,7 @@ function LessonCard({
       >
         {statusKey === "COMPLETED"
           ? "✅"
-          : statusKey === "ARCHIVED"
-            ? "⭐"
-            : focusEmoji}
+          : focusEmoji}
       </div>
 
       {/* Content */}
@@ -648,6 +638,8 @@ function LessonDetailModal({
     assignment.selfAssessment != null ? String(assignment.selfAssessment) : "",
   );
   const [saving, setSaving] = useState(false);
+  const statusLabel =
+    ASSIGNMENT_STATUSES.find((option) => option.value === status)?.label ?? status;
 
   const focusPath = getFocusAreaPath(
     assignment.lesson.focusArea,
@@ -719,7 +711,7 @@ function LessonDetailModal({
                 {assignment.lesson.durationMinutes} minutes
               </span>
               <span className="rounded-full bg-white/15 px-3 py-1">
-                {status}
+                {statusLabel}
               </span>
               {assignment.dueDate && (
                 <span className="rounded-full bg-white/15 px-3 py-1">
@@ -764,6 +756,32 @@ function LessonDetailModal({
             <h3 className="mb-2 text-sm font-semibold text-slate-700">
               Completion flow
             </h3>
+            {!assignment.isInTrainingQueue ? (
+              <Button
+                variant="outline"
+                className="mb-3 w-full rounded-2xl"
+                onClick={async () => {
+                  setSaving(true);
+                  try {
+                    const updated = await api.updateAssignment(assignment.id, {
+                      status: "OPEN",
+                      isInTrainingQueue: true,
+                    });
+                    if (updated?.id) {
+                      onStatusChange(updated);
+                      toast.success("Lesson added to Queue");
+                    }
+                  } catch {
+                    toast.error("Failed to add lesson to queue");
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={saving}
+              >
+                Add To Queue
+              </Button>
+            ) : null}
             <div className="grid grid-cols-3 gap-2">
               {ASSIGNMENT_STATUSES.filter((s) =>
                 s.value === "OPEN" ||
@@ -782,7 +800,7 @@ function LessonDetailModal({
                     )}
                   >
                     {s.value === "OPEN"
-                      ? "Open"
+                      ? "Accept"
                       : s.value === "IN_PROGRESS"
                         ? "Start"
                         : "Complete"}

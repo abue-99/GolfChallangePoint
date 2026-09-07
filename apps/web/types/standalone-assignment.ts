@@ -6,8 +6,7 @@ export type StandaloneAssignmentStatus =
   | "NEW"
   | "OPEN"
   | "IN_PROGRESS"
-  | "COMPLETED"
-  | "ARCHIVED";
+  | "COMPLETED";
 
 export type StandaloneAssignmentTargetType = "PLAYER" | "TEAM" | "GROUP";
 export type StandaloneAssignmentSourceType = "PLAYER" | "TEAM" | "GROUP";
@@ -69,6 +68,20 @@ export type StandaloneAssignment = {
   itemType?: "lesson" | "journey";
   isNew?: boolean;
   source?: string;
+  learningProgress?: {
+    lessons: {
+      PENDING: number;
+      ACCEPTED: number;
+      ACTIVE: number;
+      COMPLETED: number;
+    };
+    journeys: {
+      PENDING: number;
+      ACCEPTED: number;
+      ACTIVE: number;
+      COMPLETED: number;
+    };
+  } | null;
   journeyTemplate?: {
     id: string;
     name: string;

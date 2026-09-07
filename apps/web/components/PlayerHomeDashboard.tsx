@@ -13,6 +13,7 @@ import {
   type PlayerDevelopmentPlan,
   type LessonAssignment,
 } from "@/lib/lesson-types";
+import { isAcceptedLifecycleStatus } from "@/lib/assignment-lifecycle";
 import {
   PlayerCapabilitiesRadarCard,
   PlayerCapabilitiesWidget,
@@ -39,11 +40,10 @@ const FOCUS_AREA_EMOJI: Record<string, string> = {
 };
 
 const STATUS_NODE: Record<string, { emoji: string; label: string }> = {
-  NEW: { emoji: "⚪", label: "New" },
-  OPEN: { emoji: "⚪", label: "Open" },
-  IN_PROGRESS: { emoji: "🟡", label: "In Progress" },
+  NEW: { emoji: "🟧", label: "Pending" },
+  OPEN: { emoji: "🟨", label: "Accepted" },
+  IN_PROGRESS: { emoji: "🟦", label: "Active" },
   COMPLETED: { emoji: "✅", label: "Completed" },
-  ARCHIVED: { emoji: "⭐", label: "Archived" },
 };
 
 type GamificationProfile = {
@@ -85,7 +85,9 @@ function findActiveAssignment(plans: PlayerDevelopmentPlan[]): {
   for (const plan of plans) {
     for (const block of plan.blocks) {
       const outstanding = block.assignments.find(
-        (a) => isPendingAssignmentStatus(a.status),
+        (a) =>
+          isAcceptedLifecycleStatus(a.status) ||
+          isPendingAssignmentStatus(a.status),
       );
       if (outstanding)
         return {
@@ -268,6 +270,7 @@ function CurrentJourneyCard({ plan }: { plan: PlayerDevelopmentPlan | null }) {
       b.assignments.some(
         (a) =>
           isStartedAssignmentStatus(a.status) ||
+          isAcceptedLifecycleStatus(a.status) ||
           isPendingAssignmentStatus(a.status),
       ),
     ) ?? plan.blocks[0];

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { useDroppable } from "@dnd-kit/core";
 import {
   Trash2,
@@ -10,7 +9,6 @@ import {
   UserPlus,
   X,
   Search,
-  ExternalLink,
   Route as RouteIcon,
   CalendarDays,
   BookOpen,
@@ -34,7 +32,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PlayerCapabilitiesRadarCard } from "@/components/player-capabilities-widget";
 import { DevelopmentPlanManager } from "@/components/DevelopmentPlanManager";
 import TeamTrainingWindowsView from "@/components/TeamTrainingWindowsView";
 import AssignLessonModal from "@/components/AssignLessonModal";
@@ -45,6 +42,8 @@ import JourneyTemplateLibrarySidebar from "@/components/JourneyTemplateLibrarySi
 import type { JourneyTemplate } from "@/types/journey-template";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
+import { LearningProgressSection } from "@/components/LearningProgress";
 
 // Common icons represented as emoji for team assignment
 const TEAM_ICONS = [
@@ -139,6 +138,20 @@ type Player = {
     email?: string;
   }[];
   pendingLessons?: number;
+  learningProgress?: {
+    lessons: {
+      PENDING: number;
+      ACCEPTED: number;
+      ACTIVE: number;
+      COMPLETED: number;
+    };
+    journeys: {
+      PENDING: number;
+      ACCEPTED: number;
+      ACTIVE: number;
+      COMPLETED: number;
+    };
+  };
 };
 
 type TeamMember = {
@@ -372,12 +385,10 @@ function DroppableTeamRows({
 
 function DroppablePlayerCard({
   player,
-  queueCount,
   onOpen,
   onRemove,
 }: {
   player: Player;
-  queueCount: number;
   onOpen: () => void;
   onRemove: () => void;
 }) {
@@ -432,14 +443,18 @@ function DroppablePlayerCard({
       <span className="text-sm font-medium text-center text-gray-800 leading-snug">
         {name}
       </span>
-      <span
-        className={cn(
-          "text-[11px] font-medium",
-          isOver ? "text-emerald-700" : "text-amber-700",
+      <div className="w-full">
+        {isOver ? (
+          <span className="text-[11px] font-medium text-emerald-700">
+            {`Assign to ${name}`}
+          </span>
+        ) : (
+          <LearningProgressSection
+            progress={player.learningProgress}
+            compact
+          />
         )}
-      >
-        {isOver ? `Assign to ${name}` : pendingLessonsLabel(queueCount)}
-      </span>
+      </div>
     </div>
   );
 }
@@ -1350,7 +1365,6 @@ export default function TeamsPage() {
               <PlayersSection
                 players={myPlayers}
                 myClubs={myClubs}
-                playerQueueById={playerQueueById}
                 onPlayerInvited={(newPlayer) => {
                   setMyPlayers((prev) => {
                     const exists = prev.some((p) => p.id === newPlayer.id);
@@ -1885,17 +1899,13 @@ function PlayerDetailDialog({
   onClose: () => void;
   onRemove?: (playerId: string) => void;
 }) {
-  const isInactive = !player.lastLogin;
-  const name =
-    `${player.firstName ?? ""} ${player.lastName ?? ""}`.trim() ||
-    player.email ||
-    "—";
-  const playerInitials =
-    `${player.firstName?.[0] ?? ""}${player.lastName?.[0] ?? ""}`.toUpperCase() ||
-    "?";
   const [removing, setRemoving] = useState(false);
 
   async function handleRemove() {
+    const name =
+      `${player.firstName ?? ""} ${player.lastName ?? ""}`.trim() ||
+      player.email ||
+      "—";
     if (!window.confirm(`Remove "${name}" from your players list?`)) return;
     setRemoving(true);
     const res = await fetch(
@@ -1912,123 +1922,16 @@ function PlayerDetailDialog({
   }
 
   return (
-    <Dialog
-      open
-      onOpenChange={(v) => {
-        if (!v) onClose();
-      }}
-    >
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>Player Overview</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-4 pt-2 lg:grid-cols-2">
-          <div className="flex flex-col items-center gap-4">
-            <Avatar className="h-24 w-24">
-              {player.profileImage && (
-                <AvatarImage src={player.profileImage} alt={name} />
-              )}
-              <AvatarFallback className="text-2xl bg-gray-200 text-gray-600">
-                {playerInitials}
-              </AvatarFallback>
-            </Avatar>
-
-            {isInactive && (
-              <span className="rounded-full bg-amber-100 px-3 py-0.5 text-xs font-semibold text-amber-700">
-                Inactive (pending activation)
-              </span>
-            )}
-
-            <div className="w-full space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-500">Name</span>
-                <span>{name}</span>
-              </div>
-              {player.email && (
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-500">Email</span>
-                  <span className="break-all">{player.email}</span>
-                </div>
-              )}
-              {player.phoneNumber && (
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-500">Phone</span>
-                  <span>{player.phoneNumber}</span>
-                </div>
-              )}
-              {player.timezone && (
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-500">Timezone</span>
-                  <span>{player.timezone.replace(/_/g, " ")}</span>
-                </div>
-              )}
-              {player.userClubs && player.userClubs.length > 0 && (
-                <div className="flex justify-between gap-2">
-                  <span className="font-medium text-gray-500 shrink-0">
-                    Clubs
-                  </span>
-                  <span className="text-right">
-                    {player.userClubs
-                      .map((uc) => uc.club?.name ?? "")
-                      .filter(Boolean)
-                      .join(", ")}
-                  </span>
-                </div>
-              )}
-              {player.coaches && player.coaches.length > 0 && (
-                <div className="flex justify-between gap-2">
-                  <span className="font-medium text-gray-500 shrink-0">
-                    Coaches
-                  </span>
-                  <span className="text-right">
-                    {player.coaches
-                      .map(
-                        (c) =>
-                          `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() ||
-                          c.email ||
-                          "",
-                      )
-                      .filter(Boolean)
-                      .join(", ")}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <Button asChild variant="outline" className="w-full mt-2">
-              <Link
-                href={`/coach/players/${player.id}`}
-                className="flex items-center justify-center gap-2"
-              >
-                <ExternalLink size={16} />
-                Goto/Open Player
-              </Link>
-            </Button>
-
-            {onRemove && (
-              <Button
-                variant="destructive"
-                className="w-full gap-2"
-                onClick={handleRemove}
-                disabled={removing}
-              >
-                <Trash2 size={16} />
-                {removing ? "Removing…" : "Delete Player"}
-              </Button>
-            )}
-          </div>
-
-          <div>
-            <PlayerCapabilitiesRadarCard
-              playerId={player.id}
-              title="Skill Radar"
-              journeyLabel="Goto Journey"
-              journeyHref={`/coach/players/${player.id}`}
-            />
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <PlayerOverviewDialog
+      player={player}
+      onClose={onClose}
+      removeDisabled={removing}
+      removeLabel={removing ? "Removing…" : "Remove from My Players"}
+      onRemove={onRemove ? async () => {
+        if (removing) return;
+        await handleRemove();
+      } : undefined}
+    />
   );
 }
 
@@ -2373,13 +2276,11 @@ function AddPlayerDialog({
 function PlayersSection({
   players,
   myClubs,
-  playerQueueById,
   onPlayerInvited,
   onPlayerRemoved,
 }: {
   players: Player[];
   myClubs: ClubOption[];
-  playerQueueById: Record<string, number>;
   onPlayerInvited: (player: Player) => void;
   onPlayerRemoved: (playerId: string) => void;
 }) {
@@ -2438,13 +2339,10 @@ function PlayersSection({
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {filtered.map((p) => {
-            const queueCount = playerQueueById[p.id] ?? 0;
-
             return (
               <React.Fragment key={p.id}>
                 <DroppablePlayerCard
                   player={p}
-                  queueCount={queueCount}
                   onOpen={() => setSelectedPlayer(p)}
                   onRemove={() =>
                     handleRemovePlayer(p.id, playerDisplayName(p))

@@ -261,6 +261,8 @@ Current status: journey CRUD routes, journey assignment routes, and coach lesson
 | `DevelopmentPlanManager.tsx`     | Plan/block/assignment UI with drag-and-drop                     |
 | `CoachPlanningBoard.tsx`         | Multi-player planning board                                     |
 | `PlayerJourney.tsx`              | Visual plan progress for player                                 |
+| `PlayerOverviewDialog.tsx`       | Shared coach-side player popup used by teams and dashboard      |
+| `LearningProgress.tsx`           | Compact summaries + lifecycle bars for lessons and journeys     |
 | `PracticeSlotDialog.tsx`         | Create/edit `PracticeSlot`                                      |
 | `AssignTaskDialog.tsx`           | Assign `CalendarTask` to a slot                                 |
 | `TrainingWindowDialog.tsx`       | Create/edit training window                                     |
@@ -282,12 +284,19 @@ Current status: journey CRUD routes, journey assignment routes, and coach lesson
 | ------------------------ | ------------------------------------------------ |
 | `types.ts`               | Shared TS types (CalendarEvent, TaskTemplate)    |
 | `lesson-types.ts`        | Lesson enums, FOCUS_AREAS, LOCATIONS, helper fns |
+| `assignment-lifecycle.ts` | UI lifecycle normalization (`PENDING`/`ACCEPTED`/`ACTIVE`/`COMPLETED`) |
 | `player-capabilities.ts` | CAPABILITY_DEFINITIONS skill tree                |
 | `api.ts`                 | Fetch wrapper for client-side API calls          |
 | `auth-cookies.ts`        | Cookie read/write helpers                        |
 | `api-proxy-auth.ts`      | Shared server-side proxy retry/refresh helper    |
 | `calendar-activity.ts`   | Calendar activity helpers                        |
 | `email.ts`               | Resend email sending                             |
+
+### Learning lifecycle touchpoints
+
+- **Coach player summaries**: `/teams`, `/coach/players`, and `/coach` consume `learningProgress` from coach-facing player payloads to render the mobile-first journey/lesson lifecycle overview.
+- **Player acceptance flow**: `NewAssignmentsSection.tsx`, `PlayerJourney.tsx`, and `player/queue/page.tsx` implement the `Assign → Accept → Train → Complete` flow while keeping journeys out of the queue.
+- **Backend lifecycle sync**: `apps/api/src/assignments/assignment-lifecycle.ts` centralises lifecycle normalization, journey-status syncing, and coach/player learning-summary aggregation.
 | `jwt.ts`                 | JWT sign/verify helpers                          |
 | `prisma.ts`              | Prisma client singleton for SSR                  |
 | `utils.ts`               | General utilities (cn, etc.)                     |

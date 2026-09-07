@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { StandaloneAssignment } from "@/types/standalone-assignment";
 import { FOCUS_AREA_EMOJI } from "@/lib/lesson-types";
@@ -14,12 +15,12 @@ import { toast } from "sonner";
 function AssignmentCard({
   assignment,
   onMoveToQueue,
-  onMarkOpen,
+  onSchedule,
   onAcceptJourney,
 }: {
   assignment: StandaloneAssignment;
   onMoveToQueue: (id: string) => Promise<void>;
-  onMarkOpen: (id: string) => Promise<void>;
+  onSchedule: (id: string) => Promise<void>;
   onAcceptJourney: (id: string) => Promise<void>;
 }) {
   const isJourney = assignment.itemType === "journey";
@@ -85,63 +86,51 @@ function AssignmentCard({
       </div>
 
       {/* Actions */}
-      {!isTeam && (
-        <div className="flex flex-wrap gap-1.5 pt-0.5">
-          {!isJourney && !assignment.isInTrainingQueue && (
+      <div className="flex flex-wrap gap-1.5 pt-0.5">
+          {isJourney ? (
             <Button
               variant="outline"
               size="sm"
               className="h-7 text-xs gap-1"
               disabled={busy}
-              onClick={() => handleAction(() => onMoveToQueue(assignment.id))}
+              onClick={() => handleAction(() => onAcceptJourney(assignment.id))}
             >
-              <ClipboardList className="h-3 w-3" />
-              Add to Queue
+              <CheckCircle className="h-3 w-3" />
+              Add To My Journeys
             </Button>
-          )}
-          {isJourney ? (
-            <>
-              <Button variant="outline" size="sm" className="h-7 text-xs gap-1" asChild>
-                <a href="/player">Open Journey</a>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs gap-1"
-                disabled={busy}
-                onClick={() => handleAction(() => onAcceptJourney(assignment.id))}
-              >
-                <CheckCircle className="h-3 w-3" />
-                Add To My Journeys
-              </Button>
-            </>
           ) : (
             <>
+              {!assignment.isInTrainingQueue ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                  disabled={busy}
+                  onClick={() => handleAction(() => onMoveToQueue(assignment.id))}
+                >
+                  <ClipboardList className="h-3 w-3" />
+                  Add To Queue
+                </Button>
+              ) : null}
               <Button
                 variant="outline"
                 size="sm"
                 className="h-7 text-xs gap-1"
                 disabled={busy}
-                onClick={() => handleAction(() => onMarkOpen(assignment.id))}
+                onClick={() => handleAction(() => onSchedule(assignment.id))}
               >
-                <CheckCircle className="h-3 w-3" />
-                Acknowledge
-              </Button>
-              <Button variant="outline" size="sm" className="h-7 text-xs gap-1" asChild>
-                <a href="/calendar">
-                  <CalendarPlus className="h-3 w-3" />
-                  Schedule
-                </a>
+                <CalendarPlus className="h-3 w-3" />
+                Schedule
               </Button>
             </>
           )}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
 
 export default function NewAssignmentsSection() {
+  const router = useRouter();
   const [assignments, setAssignments] = useState<StandaloneAssignment[] | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -173,17 +162,18 @@ export default function NewAssignmentsSection() {
     [load],
   );
 
-  const handleMarkOpen = useCallback(
+  const handleSchedule = useCallback(
     async (id: string) => {
       try {
-        await api.updateStandaloneAssignment(id, { status: "OPEN" });
-        toast.success("Assignment acknowledged.");
-        load();
+        await api.moveStandaloneAssignmentToQueue(id);
+        toast.success("Lesson accepted. Opened calendar.");
+        await load();
+        router.push("/calendar");
       } catch {
         toast.error("Failed to update assignment.");
       }
     },
-    [load],
+    [load, router],
   );
 
   const handleAcceptJourney = useCallback(
@@ -224,7 +214,7 @@ export default function NewAssignmentsSection() {
             key={a.id}
             assignment={a}
             onMoveToQueue={handleMoveToQueue}
-            onMarkOpen={handleMarkOpen}
+            onSchedule={handleSchedule}
             onAcceptJourney={handleAcceptJourney}
           />
         ))}

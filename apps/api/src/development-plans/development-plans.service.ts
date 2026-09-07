@@ -12,6 +12,10 @@ import {
   OwnerType,
   Prisma,
 } from '@challengepoint/db';
+import {
+  syncJourneyAssignmentLifecycleForPlanIds,
+  toStoredAssignmentStatus,
+} from '../assignments/assignment-lifecycle';
 
 @Injectable()
 export class DevelopmentPlansService {
@@ -145,7 +149,7 @@ export class DevelopmentPlansService {
         { targetType: AssignmentTargetType.GROUP },
       ],
     };
-    return this.prisma.playerDevelopmentPlan.findMany({
+    const plans = await this.prisma.playerDevelopmentPlan.findMany({
       where: {
         OR: [
           { ownerType: OwnerType.PLAYER, playerId },
@@ -157,6 +161,18 @@ export class DevelopmentPlansService {
       include: this.planInclude(assignmentWhere),
       orderBy: { createdAt: 'desc' },
     });
+
+    const pendingJourneyAssignments =
+      await this.prisma.journeyTemplateAssignment.findMany({
+        where: { playerId, status: AssignmentStatus.NEW },
+        select: { playerPlanId: true },
+      });
+
+    const hiddenPlanIds = new Set(
+      pendingJourneyAssignments.map((assignment) => assignment.playerPlanId),
+    );
+
+    return plans.filter((plan) => !hiddenPlanIds.has(plan.id));
   }
 
   async getCoachPlans(coachId: string, role: string) {
@@ -424,7 +440,9 @@ export class DevelopmentPlansService {
     if (inferredTarget === AssignmentTargetType.PLAYER) {
       playerId = data.playerId ?? block.plan.playerId ?? null;
       if (!playerId) {
-        throw new ForbiddenException('Player assignment requires a player target');
+        throw new ForbiddenException(
+          'Player assignment requires a player target',
+        );
       }
       if (role !== 'ADMIN') {
         await this.assertCoachPlayerLink(coachId, playerId);
@@ -517,7 +535,7 @@ export class DevelopmentPlansService {
 
     const updateData: Prisma.LessonAssignmentUpdateInput = {};
     if (data.status !== undefined)
-      updateData.status = data.status as AssignmentStatus;
+      updateData.status = toStoredAssignmentStatus(data.status);
     if (data.playerNotes !== undefined)
       updateData.playerNotes = data.playerNotes;
     if (data.selfAssessment !== undefined)
@@ -533,25 +551,46 @@ export class DevelopmentPlansService {
           (data as { isInTrainingQueue?: boolean }).isInTrainingQueue,
         );
       }
+    } else if (
+      Object.prototype.hasOwnProperty.call(data, 'isInTrainingQueue')
+    ) {
+      updateData.isInTrainingQueue = Boolean(
+        (data as { isInTrainingQueue?: boolean }).isInTrainingQueue,
+      );
     }
 
-    return this.prisma.lessonAssignment.update({
-      where: { id: assignmentId },
-      data: updateData,
-      include: {
-        lesson: {
-          select: {
-            id: true,
-            name: true,
-            focusArea: true,
-            durationMinutes: true,
-            subCapability: true,
-            subSubCapability: true,
+    return this.prisma.lessonAssignment
+      .update({
+        where: { id: assignmentId },
+        data: updateData,
+        include: {
+          lesson: {
+            select: {
+              id: true,
+              name: true,
+              focusArea: true,
+              durationMinutes: true,
+              subCapability: true,
+              subSubCapability: true,
+            },
           },
+          team: { select: { id: true, shortName: true, icon: true } },
         },
-        team: { select: { id: true, shortName: true, icon: true } },
-      },
-    });
+      })
+      .then(async (updated) => {
+        const planId = assignment.blockId
+          ? (
+              await this.prisma.trainingBlock.findUnique({
+                where: { id: assignment.blockId },
+                select: { planId: true },
+              })
+            )?.planId
+          : null;
+        if (planId) {
+          await syncJourneyAssignmentLifecycleForPlanIds(this.prisma, [planId]);
+        }
+        return updated;
+      });
   }
 
   async removeAssignment(coachId: string, role: string, assignmentId: string) {

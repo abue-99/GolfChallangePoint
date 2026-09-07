@@ -249,7 +249,7 @@ app/api/
 └── upload/
 ```
 
-Current status: journey CRUD routes, journey assignment routes, and coach lesson assignment routes share `apps/web/lib/api-proxy-auth.ts`, which refreshes expired access tokens once and retries the backend call before returning 401. In production, Caddy must route `/api/journeys*` and `/api/coach/journeys*` to `web:3000` so these handlers execute.
+Current status: journey CRUD routes, journey assignment routes, and coach lesson assignment routes share `apps/web/lib/api-proxy-auth.ts`, which refreshes expired access tokens once and retries the backend call before returning 401. In production, Caddy must route `/api/journeys*`, `/api/assignments*`, `/api/coach/journeys*`, `/api/coach/players*`, and `/api/coach/teams*` to `web:3000` so these handlers execute.
 
 ### Key component files (`apps/web/components/`)
 

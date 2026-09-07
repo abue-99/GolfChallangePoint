@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { useDroppable } from "@dnd-kit/core";
 import {
   Trash2,
@@ -10,7 +9,6 @@ import {
   UserPlus,
   X,
   Search,
-  ExternalLink,
   Route as RouteIcon,
   CalendarDays,
   BookOpen,
@@ -34,7 +32,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PlayerCapabilitiesRadarCard } from "@/components/player-capabilities-widget";
 import { DevelopmentPlanManager } from "@/components/DevelopmentPlanManager";
 import TeamTrainingWindowsView from "@/components/TeamTrainingWindowsView";
 import AssignLessonModal from "@/components/AssignLessonModal";
@@ -1368,7 +1365,6 @@ export default function TeamsPage() {
               <PlayersSection
                 players={myPlayers}
                 myClubs={myClubs}
-                playerQueueById={playerQueueById}
                 onPlayerInvited={(newPlayer) => {
                   setMyPlayers((prev) => {
                     const exists = prev.some((p) => p.id === newPlayer.id);
@@ -2278,13 +2274,11 @@ function AddPlayerDialog({
 function PlayersSection({
   players,
   myClubs,
-  playerQueueById,
   onPlayerInvited,
   onPlayerRemoved,
 }: {
   players: Player[];
   myClubs: ClubOption[];
-  playerQueueById: Record<string, number>;
   onPlayerInvited: (player: Player) => void;
   onPlayerRemoved: (playerId: string) => void;
 }) {

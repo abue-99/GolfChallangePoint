@@ -51,6 +51,26 @@ type UpdateAssignmentInput = {
   isInTrainingQueue?: boolean;
 };
 
+const journeyAssignmentInclude = {
+  journeyTemplate: {
+    select: {
+      id: true,
+      name: true,
+      category: true,
+      difficulty: true,
+      coverImageUrl: true,
+    },
+  },
+  team: { select: { id: true, shortName: true, icon: true } },
+  player: {
+    select: { id: true, firstName: true, lastName: true, email: true },
+  },
+} satisfies Prisma.JourneyTemplateAssignmentInclude;
+
+type JourneyAssignmentListItem = Prisma.JourneyTemplateAssignmentGetPayload<{
+  include: typeof journeyAssignmentInclude;
+}>;
+
 @Injectable()
 export class AssignmentsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -436,7 +456,7 @@ export class AssignmentsService {
     filters: { status?: string; queueOnly?: string },
   ) {
     if (role === 'PLAYER') {
-      let playerJourneyAssignments: any[] = [];
+      let playerJourneyAssignments: JourneyAssignmentListItem[] = [];
 
       if (filters.queueOnly !== 'true') {
         playerJourneyAssignments =
@@ -447,18 +467,7 @@ export class AssignmentsService {
                 ? { status: toStoredAssignmentStatus(filters.status) }
                 : {}),
             },
-            include: {
-              journeyTemplate: {
-                select: {
-                  id: true,
-                  name: true,
-                  category: true,
-                  difficulty: true,
-                  coverImageUrl: true,
-                },
-              },
-              team: { select: { id: true, shortName: true, icon: true } },
-            },
+            include: journeyAssignmentInclude,
             orderBy: { createdAt: 'desc' },
           });
 
@@ -503,7 +512,10 @@ export class AssignmentsService {
         const validPlanIds = playerJourneyAssignments
           .map((assignment) => assignment.playerPlanId)
           .filter((planId) => validPlanIdSet.has(planId));
-        await syncJourneyAssignmentLifecycleForPlanIds(this.prisma, validPlanIds);
+        await syncJourneyAssignmentLifecycleForPlanIds(
+          this.prisma,
+          validPlanIds,
+        );
 
         playerJourneyAssignments =
           await this.prisma.journeyTemplateAssignment.findMany({
@@ -514,18 +526,7 @@ export class AssignmentsService {
                 ? { status: toStoredAssignmentStatus(filters.status) }
                 : {}),
             },
-            include: {
-              journeyTemplate: {
-                select: {
-                  id: true,
-                  name: true,
-                  category: true,
-                  difficulty: true,
-                  coverImageUrl: true,
-                },
-              },
-              team: { select: { id: true, shortName: true, icon: true } },
-            },
+            include: journeyAssignmentInclude,
             orderBy: { createdAt: 'desc' },
           });
       }
@@ -555,15 +556,13 @@ export class AssignmentsService {
         ]),
       );
 
-      const lessonItems = lessonAssignments.map((assignment) =>
-        ({
-          ...this.toQueueLessonItem(assignment),
-          journeyTemplate: assignment.block?.planId
-            ? journeyByPlanId.get(assignment.block.planId) ?? null
-            : null,
-          playerPlanId: assignment.block?.planId ?? null,
-        }),
-      );
+      const lessonItems = lessonAssignments.map((assignment) => ({
+        ...this.toQueueLessonItem(assignment),
+        journeyTemplate: assignment.block?.planId
+          ? (journeyByPlanId.get(assignment.block.planId) ?? null)
+          : null,
+        playerPlanId: assignment.block?.planId ?? null,
+      }));
       const journeyItems = journeyAssignments.map((assignment) => ({
         id: assignment.id,
         lessonId: null,
@@ -603,40 +602,30 @@ export class AssignmentsService {
     }
 
     this.requireCoachOrAdmin(role);
-    let journeyAssignments: any[] = [];
+    let journeyAssignments: JourneyAssignmentListItem[] = [];
 
     if (filters.queueOnly !== 'true') {
-      journeyAssignments = await this.prisma.journeyTemplateAssignment.findMany({
-        where: {
-          ...(role === 'ADMIN' ? {} : { coachId: userId }),
-          ...(filters.status
-            ? { status: toStoredAssignmentStatus(filters.status) }
-            : {}),
-        },
-        include: {
-          journeyTemplate: {
-            select: {
-              id: true,
-              name: true,
-              category: true,
-              difficulty: true,
-              coverImageUrl: true,
-            },
+      journeyAssignments = await this.prisma.journeyTemplateAssignment.findMany(
+        {
+          where: {
+            ...(role === 'ADMIN' ? {} : { coachId: userId }),
+            ...(filters.status
+              ? { status: toStoredAssignmentStatus(filters.status) }
+              : {}),
           },
-          team: { select: { id: true, shortName: true, icon: true } },
-          player: {
-            select: { id: true, firstName: true, lastName: true, email: true },
-          },
+          include: journeyAssignmentInclude,
+          orderBy: { createdAt: 'desc' },
         },
-        orderBy: { createdAt: 'desc' },
-      });
+      );
 
       const validPlanIdSet = new Set(
         (
           await this.prisma.playerDevelopmentPlan.findMany({
             where: {
               id: {
-                in: journeyAssignments.map((assignment) => assignment.playerPlanId),
+                in: journeyAssignments.map(
+                  (assignment) => assignment.playerPlanId,
+                ),
               },
             },
             select: { id: true },
@@ -672,31 +661,19 @@ export class AssignmentsService {
         .filter((planId) => validPlanIdSet.has(planId));
       await syncJourneyAssignmentLifecycleForPlanIds(this.prisma, validPlanIds);
 
-      journeyAssignments = await this.prisma.journeyTemplateAssignment.findMany({
-        where: {
-          ...(role === 'ADMIN' ? {} : { coachId: userId }),
-          playerPlanId: { in: validPlanIds },
-          ...(filters.status
-            ? { status: toStoredAssignmentStatus(filters.status) }
-            : {}),
-        },
-        include: {
-          journeyTemplate: {
-            select: {
-              id: true,
-              name: true,
-              category: true,
-              difficulty: true,
-              coverImageUrl: true,
-            },
+      journeyAssignments = await this.prisma.journeyTemplateAssignment.findMany(
+        {
+          where: {
+            ...(role === 'ADMIN' ? {} : { coachId: userId }),
+            playerPlanId: { in: validPlanIds },
+            ...(filters.status
+              ? { status: toStoredAssignmentStatus(filters.status) }
+              : {}),
           },
-          team: { select: { id: true, shortName: true, icon: true } },
-          player: {
-            select: { id: true, firstName: true, lastName: true, email: true },
-          },
+          include: journeyAssignmentInclude,
+          orderBy: { createdAt: 'desc' },
         },
-        orderBy: { createdAt: 'desc' },
-      });
+      );
     }
 
     const [lessonAssignments, coachJourneyAssignments] = await Promise.all([
@@ -707,29 +684,27 @@ export class AssignmentsService {
             ? { status: toStoredAssignmentStatus(filters.status) }
             : {}),
           ...(filters.queueOnly === 'true' ? { isInTrainingQueue: true } : {}),
-       },
-       include: this.assignmentInclude(),
-       orderBy: { createdAt: 'desc' },
+        },
+        include: this.assignmentInclude(),
+        orderBy: { createdAt: 'desc' },
       }),
       Promise.resolve(journeyAssignments),
     ]);
 
     const journeyByPlanId = new Map(
       coachJourneyAssignments.map((assignment) => [
-       assignment.playerPlanId,
-       assignment.journeyTemplate,
+        assignment.playerPlanId,
+        assignment.journeyTemplate,
       ]),
     );
 
-    const lessonItems = lessonAssignments.map((assignment) =>
-      ({
-        ...this.toQueueLessonItem(assignment),
-        journeyTemplate: assignment.block?.planId
-        ? journeyByPlanId.get(assignment.block.planId) ?? null
+    const lessonItems = lessonAssignments.map((assignment) => ({
+      ...this.toQueueLessonItem(assignment),
+      journeyTemplate: assignment.block?.planId
+        ? (journeyByPlanId.get(assignment.block.planId) ?? null)
         : null,
-        playerPlanId: assignment.block?.planId ?? null,
-      }),
-    );
+      playerPlanId: assignment.block?.planId ?? null,
+    }));
     const journeyItems = journeyAssignments.map((assignment) => ({
       id: assignment.id,
       lessonId: null,
@@ -805,38 +780,42 @@ export class AssignmentsService {
       }
     }
 
-    return this.prisma.lessonAssignment.update({
-      where: { id: assignmentId },
-      data: {
-        ...(data.status !== undefined
-        ? { status: toStoredAssignmentStatus(data.status) }
-          : {}),
-        ...(data.playerNotes !== undefined
-          ? { playerNotes: data.playerNotes }
-          : {}),
-        ...(data.selfAssessment !== undefined
-          ? { selfAssessment: data.selfAssessment }
-          : {}),
-        ...(data.dueDate !== undefined
-          ? { dueDate: data.dueDate ? new Date(data.dueDate) : null }
-          : {}),
-        ...(data.priority !== undefined
-          ? { priority: data.priority as LessonPriority }
-          : {}),
-        ...(data.sortOrder !== undefined ? { sortOrder: data.sortOrder } : {}),
-        ...(data.isInTrainingQueue !== undefined
-          ? { isInTrainingQueue: Boolean(data.isInTrainingQueue) }
-          : {}),
-      },
-      include: this.assignmentInclude(),
-    }).then(async (updated) => {
-      if (updated.block?.planId) {
-        await syncJourneyAssignmentLifecycleForPlanIds(this.prisma, [
-          updated.block.planId,
-        ]);
-      }
-      return updated;
-    });
+    return this.prisma.lessonAssignment
+      .update({
+        where: { id: assignmentId },
+        data: {
+          ...(data.status !== undefined
+            ? { status: toStoredAssignmentStatus(data.status) }
+            : {}),
+          ...(data.playerNotes !== undefined
+            ? { playerNotes: data.playerNotes }
+            : {}),
+          ...(data.selfAssessment !== undefined
+            ? { selfAssessment: data.selfAssessment }
+            : {}),
+          ...(data.dueDate !== undefined
+            ? { dueDate: data.dueDate ? new Date(data.dueDate) : null }
+            : {}),
+          ...(data.priority !== undefined
+            ? { priority: data.priority as LessonPriority }
+            : {}),
+          ...(data.sortOrder !== undefined
+            ? { sortOrder: data.sortOrder }
+            : {}),
+          ...(data.isInTrainingQueue !== undefined
+            ? { isInTrainingQueue: Boolean(data.isInTrainingQueue) }
+            : {}),
+        },
+        include: this.assignmentInclude(),
+      })
+      .then(async (updated) => {
+        if (updated.block?.planId) {
+          await syncJourneyAssignmentLifecycleForPlanIds(this.prisma, [
+            updated.block.planId,
+          ]);
+        }
+        return updated;
+      });
   }
 
   async moveToQueue(userId: string, role: string, assignmentId: string) {
@@ -862,23 +841,25 @@ export class AssignmentsService {
       }
     }
 
-    return this.prisma.lessonAssignment.update({
-      where: { id: assignmentId },
-      data: {
-        isInTrainingQueue: true,
-        status:
-          assignment.targetType === AssignmentTargetType.PLAYER
-            ? AssignmentStatus.OPEN
-            : undefined,
-      },
-      include: this.assignmentInclude(),
-    }).then(async (updated) => {
-      if (updated.block?.planId) {
-        await syncJourneyAssignmentLifecycleForPlanIds(this.prisma, [
-          updated.block.planId,
-        ]);
-      }
-      return updated;
-    });
+    return this.prisma.lessonAssignment
+      .update({
+        where: { id: assignmentId },
+        data: {
+          isInTrainingQueue: true,
+          status:
+            assignment.targetType === AssignmentTargetType.PLAYER
+              ? AssignmentStatus.OPEN
+              : undefined,
+        },
+        include: this.assignmentInclude(),
+      })
+      .then(async (updated) => {
+        if (updated.block?.planId) {
+          await syncJourneyAssignmentLifecycleForPlanIds(this.prisma, [
+            updated.block.planId,
+          ]);
+        }
+        return updated;
+      });
   }
 }

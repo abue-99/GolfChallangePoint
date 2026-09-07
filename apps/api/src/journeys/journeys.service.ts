@@ -543,30 +543,17 @@ export class JourneysService {
       throw new ForbiddenException('Not your journey assignment');
     }
 
-    return this.prisma.journeyTemplateAssignment.update({
-      where: { id: assignmentId },
-      data: {
-        ...(data.status !== undefined
-          ? { status: toStoredAssignmentStatus(data.status) }
-          : {}),
-        ...(data.isInTrainingQueue !== undefined
-          ? { isInTrainingQueue: Boolean(data.isInTrainingQueue) }
-          : {}),
-      },
-      include: {
-        journeyTemplate: {
-          select: {
-            id: true,
-            name: true,
-          },
+    return this.prisma.journeyTemplateAssignment
+      .update({
+        where: { id: assignmentId },
+        data: {
+          ...(data.status !== undefined
+            ? { status: toStoredAssignmentStatus(data.status) }
+            : {}),
+          ...(data.isInTrainingQueue !== undefined
+            ? { isInTrainingQueue: Boolean(data.isInTrainingQueue) }
+            : {}),
         },
-      },
-    }).then(async (updated) => {
-      await syncJourneyAssignmentLifecycleForPlanIds(this.prisma, [
-        assignment.playerPlanId,
-      ]);
-      return this.prisma.journeyTemplateAssignment.findUnique({
-        where: { id: updated.id },
         include: {
           journeyTemplate: {
             select: {
@@ -575,7 +562,22 @@ export class JourneysService {
             },
           },
         },
+      })
+      .then(async (updated) => {
+        await syncJourneyAssignmentLifecycleForPlanIds(this.prisma, [
+          assignment.playerPlanId,
+        ]);
+        return this.prisma.journeyTemplateAssignment.findUnique({
+          where: { id: updated.id },
+          include: {
+            journeyTemplate: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        });
       });
-    });
   }
 }

@@ -314,7 +314,9 @@ export class UsersService {
           coaches: playerCoachLinks.map((pcl) => pcl.coach).filter(Boolean),
         };
       })
-      .filter((player): player is NonNullable<typeof player> => player !== null);
+      .filter(
+        (player): player is NonNullable<typeof player> => player !== null,
+      );
 
     const playerIds = players.map((player) => player.id);
     const learningProgressByPlayerId = await loadPlayerLearningSummaries(
@@ -325,23 +327,21 @@ export class UsersService {
     return players.map((player) => ({
       ...player,
       pendingLessons:
-        learningProgressByPlayerId[player.id]?.lessons.PENDING ??
-        0,
-      learningProgress:
-        learningProgressByPlayerId[player.id] ?? {
-          lessons: {
-            PENDING: 0,
-            ACCEPTED: 0,
-            ACTIVE: 0,
-            COMPLETED: 0,
-          },
-          journeys: {
-            PENDING: 0,
-            ACCEPTED: 0,
-            ACTIVE: 0,
-            COMPLETED: 0,
-          },
+        learningProgressByPlayerId[player.id]?.lessons.PENDING ?? 0,
+      learningProgress: learningProgressByPlayerId[player.id] ?? {
+        lessons: {
+          PENDING: 0,
+          ACCEPTED: 0,
+          ACTIVE: 0,
+          COMPLETED: 0,
         },
+        journeys: {
+          PENDING: 0,
+          ACCEPTED: 0,
+          ACTIVE: 0,
+          COMPLETED: 0,
+        },
+      },
     }));
   }
 

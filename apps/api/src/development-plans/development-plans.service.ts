@@ -440,7 +440,9 @@ export class DevelopmentPlansService {
     if (inferredTarget === AssignmentTargetType.PLAYER) {
       playerId = data.playerId ?? block.plan.playerId ?? null;
       if (!playerId) {
-        throw new ForbiddenException('Player assignment requires a player target');
+        throw new ForbiddenException(
+          'Player assignment requires a player target',
+        );
       }
       if (role !== 'ADMIN') {
         await this.assertCoachPlayerLink(coachId, playerId);
@@ -549,42 +551,46 @@ export class DevelopmentPlansService {
           (data as { isInTrainingQueue?: boolean }).isInTrainingQueue,
         );
       }
-    } else if (Object.prototype.hasOwnProperty.call(data, 'isInTrainingQueue')) {
+    } else if (
+      Object.prototype.hasOwnProperty.call(data, 'isInTrainingQueue')
+    ) {
       updateData.isInTrainingQueue = Boolean(
         (data as { isInTrainingQueue?: boolean }).isInTrainingQueue,
       );
     }
 
-    return this.prisma.lessonAssignment.update({
-      where: { id: assignmentId },
-      data: updateData,
-      include: {
-        lesson: {
-          select: {
-            id: true,
-            name: true,
-            focusArea: true,
-            durationMinutes: true,
-            subCapability: true,
-            subSubCapability: true,
+    return this.prisma.lessonAssignment
+      .update({
+        where: { id: assignmentId },
+        data: updateData,
+        include: {
+          lesson: {
+            select: {
+              id: true,
+              name: true,
+              focusArea: true,
+              durationMinutes: true,
+              subCapability: true,
+              subSubCapability: true,
+            },
           },
+          team: { select: { id: true, shortName: true, icon: true } },
         },
-        team: { select: { id: true, shortName: true, icon: true } },
-      },
-    }).then(async (updated) => {
-      const planId = assignment.blockId
-        ? (
-            await this.prisma.trainingBlock.findUnique({
-              where: { id: assignment.blockId },
-              select: { planId: true },
-            })
-          )?.planId
-        : null;
-      if (planId) {
-        await syncJourneyAssignmentLifecycleForPlanIds(this.prisma, [planId]);
-      }
-      return updated;
-    });
+      })
+      .then(async (updated) => {
+        const planId = assignment.blockId
+          ? (
+              await this.prisma.trainingBlock.findUnique({
+                where: { id: assignment.blockId },
+                select: { planId: true },
+              })
+            )?.planId
+          : null;
+        if (planId) {
+          await syncJourneyAssignmentLifecycleForPlanIds(this.prisma, [planId]);
+        }
+        return updated;
+      });
   }
 
   async removeAssignment(coachId: string, role: string, assignmentId: string) {

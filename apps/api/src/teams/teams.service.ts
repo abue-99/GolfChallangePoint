@@ -125,24 +125,21 @@ export class TeamsService {
 
     return users.map((user) => ({
       ...user,
-      pendingLessons:
-        learningProgressByPlayerId[user.id]?.lessons.PENDING ??
-        0,
-      learningProgress:
-        learningProgressByPlayerId[user.id] ?? {
-          lessons: {
-            PENDING: 0,
-            ACCEPTED: 0,
-            ACTIVE: 0,
-            COMPLETED: 0,
-          },
-          journeys: {
-            PENDING: 0,
-            ACCEPTED: 0,
-            ACTIVE: 0,
-            COMPLETED: 0,
-          },
+      pendingLessons: learningProgressByPlayerId[user.id]?.lessons.PENDING ?? 0,
+      learningProgress: learningProgressByPlayerId[user.id] ?? {
+        lessons: {
+          PENDING: 0,
+          ACCEPTED: 0,
+          ACTIVE: 0,
+          COMPLETED: 0,
         },
+        journeys: {
+          PENDING: 0,
+          ACCEPTED: 0,
+          ACTIVE: 0,
+          COMPLETED: 0,
+        },
+      },
     }));
   }
 

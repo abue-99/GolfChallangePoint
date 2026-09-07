@@ -6,7 +6,6 @@ import { api } from "@/lib/api";
 import type { CalendarActivity } from "@/types/calendar";
 import {
   FOCUS_AREAS,
-  isAcceptedLifecycleStatus,
   isCompletedAssignmentStatus,
   isPendingAssignmentStatus,
   isStartedAssignmentStatus,
@@ -14,6 +13,7 @@ import {
   type PlayerDevelopmentPlan,
   type LessonAssignment,
 } from "@/lib/lesson-types";
+import { isAcceptedLifecycleStatus } from "@/lib/assignment-lifecycle";
 import {
   PlayerCapabilitiesRadarCard,
   PlayerCapabilitiesWidget,

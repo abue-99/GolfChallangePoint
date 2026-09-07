@@ -1,11 +1,7 @@
 import { AssignmentStatus } from '@challengepoint/db';
 import { PrismaService } from '../prisma/prisma.service';
 
-export type LifecycleStatus =
-  | 'PENDING'
-  | 'ACCEPTED'
-  | 'ACTIVE'
-  | 'COMPLETED';
+export type LifecycleStatus = 'PENDING' | 'ACCEPTED' | 'ACTIVE' | 'COMPLETED';
 
 export type LifecycleCounts = Record<LifecycleStatus, number>;
 
@@ -206,7 +202,9 @@ export async function loadPlayerLearningSummaries(
   }
 
   const uniquePlanIds = [
-    ...new Set(rawJourneyAssignments.map((assignment) => assignment.playerPlanId)),
+    ...new Set(
+      rawJourneyAssignments.map((assignment) => assignment.playerPlanId),
+    ),
   ];
   const validPlanIdSet = new Set(
     (
@@ -285,7 +283,8 @@ export async function loadPlayerLearningSummaries(
   for (const assignment of journeyAssignments) {
     summaries[assignment.playerId].journeys[
       toLifecycleStatus(
-        journeyStatusesByPlanId.get(assignment.playerPlanId) ?? assignment.status,
+        journeyStatusesByPlanId.get(assignment.playerPlanId) ??
+          assignment.status,
       )
     ] += 1;
   }

@@ -113,8 +113,9 @@ Administrators manage clubs and user accounts.
 
 - **Coach–player link required**: before a coach can view/assign anything for a player, a `CoachPlayerLink` record must exist. Links are created via invite, manual coach addition, or player adding coach.
 - **OwnerType**: `PracticeSlot` and `PlayerDevelopmentPlan` support both `PLAYER` and `TEAM` owners. Check `ownerType` to know which FK (`playerId` vs `teamId`) is set.
-- **Lesson assignment model**: coaches can create standalone `LessonAssignment` queue items directly from the integrated `/teams` view, or attach lessons to `TrainingBlock`s inside a `PlayerDevelopmentPlan`.
-- **Journey assignment model**: coaches can create reusable `JourneyTemplate`s and assign them directly to players or whole teams; server-side journey and coach assignment proxy routes now retry once after refreshing expired access tokens.
-- **Pending lesson counters**: coach-facing `/teams` and `/users/me/players` responses include computed `pendingLessons`; team counts aggregate open queue items across all active members.
+- **Unified learning lifecycle**: assignment storage still uses `AssignmentStatus` (`NEW` / `OPEN` / `IN_PROGRESS` / `COMPLETED`), but player/coach UX treats them as `PENDING` / `ACCEPTED` / `ACTIVE` / `COMPLETED`.
+- **Lesson assignment model**: coaches assign standalone `LessonAssignment`s in `PENDING`; a player moves a lesson into the queue by accepting it (`Add To Queue` / `Schedule`), and journey lessons can be queued individually.
+- **Journey assignment model**: coaches can create reusable `JourneyTemplate`s and assign them directly to players or whole teams; journey assignments never live in the training queue and sync their lifecycle from the generated player-plan lessons.
+- **Learning progress summaries**: coach-facing `/teams/club-players` and `/users/me/players` responses now include `learningProgress` with journey and lesson lifecycle counts for popup summaries, avatar badges, and the coach dashboard.
 - **Calendar hierarchy**: `PracticeSlot` (recurring time block) → `CalendarTask` (specific task on a date within the slot).
 - **Gamification**: `PlayerProfile` tracks `xp`, `level`, `currentStreak`, `longestStreak`, `lastActivityAt`.

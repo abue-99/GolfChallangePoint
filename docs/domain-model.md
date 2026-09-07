@@ -30,6 +30,18 @@
 
 ---
 
+### Derived learning-progress summary *(API projection, not a Prisma model)*
+
+Coach-facing player payloads expose a computed `learningProgress` object with:
+
+- `lessons`: lifecycle counts mapped to `PENDING` / `ACCEPTED` / `ACTIVE` / `COMPLETED`
+- `journeys`: the same lifecycle counts for journey assignments
+- `recentCompletions`: 90-day completed totals used only by compact avatar/dashboard cards; popup views still show full historical `COMPLETED` totals
+
+This summary is derived in the assignments lifecycle helpers from `LessonAssignment` and `JourneyTemplateAssignment`.
+
+---
+
 ## Entity Reference
 
 ### `User` (table: `users`)

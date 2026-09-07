@@ -116,6 +116,6 @@ Administrators manage clubs and user accounts.
 - **Unified learning lifecycle**: assignment storage still uses `AssignmentStatus` (`NEW` / `OPEN` / `IN_PROGRESS` / `COMPLETED`), but player/coach UX treats them as `PENDING` / `ACCEPTED` / `ACTIVE` / `COMPLETED`.
 - **Lesson assignment model**: coaches assign standalone `LessonAssignment`s in `PENDING`; a player moves a lesson into the queue by accepting it (`Add To Queue` / `Schedule`), and journey lessons can be queued individually.
 - **Journey assignment model**: coaches can create reusable `JourneyTemplate`s and assign them directly to players or whole teams; journey assignments never live in the training queue and sync their lifecycle from the generated player-plan lessons.
-- **Learning progress summaries**: coach-facing `/teams/club-players` and `/users/me/players` responses now include `learningProgress` with journey and lesson lifecycle counts for popup summaries, avatar badges, and the coach dashboard.
+- **Learning progress summaries**: coach-facing `/teams/club-players` and `/users/me/players` responses now include `learningProgress` with journey and lesson lifecycle counts plus 90-day `recentCompletions` metadata for compact avatar cards and active-player dashboard views; popups still use the full historical counts.
 - **Calendar hierarchy**: `PracticeSlot` (recurring time block) → `CalendarTask` (specific task on a date within the slot).
 - **Gamification**: `PlayerProfile` tracks `xp`, `level`, `currentStreak`, `longestStreak`, `lastActivityAt`.

@@ -38,7 +38,7 @@ Coach-facing player payloads expose a computed `learningProgress` object with:
 
 - `lessons`: lifecycle counts mapped to `PENDING` / `ACCEPTED` / `ACTIVE` / `COMPLETED`
 - `journeys`: the same lifecycle counts for journey assignments
-- `recentCompletions`: 90-day completed totals used only by compact avatar/dashboard cards that render `Journeys`/`Lessons` non-zero color-only lifecycle number badges; popup views still show full historical `COMPLETED` totals
+- `recentCompletions`: 90-day completed totals used only by compact avatar/dashboard cards that render `Journeys`/`Lessons` non-zero lifecycle color bars with fixed quarter-width segments; popup views still show full historical `COMPLETED` totals in icon-free four-slot lifecycle bars
 
 This summary is derived in the assignments lifecycle helpers from `LessonAssignment` and `JourneyTemplateAssignment`.
 

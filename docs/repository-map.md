@@ -264,7 +264,7 @@ Current status: journey CRUD routes, journey assignment routes, and coach lesson
 | `CoachPlanningBoard.tsx`         | Multi-player planning board                                     |
 | `PlayerJourney.tsx`              | Visual plan progress for player                                 |
 | `PlayerOverviewDialog.tsx`       | Shared coach-side player popup used by teams and dashboard      |
-| `LearningProgress.tsx`           | Shared `CompactLearningSummary` (Journeys/Lessons color-only number badges) + detailed lifecycle bars |
+| `LearningProgress.tsx`           | Shared `CompactLearningSummary` (Journeys/Lessons compact lifecycle color bars) + icon-free fixed-segment lifecycle bars |
 | `CompactCoachPlayerCard.tsx`     | Shared compact coach player card used by dashboard and teams/player grids |
 | `PracticeSlotDialog.tsx`         | Create/edit `PracticeSlot`                                      |
 | `AssignTaskDialog.tsx`           | Assign `CalendarTask` to a slot                                 |
@@ -298,7 +298,7 @@ Current status: journey CRUD routes, journey assignment routes, and coach lesson
 
 ### Learning lifecycle touchpoints
 
-- **Coach player summaries**: `/teams`, `/coach/players`, `/coach`, and the coach `/dashboard` view consume `learningProgress` from coach-facing player payloads to render a shared compact coach player card with the same `Journeys`/`Lessons` color-only lifecycle number badges, while popups keep the detailed lifecycle bars.
+- **Coach player summaries**: `/teams`, `/coach/players`, `/coach`, and the coach `/dashboard` view consume `learningProgress` from coach-facing player payloads to render a shared compact coach player card with the same `Journeys`/`Lessons` fixed-width lifecycle color bars (non-zero statuses only), while popups use icon-free four-slot fixed-segment lifecycle bars.
 - **Recent completion visibility**: compact coach cards use `recentCompletions` to show `COMPLETED` only for the last 90 days, while `PlayerOverviewDialog.tsx` keeps the full historical lifecycle counts; backend summaries depend on persisted assignment `completedAt` timestamps.
 - **Player acceptance flow**: `NewAssignmentsSection.tsx`, `PlayerJourney.tsx`, and `player/queue/page.tsx` implement the `Assign → Accept → Train → Complete` flow while keeping journeys out of the queue.
 - **Backend lifecycle sync**: `apps/api/src/assignments/assignment-lifecycle.ts` centralises lifecycle normalization, journey-status syncing, and coach/player learning-summary aggregation.

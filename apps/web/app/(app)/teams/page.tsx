@@ -621,21 +621,6 @@ export default function TeamsPage() {
       });
       return next;
     });
-
-    setTeamPendingById((prev) => {
-      const next = { ...prev };
-      teams.forEach((team) => {
-        const increment = team.members.reduce(
-          (sum, member) =>
-            sum + (affectedPlayerIds.includes(member.userId) ? 1 : 0),
-          0,
-        );
-        if (increment > 0) {
-          next[team.id] = (next[team.id] ?? 0) + increment;
-        }
-      });
-      return next;
-    });
   }
 
   function handleAssignmentSuccess(

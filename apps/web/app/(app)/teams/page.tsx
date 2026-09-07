@@ -237,8 +237,9 @@ function queueCountLabel(count: number) {
   return count > 99 ? "99+" : String(count);
 }
 
-function pendingLessonsLabel(count: number) {
-  return `📚 ${queueCountLabel(count)} Pending`;
+function countLabel(count: number, singular: string, plural = `${singular}s`) {
+  const resolvedLabel = count === 1 ? singular : plural;
+  return `${queueCountLabel(count)} ${resolvedLabel}`;
 }
 
 function assignmentLessonName(result?: AssignmentResult) {
@@ -261,13 +262,13 @@ function playerDisplayName(player: Player) {
 
 function DroppableTeamCard({
   team,
-  teamPendingCount,
+  teamJourneyCount,
   membersContent,
   footerContent,
   onOpen,
 }: {
   team: Team;
-  teamPendingCount: number;
+  teamJourneyCount: number;
   membersContent: React.ReactNode;
   footerContent: React.ReactNode;
   onOpen: () => void;
@@ -281,7 +282,7 @@ function DroppableTeamCard({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex min-h-[230px] w-[260px] min-w-[260px] cursor-pointer flex-col rounded-2xl border border-[var(--golf-muted)] bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md sm:w-[280px] sm:min-w-[280px]",
+        "flex min-h-[220px] w-[168px] min-w-[168px] cursor-pointer flex-col rounded-2xl border border-[var(--golf-muted)] bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md sm:w-[176px] sm:min-w-[176px]",
         isOver && "border-emerald-400 bg-emerald-50 shadow-md ring-2 ring-emerald-400/60",
       )}
       onClick={onOpen}
@@ -315,14 +316,16 @@ function DroppableTeamCard({
         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
           Members
         </div>
-        <div className="mt-2">{membersContent}</div>
+        <div className="mt-2 min-h-[2.25rem]">{membersContent}</div>
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
         <div className="space-y-0.5">
-          <span className="block text-[11px] font-medium text-amber-700">
-            {pendingLessonsLabel(teamPendingCount)}
-          </span>
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-slate-500">
+            <span>{countLabel(team.members.length, "player")}</span>
+            <span className="text-slate-300">•</span>
+            <span>{countLabel(teamJourneyCount, "journey")}</span>
+          </div>
           {isOver ? (
             <span className="block text-[11px] font-medium text-emerald-700">
               Assign to {team.shortName}
@@ -436,9 +439,6 @@ export default function TeamsPage() {
   const [playerQueueById, setPlayerQueueById] = useState<
     Record<string, number>
   >({});
-  const [teamPendingById, setTeamPendingById] = useState<
-    Record<string, number>
-  >({});
   const [assignLesson, setAssignLesson] = useState<TrainingLesson | null>(null);
   const [assignJourney, setAssignJourney] = useState<JourneyTemplate | null>(null);
   const [assignPlayerId, setAssignPlayerId] = useState<string | null>(null);
@@ -482,11 +482,6 @@ export default function TeamsPage() {
               player.id,
               player.pendingLessons ?? 0,
             ]),
-          ),
-        );
-        setTeamPendingById(
-          Object.fromEntries(
-            loadedTeams.map((team) => [team.id, team.pendingLessons ?? 0]),
           ),
         );
         // clubs/my returns UserClub[] with club embedded
@@ -584,11 +579,6 @@ export default function TeamsPage() {
           nextMyPlayers.map((player) => [player.id, player.pendingLessons ?? 0]),
         ),
       );
-      setTeamPendingById(
-        Object.fromEntries(
-          nextTeams.map((team) => [team.id, team.pendingLessons ?? 0]),
-        ),
-      );
     } catch {}
   }, [role]);
 
@@ -628,21 +618,6 @@ export default function TeamsPage() {
       const next = { ...prev };
       affectedPlayerIds.forEach((playerId) => {
         next[playerId] = (next[playerId] ?? 0) + 1;
-      });
-      return next;
-    });
-
-    setTeamPendingById((prev) => {
-      const next = { ...prev };
-      teams.forEach((team) => {
-        const increment = team.members.reduce(
-          (sum, member) =>
-            sum + (affectedPlayerIds.includes(member.userId) ? 1 : 0),
-          0,
-        );
-        if (increment > 0) {
-          next[team.id] = (next[team.id] ?? 0) + increment;
-        }
       });
       return next;
     });
@@ -727,10 +702,6 @@ export default function TeamsPage() {
     if (res.ok) {
       const newTeam = await res.json();
       setTeams((prev) => [...prev, newTeam]);
-      setTeamPendingById((prev) => ({
-        ...prev,
-        [newTeam.id]: newTeam.pendingLessons ?? 0,
-      }));
       const cat = resolvedCategory();
       if (!categories.includes(cat)) setCategories((prev) => [...prev, cat]);
       setForm(EMPTY_FORM);
@@ -752,11 +723,6 @@ export default function TeamsPage() {
     if (res.ok) {
       setTeams((prev) => prev.filter((t) => t.id !== teamId));
       setEditingTeam((prev) => (prev?.id === teamId ? null : prev));
-      setTeamPendingById((prev) => {
-        const next = { ...prev };
-        delete next[teamId];
-        return next;
-      });
     }
   }
 
@@ -770,10 +736,6 @@ export default function TeamsPage() {
       const updated = await res.json();
       setTeams((prev) => prev.map((t) => (t.id === teamId ? updated : t)));
       setEditingTeam((prev) => (prev?.id === teamId ? updated : prev));
-      setTeamPendingById((prev) => ({
-        ...prev,
-        [teamId]: updated.pendingLessons ?? 0,
-      }));
       refreshTeamBadgeCounts(teamId);
     }
   }
@@ -792,10 +754,6 @@ export default function TeamsPage() {
       const updated = await res.json();
       setTeams((prev) => prev.map((t) => (t.id === teamId ? updated : t)));
       setEditingTeam((prev) => (prev?.id === teamId ? updated : prev));
-      setTeamPendingById((prev) => ({
-        ...prev,
-        [teamId]: updated.pendingLessons ?? 0,
-      }));
       refreshTeamBadgeCounts(teamId);
     }
   }
@@ -816,10 +774,6 @@ export default function TeamsPage() {
       const updated = await res.json();
       setTeams((prev) => prev.map((t) => (t.id === teamId ? updated : t)));
       setEditingTeam(updated);
-      setTeamPendingById((prev) => ({
-        ...prev,
-        [teamId]: updated.pendingLessons ?? 0,
-      }));
     }
     return res.ok;
   }
@@ -863,8 +817,8 @@ export default function TeamsPage() {
     >
       <div className="p-4 sm:p-6">
         <div className="mx-auto grid max-w-[1500px] gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="space-y-8">
-            <section className="space-y-4">
+          <div className="min-w-0 space-y-8">
+            <section className="min-w-0 space-y-4">
               <button
                 type="button"
                 onClick={() => setTeamsCollapsed((value) => !value)}
@@ -1102,15 +1056,15 @@ export default function TeamsPage() {
                       No matching teams found.
                     </p>
                   ) : (
-                    <div className="overflow-x-auto overflow-y-hidden pb-2">
-                      <div className="flex min-w-max gap-4">
+                    <div className="max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain pb-2">
+                      <div className="flex w-max gap-3 sm:gap-4">
                         {filtered.map((team) => {
-                          const visibleMembers = team.members.slice(0, 9);
-                          const extraMembers = Math.max(team.members.length - 9, 0);
-                          const teamPendingCount = teamPendingById[team.id] ?? 0;
+                          const visibleMembers = team.members.slice(0, 5);
+                          const extraMembers = Math.max(team.members.length - 5, 0);
+                          const teamJourneyCount = teamPlanCounts[team.id] ?? 0;
 
                           const membersContent = (
-                            <div className="flex max-w-[196px] flex-wrap gap-2">
+                            <div className="flex max-w-[150px] flex-wrap gap-1.5">
                               {visibleMembers.length > 0 ? (
                                 visibleMembers.map((member) => (
                                   <button
@@ -1125,7 +1079,7 @@ export default function TeamsPage() {
                                     }}
                                     title={member.user ? playerDisplayName(member.user) : member.userId}
                                   >
-                                    <Avatar className="h-8 w-8 text-xs">
+                                    <Avatar className="h-7 w-7 text-[11px]">
                                       {member.user?.profileImage ? (
                                         <AvatarImage
                                           src={member.user.profileImage}
@@ -1138,7 +1092,7 @@ export default function TeamsPage() {
                                     </Avatar>
                                     {(playerQueueById[member.userId] ?? 0) > 0 ? (
                                       <span
-                                        className="absolute -bottom-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold leading-none text-white"
+                                        className="absolute -bottom-1 -right-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-amber-500 px-1 text-[8px] font-bold leading-none text-white"
                                         title={`Queued lessons: ${playerQueueById[member.userId] ?? 0}`}
                                       >
                                         {queueCountLabel(playerQueueById[member.userId] ?? 0)}
@@ -1151,7 +1105,7 @@ export default function TeamsPage() {
                               )}
                               {extraMembers > 0 ? (
                                 <span
-                                  className="flex h-8 min-w-8 items-center justify-center rounded-full bg-slate-100 px-2 text-[11px] font-semibold text-slate-600"
+                                  className="flex h-7 min-w-7 items-center justify-center rounded-full bg-slate-100 px-1.5 text-[10px] font-semibold text-slate-600"
                                   title={`${extraMembers} more members`}
                                 >
                                   +{extraMembers}
@@ -1224,7 +1178,7 @@ export default function TeamsPage() {
                             <DroppableTeamCard
                               key={team.id}
                               team={team}
-                              teamPendingCount={teamPendingCount}
+                              teamJourneyCount={teamJourneyCount}
                               membersContent={membersContent}
                               footerContent={footerContent}
                               onOpen={() => setEditingTeam(team)}
@@ -1264,7 +1218,7 @@ export default function TeamsPage() {
             />
           </div>
 
-          <div className="order-last space-y-4 rounded-2xl border-t border-slate-200 bg-[#f7f8f7] p-4 xl:sticky xl:top-6 xl:self-start xl:border xl:border-slate-200 xl:bg-[#f5f7f5] xl:p-5">
+          <div className="order-last min-w-0 space-y-4 rounded-2xl border-t border-slate-200 bg-[#f7f8f7] p-4 xl:sticky xl:top-6 xl:self-start xl:border xl:border-slate-200 xl:bg-[#f5f7f5] xl:p-5">
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-background max-h-[24rem] xl:max-h-[calc(42vh-2rem)]">
               <JourneyTemplateLibrarySidebar
                 onJourneyClick={(journey) => {
@@ -1292,7 +1246,7 @@ export default function TeamsPage() {
         {/* Edit Team Dialog */}
         {editingTeam && (
           <EditTeamDialog
-            key={`${editingTeam.id}-${editingTeam.members.length}-${editingTeam.pendingLessons ?? 0}`}
+            key={`${editingTeam.id}-${editingTeam.members.length}`}
             team={editingTeam}
             categories={categories}
             myClubs={myClubs}
@@ -2332,7 +2286,7 @@ function PlayersSection({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
       <button
         type="button"
         onClick={() => onCollapsedChange(!collapsed)}
@@ -2375,8 +2329,8 @@ function PlayersSection({
           ) : filtered.length === 0 ? (
             <p className="text-sm text-gray-500">No matching players found.</p>
           ) : (
-            <div className="overflow-x-auto overflow-y-hidden pb-2">
-              <div className="flex min-w-max flex-nowrap gap-3">
+            <div className="max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain pb-2">
+              <div className="flex w-max flex-nowrap gap-3">
                 {filtered.map((p) => (
                   <DroppablePlayerCard
                     key={p.id}

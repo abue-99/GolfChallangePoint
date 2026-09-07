@@ -219,7 +219,7 @@ All require JWT + COACH or ADMIN.
 | `/coach`                             | `coach/page.tsx`                    | Coach home                                                                             |
 | `/player`                            | `player/page.tsx`                   | Player home                                                                            |
 | `/calendar`                          | `calendar/page.tsx`                 | FullCalendar view                                                                      |
-| `/teams`                             | `teams/page.tsx`                    | Primary coach workspace with collapsible team/player card rails plus stacked or sidebar libraries |
+| `/teams`                             | `teams/page.tsx`                    | Primary coach workspace with collapsible, separately scrollable team/player card rails plus stacked or sidebar libraries |
 | `/planning`                          | `planning/page.tsx`                 | Planning hub                                                                           |
 | `/training-windows`                  | `training-windows/page.tsx`         | Training window scheduling                                                             |
 | `/club`                              | `club/page.tsx`                     | Club view                                                                              |

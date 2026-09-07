@@ -3,6 +3,7 @@
 > Canonical reference for all database entities, enumerations, and their relationships.  
 > Source of truth: `packages/db/prisma/schema.prisma`  
 > See `docs/ai-context.md` for project overview and `docs/repository-map.md` for file locations.
+> Runtime note: production migrations for this schema are executed from the prebuilt Prisma CLI binary in `packages/db/node_modules/.bin/prisma` during API container startup.
 
 ---
 

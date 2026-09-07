@@ -304,7 +304,7 @@ Current status: journey CRUD routes, journey assignment routes, and coach lesson
 ### Container build touchpoints
 
 - `apps/web/Dockerfile`: filtered `golf-challenge-point-web...` install, cached Prisma generate layer, cached Next `.next/cache`
-- `apps/api/Dockerfile`: filtered `api...` install, cached Prisma generate layer, shared pnpm store cache
+- `apps/api/Dockerfile`: filtered `api...` install, cached Prisma generate layer, shared pnpm store cache, runtime startup runs `packages/db/node_modules/.bin/prisma migrate deploy` directly (no runtime pnpm command)
 - `.dockerignore`: excludes local build artifacts so context churn does not trigger unnecessary image rebuilds
 | `jwt.ts`                 | JWT sign/verify helpers                          |
 | `prisma.ts`              | Prisma client singleton for SSR                  |

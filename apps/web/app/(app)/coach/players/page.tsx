@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { BookOpen, UserPlus } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,8 +22,8 @@ import AssignLessonModal from "@/components/AssignLessonModal";
 import DroppableZone from "@/components/DroppableZone";
 import { DndLessonProvider } from "@/components/DndLessonProvider";
 import { toast } from "sonner";
+import CompactCoachPlayerCard from "@/components/CompactCoachPlayerCard";
 import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
-import { LearningProgressSection } from "@/components/LearningProgress";
 import { subscribeLearningProgressChanges } from "@/lib/learning-progress-events";
 
 type Club = { id: string; name: string };
@@ -333,50 +332,40 @@ export default function PlayersPage() {
                   activeClassName="ring-2 ring-primary ring-offset-1 bg-primary/5"
                 >
                   <div
-                    className="flex flex-col items-center gap-2 rounded-xl border border-[var(--golf-muted)] bg-white p-4 shadow-sm hover:shadow-md transition-all cursor-pointer select-none"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setSelectedPlayerId(player.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedPlayerId(player.id);
+                      }
+                    }}
                     title="Click to view details"
                   >
-                    <div className="relative">
-                      <Avatar className="h-16 w-16">
-                        {player.profileImage && (
-                          <AvatarImage src={player.profileImage} alt={playerName(player)} />
-                        )}
-                        <AvatarFallback className="text-xl bg-gray-200 text-gray-600">
-                          {playerInitials(player)}
-                        </AvatarFallback>
-                      </Avatar>
-                      {isInactive && (
-                        <span
-                          className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-amber-400 border-2 border-white"
-                          title="Inactive"
-                        />
-                      )}
-                    </div>
-                    <span className="text-sm font-medium text-center text-[var(--golf-heading)] leading-snug">
-                      {playerName(player)}
-                    </span>
-                    <LearningProgressSection
-                     progress={player.learningProgress}
-                     compact
+                    <CompactCoachPlayerCard
+                      name={playerName(player)}
+                      initials={playerInitials(player)}
+                      profileImage={player.profileImage}
+                      progress={player.learningProgress}
+                      inactive={isInactive}
+                      footer={isCoachOrAdmin ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 gap-1 px-2 text-xs opacity-60 hover:opacity-100"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAssignTargetPlayerId(player.id);
+                            setAssignModalOpen(true);
+                          }}
+                          title="Assign lesson to this player"
+                        >
+                          <BookOpen className="h-3 w-3" />
+                          Assign
+                        </Button>
+                      ) : undefined}
                     />
-                    {/* Quick-assign button for touch / non-DnD */}
-                    {isCoachOrAdmin && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-xs gap-1 px-2 opacity-60 hover:opacity-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAssignTargetPlayerId(player.id);
-                          setAssignModalOpen(true);
-                        }}
-                        title="Assign lesson to this player"
-                      >
-                        <BookOpen className="h-3 w-3" />
-                        Assign
-                      </Button>
-                    )}
                   </div>
                 </DroppableZone>
               );

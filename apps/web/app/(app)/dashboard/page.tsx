@@ -11,10 +11,9 @@ import type { CalendarActivity as BaseCalendarActivity } from "@/types/calendar"
 import { formatDateInTimeZone, resolveCalendarTimeZone } from "@/lib/timezone";
 import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
 import {
-  LearningProgressSection,
   hasVisibleLearningProgress,
 } from "@/components/LearningProgress";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import CompactCoachPlayerCard from "@/components/CompactCoachPlayerCard";
 import { subscribeLearningProgressChanges } from "@/lib/learning-progress-events";
 
 type Team = {
@@ -237,7 +236,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {activePlayers.map((player) => (
                 <button
                   key={player.id}
@@ -245,27 +244,12 @@ export default function Dashboard() {
                   onClick={() => setSelectedPlayerId(player.id)}
                   className="text-left"
                 >
-                  <Card className="h-full border border-slate-200 shadow-sm transition-shadow hover:shadow-md">
-                    <CardContent className="flex items-center gap-3 p-4">
-                      <Avatar className="h-14 w-14">
-                        {player.profileImage ? (
-                          <AvatarImage src={player.profileImage} alt={playerName(player)} />
-                        ) : null}
-                        <AvatarFallback className="bg-blue-100 text-lg text-blue-700">
-                          {playerInitials(player)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-[var(--golf-heading)]">
-                          {playerName(player)}
-                        </p>
-                        <LearningProgressSection
-                          progress={player.learningProgress}
-                          compact
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <CompactCoachPlayerCard
+                    name={playerName(player)}
+                    initials={playerInitials(player)}
+                    profileImage={player.profileImage}
+                    progress={player.learningProgress}
+                  />
                 </button>
               ))}
             </div>

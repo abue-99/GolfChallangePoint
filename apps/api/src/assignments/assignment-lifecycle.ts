@@ -284,6 +284,7 @@ export async function loadPlayerLearningSummaries(
   );
 
   for (const assignment of journeyAssignments) {
+    if (!assignment.playerId) continue;
     summaries[assignment.playerId].journeys[
       toLifecycleStatus(
         journeyStatusesByPlanId.get(assignment.playerPlanId) ??

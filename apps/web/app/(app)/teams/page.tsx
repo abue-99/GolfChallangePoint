@@ -404,8 +404,12 @@ export default function TeamsPage() {
   const [myClubs, setMyClubs] = useState<ClubOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [teamsCollapsed, setTeamsCollapsed] = useState(false);
-  const [playersCollapsed, setPlayersCollapsed] = useState(false);
+  const [teamsCollapsed, setTeamsCollapsed] = useState(() =>
+    loadCollapsedPreference(TEAMS_COLLAPSED_STORAGE_KEY),
+  );
+  const [playersCollapsed, setPlayersCollapsed] = useState(() =>
+    loadCollapsedPreference(PLAYERS_COLLAPSED_STORAGE_KEY),
+  );
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -414,8 +418,9 @@ export default function TeamsPage() {
 
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
 
-  const [selectedMemberPlayer, setSelectedMemberPlayer] =
-    useState<Player | null>(null);
+  const [selectedMemberPlayerId, setSelectedMemberPlayerId] = useState<
+    string | null
+  >(null);
   const [journeyTeam, setJourneyTeam] = useState<Team | null>(null);
   const [trainingWindowsTeam, setTrainingWindowsTeam] = useState<Team | null>(
     null,
@@ -438,11 +443,6 @@ export default function TeamsPage() {
   const [assignJourney, setAssignJourney] = useState<JourneyTemplate | null>(null);
   const [assignPlayerId, setAssignPlayerId] = useState<string | null>(null);
   const [assignTeamId, setAssignTeamId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setTeamsCollapsed(loadCollapsedPreference(TEAMS_COLLAPSED_STORAGE_KEY));
-    setPlayersCollapsed(loadCollapsedPreference(PLAYERS_COLLAPSED_STORAGE_KEY));
-  }, []);
 
   useEffect(() => {
     saveCollapsedPreference(TEAMS_COLLAPSED_STORAGE_KEY, teamsCollapsed);
@@ -599,27 +599,15 @@ export default function TeamsPage() {
     });
   }, [refreshLearningProgressData, role]);
 
-  useEffect(() => {
-    if (!selectedMemberPlayer) return;
-    const playerId = selectedMemberPlayer.id;
-    let teamMemberMatch: Player | undefined;
-    for (const team of teams) {
-      const member = team.members.find((entry) => entry.user?.id === playerId);
-      if (member?.user) {
-        teamMemberMatch = member.user;
-        break;
-      }
-    }
-
-    const latestPlayer =
-      myPlayers.find((player) => player.id === playerId) ??
-      allPlayers.find((player) => player.id === playerId) ??
-      teamMemberMatch;
-
-    if (latestPlayer && latestPlayer !== selectedMemberPlayer) {
-      setSelectedMemberPlayer(latestPlayer);
-    }
-  }, [allPlayers, myPlayers, selectedMemberPlayer, teams]);
+  const selectedMemberPlayer = selectedMemberPlayerId
+    ? myPlayers.find((player) => player.id === selectedMemberPlayerId) ??
+      allPlayers.find((player) => player.id === selectedMemberPlayerId) ??
+      teams
+        .flatMap((team) => team.members)
+        .find((member) => member.user?.id === selectedMemberPlayerId)
+        ?.user ??
+      null
+    : null;
 
   function applyOptimisticAssignment(
     target: AssignmentTarget,
@@ -788,7 +776,6 @@ export default function TeamsPage() {
       }));
       refreshTeamBadgeCounts(teamId);
     }
-    setAddMemberTeamId(null);
   }
 
   async function handleRemoveMember(teamId: string, userId: string) {
@@ -1133,7 +1120,7 @@ export default function TeamsPage() {
                                     onClick={(event) => {
                                       event.stopPropagation();
                                       if (member.user) {
-                                        setSelectedMemberPlayer(member.user);
+                                        setSelectedMemberPlayerId(member.user.id);
                                       }
                                     }}
                                     title={member.user ? playerDisplayName(member.user) : member.userId}
@@ -1321,7 +1308,7 @@ export default function TeamsPage() {
         {selectedMemberPlayer && (
           <PlayerDetailDialog
             player={selectedMemberPlayer}
-            onClose={() => setSelectedMemberPlayer(null)}
+            onClose={() => setSelectedMemberPlayerId(null)}
           />
         )}
 

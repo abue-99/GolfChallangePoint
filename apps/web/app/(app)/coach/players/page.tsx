@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { BookOpen, UserPlus } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import { DndLessonProvider } from "@/components/DndLessonProvider";
 import { toast } from "sonner";
 import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
 import { LearningProgressSection } from "@/components/LearningProgress";
+import { subscribeLearningProgressChanges } from "@/lib/learning-progress-events";
 
 type Club = { id: string; name: string };
 
@@ -240,20 +241,43 @@ export default function PlayersPage() {
       .then((me) => { if (me?.role) setRole(me.role); });
   }, []);
 
-  useEffect(() => {
+  const loadPlayers = useCallback(async () => {
     if (!role) return;
-
-    Promise.all([
-      fetch("/api/teams/club-players").then((r) => r.ok ? r.json() : []),
-      fetch("/api/clubs/my").then((r) => r.ok ? r.json() : []),
-    ]).then(([p, clubs]) => {
+    setLoading(true);
+    try {
+      const [p, clubs] = await Promise.all([
+        fetch("/api/teams/club-players", { cache: "no-store" }).then((r) => r.ok ? r.json() : []),
+        fetch("/api/clubs/my", { cache: "no-store" }).then((r) => r.ok ? r.json() : []),
+      ]);
       setPlayers(Array.isArray(p) ? p.filter(Boolean) : []);
       if (Array.isArray(clubs)) {
         setMyClubs(clubs.map((uc: { club: Club }) => uc.club).filter(Boolean));
       }
+    } finally {
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }
   }, [role]);
+
+  useEffect(() => {
+    void loadPlayers();
+  }, [loadPlayers]);
+
+  useEffect(() => {
+    if (!role) return;
+    return subscribeLearningProgressChanges(() => {
+      void loadPlayers();
+    });
+  }, [loadPlayers, role]);
+
+  useEffect(() => {
+    if (!selectedPlayer) return;
+    const nextSelectedPlayer = players.find((player) => player.id === selectedPlayer.id);
+    if (nextSelectedPlayer) {
+      setSelectedPlayer(nextSelectedPlayer);
+      return;
+    }
+    setSelectedPlayer(null);
+  }, [players, selectedPlayer]);
 
   const isCoachOrAdmin = role === "COACH" || role === "ADMIN";
 

@@ -12,6 +12,10 @@ import { cn } from "@/lib/utils";
 export type LearningProgressSummary = {
   lessons?: Partial<LifecycleCounts> | null;
   journeys?: Partial<LifecycleCounts> | null;
+  recentCompletions?: {
+    lessons?: number | null;
+    journeys?: number | null;
+  } | null;
 };
 
 function normalizeCounts(counts?: Partial<LifecycleCounts> | null): LifecycleCounts {
@@ -26,6 +30,33 @@ export function hasOpenLifecycleItems(counts?: Partial<LifecycleCounts> | null) 
   return normalized.PENDING + normalized.ACCEPTED + normalized.ACTIVE > 0;
 }
 
+function getCompactCounts(
+  counts?: Partial<LifecycleCounts> | null,
+  recentCompletedCount?: number | null,
+): LifecycleCounts {
+  const normalized = normalizeCounts(counts);
+  return {
+    ...normalized,
+    COMPLETED: Math.max(
+      0,
+      Math.min(normalized.COMPLETED, Number(recentCompletedCount ?? 0)),
+    ),
+  };
+}
+
+function getVisibleSegments(counts: LifecycleCounts) {
+  return LIFECYCLE_ORDER.filter((status) => counts[status] > 0);
+}
+
+export function hasVisibleLifecycleItems(
+  counts?: Partial<LifecycleCounts> | null,
+  recentCompletedCount?: number | null,
+) {
+  return getVisibleSegments(
+    getCompactCounts(counts, recentCompletedCount),
+  ).length > 0;
+}
+
 export function hasAnyLearningProgress(progress?: LearningProgressSummary | null) {
   return (
     sumLifecycleCounts(progress?.lessons) > 0 ||
@@ -33,28 +64,59 @@ export function hasAnyLearningProgress(progress?: LearningProgressSummary | null
   );
 }
 
-export function CompactLifecycleLine({
+export function hasVisibleLearningProgress(
+  progress?: LearningProgressSummary | null,
+) {
+  return (
+    hasVisibleLifecycleItems(
+      progress?.journeys,
+      progress?.recentCompletions?.journeys,
+    ) ||
+    hasVisibleLifecycleItems(
+      progress?.lessons,
+      progress?.recentCompletions?.lessons,
+    )
+  );
+}
+
+export function CompactLifecycleBar({
   label,
   counts,
+  recentCompletedCount,
   className,
 }: {
   label: string;
   counts?: Partial<LifecycleCounts> | null;
+  recentCompletedCount?: number | null;
   className?: string;
 }) {
-  const normalized = normalizeCounts(counts);
+  const normalized = getCompactCounts(counts, recentCompletedCount);
+  const visibleSegments = getVisibleSegments(normalized);
+
+  if (visibleSegments.length === 0) return null;
 
   return (
-    <div className={cn("flex items-center justify-between gap-2 text-[11px]", className)}>
-      <span className="font-medium text-slate-500">{label}</span>
-      <span className="flex items-center gap-2 whitespace-nowrap text-slate-700">
-        {LIFECYCLE_ORDER.map((status) => (
-          <span key={status}>
-            {LIFECYCLE_META[status].emoji}
+    <div className={cn("space-y-1.5", className)}>
+      <p className="text-[11px] font-medium text-slate-500">{label}</p>
+      <div
+        className="grid gap-px overflow-hidden rounded-md border border-slate-200 bg-slate-200"
+        style={{
+          gridTemplateColumns: `repeat(${visibleSegments.length}, minmax(0, 1fr))`,
+        }}
+      >
+        {visibleSegments.map((status) => (
+          <div
+            key={status}
+            className={cn(
+              "flex min-w-0 items-center justify-center px-2 py-1 text-xs font-semibold text-white",
+              LIFECYCLE_META[status].bgClass,
+            )}
+            title={`${LIFECYCLE_META[status].label}: ${normalized[status]}`}
+          >
             {normalized[status]}
-          </span>
+          </div>
         ))}
-      </span>
+      </div>
     </div>
   );
 }
@@ -109,9 +171,17 @@ export function LearningProgressSection({
 }) {
   if (compact) {
     return (
-      <div className="w-full space-y-1">
-        <CompactLifecycleLine label="Journeys" counts={progress?.journeys} />
-        <CompactLifecycleLine label="Lessons" counts={progress?.lessons} />
+      <div className="w-full space-y-2">
+        <CompactLifecycleBar
+          label="Journeys"
+          counts={progress?.journeys}
+          recentCompletedCount={progress?.recentCompletions?.journeys}
+        />
+        <CompactLifecycleBar
+          label="Lessons"
+          counts={progress?.lessons}
+          recentCompletedCount={progress?.recentCompletions?.lessons}
+        />
       </div>
     );
   }

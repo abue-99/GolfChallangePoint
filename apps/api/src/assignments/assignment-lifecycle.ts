@@ -8,6 +8,10 @@ export type LifecycleCounts = Record<LifecycleStatus, number>;
 export type PlayerLearningSummary = {
   lessons: LifecycleCounts;
   journeys: LifecycleCounts;
+  recentCompletions: {
+    lessons: number;
+    journeys: number;
+  };
 };
 
 export function createLifecycleCounts(): LifecycleCounts {
@@ -166,6 +170,9 @@ export async function loadPlayerLearningSummaries(
   prisma: PrismaService,
   playerIds: string[],
 ): Promise<Record<string, PlayerLearningSummary>> {
+  const recentCompletionThreshold = new Date(
+    Date.now() - 90 * 24 * 60 * 60 * 1000,
+  );
   const uniquePlayerIds = [...new Set(playerIds.filter(Boolean))];
   if (uniquePlayerIds.length === 0) return {};
 
@@ -175,6 +182,10 @@ export async function loadPlayerLearningSummaries(
       {
         lessons: createLifecycleCounts(),
         journeys: createLifecycleCounts(),
+        recentCompletions: {
+          lessons: 0,
+          journeys: 0,
+        },
       },
     ]),
   ) as Record<string, PlayerLearningSummary>;
@@ -185,6 +196,7 @@ export async function loadPlayerLearningSummaries(
       select: {
         playerId: true,
         status: true,
+        updatedAt: true,
         block: {
           select: {
             planId: true,
@@ -200,6 +212,7 @@ export async function loadPlayerLearningSummaries(
         playerPlanId: true,
         status: true,
         isInTrainingQueue: true,
+        updatedAt: true,
       },
     }),
   ]);
@@ -243,6 +256,7 @@ export async function loadPlayerLearningSummaries(
           },
           select: {
             status: true,
+            updatedAt: true,
             block: {
               select: {
                 planId: true,
@@ -285,12 +299,17 @@ export async function loadPlayerLearningSummaries(
 
   for (const assignment of journeyAssignments) {
     if (!assignment.playerId) continue;
-    summaries[assignment.playerId].journeys[
-      toLifecycleStatus(
-        journeyStatusesByPlanId.get(assignment.playerPlanId) ??
-          assignment.status,
-      )
-    ] += 1;
+    const lifecycleStatus = toLifecycleStatus(
+      journeyStatusesByPlanId.get(assignment.playerPlanId) ?? assignment.status,
+    );
+    summaries[assignment.playerId].journeys[lifecycleStatus] += 1;
+    if (
+      lifecycleStatus === 'COMPLETED' &&
+      (assignment.updatedAt >= recentCompletionThreshold ||
+        journeyStatusesByPlanId.get(assignment.playerPlanId) !== assignment.status)
+    ) {
+      summaries[assignment.playerId].recentCompletions.journeys += 1;
+    }
   }
 
   const pendingJourneyPlanIds = new Set(
@@ -313,9 +332,14 @@ export async function loadPlayerLearningSummaries(
     ) {
       continue;
     }
-    summaries[assignment.playerId].lessons[
-      toLifecycleStatus(assignment.status)
-    ] += 1;
+    const lifecycleStatus = toLifecycleStatus(assignment.status);
+    summaries[assignment.playerId].lessons[lifecycleStatus] += 1;
+    if (
+      lifecycleStatus === 'COMPLETED' &&
+      assignment.updatedAt >= recentCompletionThreshold
+    ) {
+      summaries[assignment.playerId].recentCompletions.lessons += 1;
+    }
   }
 
   return summaries;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,8 +10,9 @@ import type { CalendarActivity as BaseCalendarActivity } from "@/types/calendar"
 import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
 import {
   LearningProgressSection,
-  hasOpenLifecycleItems,
+  hasVisibleLearningProgress,
 } from "@/components/LearningProgress";
+import { subscribeLearningProgressChanges } from "@/lib/learning-progress-events";
 
 type Team = {
   id: string;
@@ -85,95 +86,103 @@ export default function CoachHome() {
   const [nextUp, setNextUp] = useState<CalendarActivity | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
 
-  useEffect(() => {
-    let ignore = false;
+  const loadDashboardData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [playersRes, teamsRes, me] = await Promise.all([
+        fetch("/api/players/my", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+        fetch("/api/teams", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+        fetch("/api/auth/me", { cache: "no-store" }).then((r) =>
+          r.ok ? r.json() : null,
+        ),
+      ]);
 
-    (async () => {
-      try {
-        const [playersRes, teamsRes, me] = await Promise.all([
-          fetch("/api/players/my", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
-          fetch("/api/teams", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
-          fetch("/api/auth/me", { cache: "no-store" }).then((r) =>
-            r.ok ? r.json() : null,
-          ),
-        ]);
+      const nextPlayers = Array.isArray(playersRes) ? playersRes : [];
+      const nextTeams = Array.isArray(teamsRes) ? teamsRes : [];
+      setPlayers(nextPlayers);
+      setTeams(nextTeams);
 
-        if (ignore) return;
+      const coachCalendarPromise = me?.id
+        ? fetch(`/api/calendar/player/${me.id}`, {
+            cache: "no-store",
+          }).then((r) => (r.ok ? r.json() : null))
+        : Promise.resolve(null);
 
-        const nextPlayers = Array.isArray(playersRes) ? playersRes : [];
-        const nextTeams = Array.isArray(teamsRes) ? teamsRes : [];
-        setPlayers(nextPlayers);
-        setTeams(nextTeams);
+      const [coachCalendar, playerEntries, teamEntries] = await Promise.all([
+        coachCalendarPromise,
+        Promise.all(
+          nextPlayers.map(async (player: Player) => {
+            const [plans, calendar] = await Promise.all([
+              fetch(`/api/development-plans/player/${player.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+              fetch(`/api/calendar/player/${player.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : { slots: [] })),
+            ]);
+            return [
+              player.id,
+              {
+                plans: Array.isArray(plans) ? plans.length : 0,
+                windows: Array.isArray(calendar?.slots) ? calendar.slots.length : 0,
+              },
+            ] as const;
+          }),
+        ),
+        Promise.all(
+          nextTeams.map(async (team: Team) => {
+            const [plans, windows] = await Promise.all([
+              fetch(`/api/development-plans/team/${team.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+              fetch(`/api/calendar/team-slots/${team.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+            ]);
+            return [
+              team.id,
+              {
+                plans: Array.isArray(plans) ? plans.length : 0,
+                windows: Array.isArray(windows) ? windows.length : 0,
+              },
+            ] as const;
+          }),
+        ),
+      ]);
 
-        const coachCalendarPromise = me?.id
-          ? fetch(`/api/calendar/player/${me.id}`, {
-              cache: "no-store",
-            }).then((r) => (r.ok ? r.json() : null))
-          : Promise.resolve(null);
-
-        const [coachCalendar, playerEntries, teamEntries] = await Promise.all([
-          coachCalendarPromise,
-          Promise.all(
-            nextPlayers.map(async (player: Player) => {
-              const [plans, calendar] = await Promise.all([
-                fetch(`/api/development-plans/player/${player.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
-                fetch(`/api/calendar/player/${player.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : { slots: [] })),
-              ]);
-              return [
-                player.id,
-                {
-                  plans: Array.isArray(plans) ? plans.length : 0,
-                  windows: Array.isArray(calendar?.slots) ? calendar.slots.length : 0,
-                },
-              ] as const;
-            })
-          ),
-          Promise.all(
-            nextTeams.map(async (team: Team) => {
-              const [plans, windows] = await Promise.all([
-                fetch(`/api/development-plans/team/${team.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
-                fetch(`/api/calendar/team-slots/${team.id}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
-              ]);
-              return [
-                team.id,
-                {
-                  plans: Array.isArray(plans) ? plans.length : 0,
-                  windows: Array.isArray(windows) ? windows.length : 0,
-                },
-              ] as const;
-            })
-          ),
-        ]);
-
-        if (me?.id) {
-          const nowMs = Date.now();
-          const upcoming = (Array.isArray(coachCalendar?.activities)
-            ? coachCalendar.activities
-            : []
+      if (me?.id) {
+        const nowMs = Date.now();
+        const upcoming = (Array.isArray(coachCalendar?.activities)
+          ? coachCalendar.activities
+          : []
+        )
+          .filter(
+            (activity: CalendarActivity) =>
+              new Date(activity.end).getTime() >= nowMs,
           )
-            .filter(
-              (activity: CalendarActivity) =>
-                new Date(activity.end).getTime() >= nowMs,
-            )
-            .sort(
-              (a: CalendarActivity, b: CalendarActivity) =>
-                new Date(a.start).getTime() - new Date(b.start).getTime(),
-            );
-          if (!ignore) setNextUp(upcoming[0] ?? null);
-        }
-
-        if (ignore) return;
-        setPlayerCounts(Object.fromEntries(playerEntries));
-        setTeamCounts(Object.fromEntries(teamEntries));
-      } finally {
-        if (!ignore) setLoading(false);
+          .sort(
+            (a: CalendarActivity, b: CalendarActivity) =>
+              new Date(a.start).getTime() - new Date(b.start).getTime(),
+          );
+        setNextUp(upcoming[0] ?? null);
       }
-    })();
 
-    return () => {
-      ignore = true;
-    };
+      setPlayerCounts(Object.fromEntries(playerEntries));
+      setTeamCounts(Object.fromEntries(teamEntries));
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadDashboardData();
+  }, [loadDashboardData]);
+
+  useEffect(() => subscribeLearningProgressChanges(() => {
+    void loadDashboardData();
+  }), [loadDashboardData]);
+
+  useEffect(() => {
+    if (!selectedPlayer) return;
+    const nextSelectedPlayer = players.find((player) => player.id === selectedPlayer.id);
+    if (nextSelectedPlayer) {
+      setSelectedPlayer(nextSelectedPlayer);
+      return;
+    }
+    setSelectedPlayer(null);
+  }, [players, selectedPlayer]);
 
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -190,10 +199,7 @@ export default function CoachHome() {
   const activePlayers = useMemo(
     () =>
       players.filter((player) => {
-        const hasAssignments =
-          hasOpenLifecycleItems(player.learningProgress?.journeys) ||
-          hasOpenLifecycleItems(player.learningProgress?.lessons);
-        if (!hasAssignments) return false;
+        if (!hasVisibleLearningProgress(player.learningProgress)) return false;
         if (!normalizedQuery) return true;
         return nameOfPlayer(player).toLowerCase().includes(normalizedQuery);
       }),

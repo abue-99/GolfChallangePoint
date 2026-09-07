@@ -96,7 +96,7 @@ function CompactLearningSummaryRow({
       className={cn("flex items-center gap-2 text-xs text-slate-700", className)}
       aria-label={`${label} summary`}
     >
-      <span className="shrink-0 text-[11px] font-semibold text-slate-500">
+      <span className="w-14 shrink-0 text-left text-[11px] font-semibold text-slate-500">
         {label}
       </span>
       <div className="flex flex-wrap items-center gap-1.5">

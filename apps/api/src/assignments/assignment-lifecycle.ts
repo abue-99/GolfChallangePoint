@@ -267,12 +267,19 @@ export async function loadPlayerLearningSummaries(
 
   const journeyStatusesByPlanId = new Map<string, AssignmentStatus>();
   const planStatuses = new Map<string, string[]>();
+  const planCompletionAtByPlanId = new Map<string, Date>();
   for (const assignment of planLessonAssignments) {
     const planId = assignment.block?.planId;
     if (!planId) continue;
     const statuses = planStatuses.get(planId) ?? [];
     statuses.push(assignment.status);
     planStatuses.set(planId, statuses);
+    if (toLifecycleStatus(assignment.status) === 'COMPLETED') {
+      const currentCompletedAt = planCompletionAtByPlanId.get(planId);
+      if (!currentCompletedAt || assignment.updatedAt > currentCompletedAt) {
+        planCompletionAtByPlanId.set(planId, assignment.updatedAt);
+      }
+    }
   }
 
   await Promise.all(
@@ -302,12 +309,13 @@ export async function loadPlayerLearningSummaries(
     const lifecycleStatus = toLifecycleStatus(
       journeyStatusesByPlanId.get(assignment.playerPlanId) ?? assignment.status,
     );
+    const completionAt =
+      planCompletionAtByPlanId.get(assignment.playerPlanId) ??
+      assignment.updatedAt;
     summaries[assignment.playerId].journeys[lifecycleStatus] += 1;
     if (
       lifecycleStatus === 'COMPLETED' &&
-      (assignment.updatedAt >= recentCompletionThreshold ||
-        journeyStatusesByPlanId.get(assignment.playerPlanId) !==
-          assignment.status)
+      completionAt >= recentCompletionThreshold
     ) {
       summaries[assignment.playerId].recentCompletions.journeys += 1;
     }

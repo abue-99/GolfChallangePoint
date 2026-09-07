@@ -60,8 +60,8 @@ COPY --from=builder /app/packages/db/db.d.ts ./packages/db/db.d.ts
 COPY --from=builder /app/packages/db/generated ./packages/db/generated
 COPY --from=builder /app/packages/db/prisma ./packages/db/prisma
 COPY --from=builder /app/packages/db/prisma.config.ts ./packages/db/prisma.config.ts
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/packages/db/node_modules ./packages/db/node_modules
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=builder /app/packages/db/node_modules ./packages/db/node_modules
 EXPOSE 4000
 CMD ["sh", "-c", "cd /app/packages/db && node_modules/.bin/prisma migrate resolve --rolled-back 20260413100000_fix_coach_player_links_cascade 2>/dev/null || true && cd /app && pnpm --filter @challengepoint/db run migrate:deploy && node apps/api/dist/main.js"]

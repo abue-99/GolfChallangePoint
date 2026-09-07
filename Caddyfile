@@ -8,9 +8,8 @@ golf-challengepoint.com, www.golf-challengepoint.com {
                 reverse_proxy web:3000
         }
 
-        # These routes must pass through the Next.js proxy so that the
-        # httpOnly "token" cookie is converted to an Authorization: Bearer
-        # header before the request reaches NestJS.
+        # Auth-sensitive routes must pass through the Next.js proxy so the
+        # httpOnly "token" cookie can be converted into a bearer Authorization header.
         handle /api/users* {
                 reverse_proxy web:3000
         }

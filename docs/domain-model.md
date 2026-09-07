@@ -535,3 +535,4 @@ Team ──< TeamEvent (coachId on User)
 3. **Assignment-first + plan-linked model**: `LessonAssignment` can either stand alone as a queue item or belong to a `TrainingBlock`; lessons remain reusable across both flows.
 4. **Cascade deletes**: Removing a `User`, `Club`, `Team`, or `Plan` cascades to all child records. `CalendarTask.lessonId` uses `SetNull` on lesson delete.
 5. **Gamification**: `PlayerProfile.xp`, `level`, `currentStreak`, `longestStreak`, and `lastActivityAt` are updated by the `GamificationModule` on relevant player actions.
+6. **Journey assignment queue**: `JourneyTemplateAssignment` stores direct player/team journey assignments as persisted queue records with status lifecycle and target metadata.

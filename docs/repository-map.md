@@ -36,6 +36,7 @@
 | `prisma/migrations/`   | Prisma migration SQL history                       |
 | `prisma/seed.ts`       | Database seed script                               |
 | `index.ts` / `db.ts`   | Re-exports the generated Prisma client             |
+| Prisma generator mode  | Use `prisma-client-js` to keep generated client CommonJS-compatible with API runtime |
 | `package.json`         | Package name: `@challengepoint/db`                 |
 
 ---

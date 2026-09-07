@@ -15,6 +15,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  syncJourneyAssignmentLifecycleForPlanIds,
+  toStoredAssignmentStatus,
+} from '../assignments/assignment-lifecycle';
 
 type JourneyTemplateLessonInput = {
   lessonId: string;
@@ -395,7 +399,7 @@ export class JourneysService {
         coachId,
         playerPlanId: plan.id,
         status: AssignmentStatus.NEW,
-        isInTrainingQueue: true,
+        isInTrainingQueue: false,
         source: 'assignedByCoach',
       },
     });
@@ -525,7 +529,7 @@ export class JourneysService {
   ) {
     const assignment = await this.prisma.journeyTemplateAssignment.findUnique({
       where: { id: assignmentId },
-      select: { id: true, playerId: true, coachId: true },
+      select: { id: true, playerId: true, coachId: true, playerPlanId: true },
     });
     if (!assignment)
       throw new NotFoundException('Journey assignment not found');
@@ -543,7 +547,7 @@ export class JourneysService {
       where: { id: assignmentId },
       data: {
         ...(data.status !== undefined
-          ? { status: data.status as AssignmentStatus }
+          ? { status: toStoredAssignmentStatus(data.status) }
           : {}),
         ...(data.isInTrainingQueue !== undefined
           ? { isInTrainingQueue: Boolean(data.isInTrainingQueue) }
@@ -557,6 +561,21 @@ export class JourneysService {
           },
         },
       },
+    }).then(async (updated) => {
+      await syncJourneyAssignmentLifecycleForPlanIds(this.prisma, [
+        assignment.playerPlanId,
+      ]);
+      return this.prisma.journeyTemplateAssignment.findUnique({
+        where: { id: updated.id },
+        include: {
+          journeyTemplate: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
     });
   }
 }

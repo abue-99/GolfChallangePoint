@@ -1,10 +1,10 @@
-import { AssignmentStatus } from '@challengepoint/db';
 import {
   Injectable,
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { loadPlayerLearningSummaries } from '../assignments/assignment-lifecycle';
 
 @Injectable()
 export class TeamsService {
@@ -36,35 +36,17 @@ export class TeamsService {
         teams.flatMap((team) => team.members.map((member) => member.userId)),
       ),
     ];
-    const activeStatuses: AssignmentStatus[] = [
-      AssignmentStatus.NEW,
-      AssignmentStatus.OPEN,
-      AssignmentStatus.IN_PROGRESS,
-    ];
-
-    const pendingCounts =
-      memberIds.length === 0
-        ? []
-        : await this.prisma.lessonAssignment.groupBy({
-            by: ['playerId'],
-            where: {
-              playerId: { in: memberIds },
-              isInTrainingQueue: true,
-              status: { in: activeStatuses },
-            },
-            _count: { _all: true },
-          });
-
-    const pendingByPlayerId = Object.fromEntries(
-      pendingCounts
-        .filter((row) => Boolean(row.playerId))
-        .map((row) => [row.playerId as string, row._count._all]),
+    const learningProgressByPlayerId = await loadPlayerLearningSummaries(
+      this.prisma,
+      memberIds,
     );
 
     return teams.map((team) => ({
       ...team,
       pendingLessons: team.members.reduce(
-        (sum, member) => sum + (pendingByPlayerId[member.userId] ?? 0),
+        (sum, member) =>
+          sum +
+          (learningProgressByPlayerId[member.userId]?.lessons.PENDING ?? 0),
         0,
       ),
     }));
@@ -128,10 +110,40 @@ export class TeamsService {
     if (userIds.length === 0) return [];
 
     // Step 2: fetch the full user records by ID.
-    return this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       where: { id: { in: userIds } },
       select: userSelect,
     });
+
+    const playerIds = users
+      .filter((user) => user.role === 'PLAYER')
+      .map((user) => user.id);
+    const learningProgressByPlayerId = await loadPlayerLearningSummaries(
+      this.prisma,
+      playerIds,
+    );
+
+    return users.map((user) => ({
+      ...user,
+      pendingLessons:
+        learningProgressByPlayerId[user.id]?.lessons.PENDING ??
+        0,
+      learningProgress:
+        learningProgressByPlayerId[user.id] ?? {
+          lessons: {
+            PENDING: 0,
+            ACCEPTED: 0,
+            ACTIVE: 0,
+            COMPLETED: 0,
+          },
+          journeys: {
+            PENDING: 0,
+            ACCEPTED: 0,
+            ACTIVE: 0,
+            COMPLETED: 0,
+          },
+        },
+    }));
   }
 
   // Keep backward-compat alias

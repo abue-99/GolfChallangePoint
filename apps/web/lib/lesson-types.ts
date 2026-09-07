@@ -1,4 +1,10 @@
 import { CAPABILITY_DEFINITIONS, type CapabilityKey } from "@/lib/player-capabilities";
+import {
+  isActiveLifecycleStatus,
+  isCompletedLifecycleStatus,
+  isPendingLifecycleStatus,
+  normalizeLifecycleStatus,
+} from "@/lib/assignment-lifecycle";
 
 export const FOCUS_AREAS = [
   { value: "SETUP", label: "Setup" },
@@ -57,11 +63,10 @@ export const GOAL_ACHIEVED_OPTIONS = [
 ] as const;
 
 export const ASSIGNMENT_STATUSES = [
-  { value: "NEW", label: "New" },
-  { value: "OPEN", label: "Open" },
-  { value: "IN_PROGRESS", label: "In Progress" },
+  { value: "NEW", label: "Pending" },
+  { value: "OPEN", label: "Accepted" },
+  { value: "IN_PROGRESS", label: "Active" },
   { value: "COMPLETED", label: "Completed" },
-  { value: "ARCHIVED", label: "Archived" },
 ] as const;
 
 export type LessonFocusArea = (typeof FOCUS_AREAS)[number]["value"];
@@ -88,8 +93,9 @@ export function normalizeAssignmentStatus(
     case "OPEN":
     case "IN_PROGRESS":
     case "COMPLETED":
-    case "ARCHIVED":
       return status;
+    case "ARCHIVED":
+      return "COMPLETED";
     case "OUTSTANDING":
       return "OPEN";
     case "STARTED":
@@ -97,32 +103,30 @@ export function normalizeAssignmentStatus(
     case "FINISHED":
       return "COMPLETED";
     case "REVIEWED":
-      return "ARCHIVED";
+      return "COMPLETED";
     default:
       return "OPEN";
   }
 }
 
 export function isPendingAssignmentStatus(status?: string | null): boolean {
-  const normalized = normalizeAssignmentStatus(status);
-  return normalized === "NEW" || normalized === "OPEN";
+  return isPendingLifecycleStatus(status);
 }
 
 export function isStartedAssignmentStatus(status?: string | null): boolean {
-  return normalizeAssignmentStatus(status) === "IN_PROGRESS";
+  return isActiveLifecycleStatus(status);
 }
 
 export function isCompletedAssignmentStatus(status?: string | null): boolean {
-  const normalized = normalizeAssignmentStatus(status);
-  return normalized === "COMPLETED" || normalized === "ARCHIVED";
+  return isCompletedLifecycleStatus(status);
 }
 
 export function toEditableAssignmentStatus(
   status?: string | null
 ): Extract<AssignmentStatus, "OPEN" | "IN_PROGRESS" | "COMPLETED"> {
-  const normalized = normalizeAssignmentStatus(status);
-  if (normalized === "IN_PROGRESS") return "IN_PROGRESS";
-  if (normalized === "COMPLETED" || normalized === "ARCHIVED") {
+  const normalizedLifecycle = normalizeLifecycleStatus(status);
+  if (normalizedLifecycle === "ACTIVE") return "IN_PROGRESS";
+  if (normalizedLifecycle === "COMPLETED") {
     return "COMPLETED";
   }
   return "OPEN";
@@ -228,6 +232,7 @@ export interface LessonAssignment {
   dueDate?: string | null;
   priority: LessonPriority;
   status: AssignmentStatus;
+  isInTrainingQueue?: boolean;
   sortOrder: number;
   playerNotes?: string | null;
   selfAssessment?: number | null;

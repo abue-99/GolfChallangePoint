@@ -7,6 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CalendarDays, Route, Search, Users } from "lucide-react";
 import type { CalendarActivity as BaseCalendarActivity } from "@/types/calendar";
+import PlayerOverviewDialog from "@/components/PlayerOverviewDialog";
+import {
+  LearningProgressSection,
+  hasOpenLifecycleItems,
+} from "@/components/LearningProgress";
 
 type Team = {
   id: string;
@@ -21,6 +26,30 @@ type Player = {
   lastName?: string | null;
   email?: string;
   profileImage?: string | null;
+  phoneNumber?: string | null;
+  timezone?: string | null;
+  lastLogin?: string | null;
+  userClubs?: { clubId: string; club: { id: string; name: string } | null }[];
+  coaches?: {
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string;
+  }[];
+  learningProgress?: {
+    lessons: {
+      PENDING: number;
+      ACCEPTED: number;
+      ACTIVE: number;
+      COMPLETED: number;
+    };
+    journeys: {
+      PENDING: number;
+      ACCEPTED: number;
+      ACTIVE: number;
+      COMPLETED: number;
+    };
+  };
 };
 
 type ItemCount = {
@@ -54,6 +83,7 @@ export default function CoachHome() {
   const [playerCounts, setPlayerCounts] = useState<Record<string, ItemCount>>({});
   const [teamCounts, setTeamCounts] = useState<Record<string, ItemCount>>({});
   const [nextUp, setNextUp] = useState<CalendarActivity | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -157,6 +187,19 @@ export default function CoachHome() {
     [normalizedQuery, playerCounts, players]
   );
 
+  const activePlayers = useMemo(
+    () =>
+      players.filter((player) => {
+        const hasAssignments =
+          hasOpenLifecycleItems(player.learningProgress?.journeys) ||
+          hasOpenLifecycleItems(player.learningProgress?.lessons);
+        if (!hasAssignments) return false;
+        if (!normalizedQuery) return true;
+        return nameOfPlayer(player).toLowerCase().includes(normalizedQuery);
+      }),
+    [normalizedQuery, players],
+  );
+
   const visibleTeams = useMemo(
     () =>
       teams.filter((team) => {
@@ -224,6 +267,62 @@ export default function CoachHome() {
       </section>
 
       <section className="space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-800">Active Players</h2>
+          <p className="text-sm text-slate-500">
+            Pending, accepted, or active assignments at a glance.
+          </p>
+        </div>
+        {loading ? (
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Card key={index} className="min-w-[220px] border border-gray-200 bg-white">
+                <CardContent className="p-4">
+                  <div className="h-20 animate-pulse rounded bg-slate-100" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : activePlayers.length === 0 ? (
+          <EmptyState text="No active players right now." />
+        ) : (
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {activePlayers.map((player) => {
+              const name = nameOfPlayer(player);
+              return (
+                <button
+                  key={player.id}
+                  type="button"
+                  onClick={() => setSelectedPlayer(player)}
+                  className="min-w-[220px] text-left"
+                >
+                  <Card className="h-full border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+                    <CardContent className="flex items-center gap-3 p-4">
+                      <Avatar className="h-14 w-14">
+                        {player.profileImage ? (
+                          <AvatarImage src={player.profileImage} alt={name} />
+                        ) : null}
+                        <AvatarFallback className="bg-blue-100 text-lg text-blue-700">
+                          {initials(name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-slate-800">{name}</p>
+                        <LearningProgressSection
+                          progress={player.learningProgress}
+                          compact
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-3">
         <h2 className="text-lg font-semibold text-slate-800">Teams</h2>
         {loading ? (
           <SkeletonGrid />
@@ -274,7 +373,10 @@ export default function CoachHome() {
                       </Avatar>
                       <div className="space-y-1">
                         <p className="font-medium text-slate-800">{name}</p>
-                        <CountsBadge counts={playerCounts[player.id]} />
+                        <LearningProgressSection
+                          progress={player.learningProgress}
+                          compact
+                        />
                       </div>
                     </CardContent>
                   </Card>
@@ -284,6 +386,12 @@ export default function CoachHome() {
           </div>
         )}
       </section>
+      {selectedPlayer ? (
+        <PlayerOverviewDialog
+          player={selectedPlayer}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      ) : null}
     </div>
   );
 }
